@@ -1,35 +1,40 @@
 /* MediCare Pro — App JS */
 
 function renderSidebar(active) {
+  // Determine base path: empty string if on root (dashboard.html), 'pages/' if inside pages/
+  const isSubPage = window.location.pathname.includes('/pages/');
+  const base = isSubPage ? '' : 'pages/';
+  const dashHref = isSubPage ? '../dashboard.html' : 'dashboard.html';
+
   const sections = [
     {
       label: 'Main',
       items: [
-        { href: '../dashboard.html', icon: '📊', label: 'Dashboard', key: 'dashboard' },
+        { href: dashHref, icon: '📊', label: 'Dashboard', key: 'dashboard' },
       ]
     },
     {
       label: 'Patient Management',
       items: [
-        { href: 'sql-injection.html', icon: '📋', label: 'Patient Records', key: 'sql-injection.html' },
-        { href: 'sql-blind.html', icon: '🔍', label: 'Patient Verification', key: 'sql-blind.html' },
-        { href: 'xss-reflected.html', icon: '🔎', label: 'Patient Search', key: 'xss-reflected.html' },
-        { href: 'xss-stored.html', icon: '📝', label: 'Patient Notes', key: 'xss-stored.html' },
+        { href: base + 'sql-injection.html', icon: '📋', label: 'Patient Records', key: 'sql-injection.html' },
+        { href: base + 'sql-blind.html', icon: '🔍', label: 'Patient Verification', key: 'sql-blind.html' },
+        { href: base + 'xss-reflected.html', icon: '🔎', label: 'Patient Search', key: 'xss-reflected.html' },
+        { href: base + 'xss-stored.html', icon: '📝', label: 'Patient Notes', key: 'xss-stored.html' },
       ]
     },
     {
       label: 'Staff Portal',
       items: [
-        { href: 'brute-force.html', icon: '🔑', label: 'Staff Login', key: 'brute-force.html' },
-        { href: 'csrf.html', icon: '👤', label: 'Profile Settings', key: 'csrf.html' },
+        { href: base + 'brute-force.html', icon: '🔑', label: 'Staff Login', key: 'brute-force.html' },
+        { href: base + 'csrf.html', icon: '👤', label: 'Profile Settings', key: 'csrf.html' },
       ]
     },
     {
       label: 'Administration',
       items: [
-        { href: 'file-inclusion.html', icon: '📁', label: 'Lab Reports', key: 'file-inclusion.html' },
-        { href: 'command-execution.html', icon: '🖥️', label: 'System Diagnostics', key: 'command-execution.html' },
-        { href: 'shell-upload.html', icon: '📤', label: 'Documents', key: 'documents' },
+        { href: base + 'file-inclusion.html', icon: '📁', label: 'Lab Reports', key: 'file-inclusion.html' },
+        { href: base + 'command-execution.html', icon: '🖥️', label: 'System Diagnostics', key: 'command-execution.html' },
+        { href: base + 'shell-upload.html', icon: '📤', label: 'Documents', key: 'documents' },
       ]
     }
   ];
@@ -70,6 +75,9 @@ function renderSidebar(active) {
 }
 
 function renderTopnav(title, subtitle) {
+  const isSubPage = window.location.pathname.includes('/pages/');
+  const logoutHref = isSubPage ? '../index.html' : 'index.html';
+
   return `
     <nav class="topnav">
       <div>
@@ -82,7 +90,7 @@ function renderTopnav(title, subtitle) {
       </svg>
       <div class="topnav-right">
         <div class="status-dot">System Online</div>
-        <button class="btn btn-outline btn-sm" onclick="window.location.href='../index.html'">Sign Out</button>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
     </nav>`;
 }
