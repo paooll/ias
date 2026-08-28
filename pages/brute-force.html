@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brute Force – MediCare Pro Lab</title>
+  <title>Staff Login – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
     .attempt-log { background: #0f172a; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 11.5px; max-height: 240px; overflow-y: auto; margin-top: 12px; }
@@ -23,23 +23,9 @@
       <div id="topnavMount"></div>
       <div class="page-content">
 
-        <div class="vuln-header">
-          <div class="vuln-title-group">
-            <h1>🔐 Brute Force Attack</h1>
-            <p>Patient Portal Login — No Rate Limiting, No Account Lockout</p>
-          </div>
-          <span class="severity-badge sev-high">⚠ High Severity</span>
-        </div>
-
-        <div class="hint-box">
-          <div class="hint-title">🧪 Lab Objective — Attack Payloads</div>
-          <p>This login endpoint has <strong>no rate limiting</strong> and <strong>no account lockout</strong>. Automate credential attempts to find valid credentials.</p>
-          <ul style="margin-top:8px;">
-            <li>Target usernames: <code>admin</code>, <code>doctor</code>, <code>nurse</code></li>
-            <li>Common passwords: <code>admin123</code>, <code>password1</code>, <code>nurse123</code>, <code>123456</code></li>
-            <li>Tool: Use Burp Suite Intruder, Hydra, or the built-in simulator below</li>
-            <li>Curl: <code>curl -X POST /api/login -d '{"username":"admin","password":"FUZZ"}'</code></li>
-          </ul>
+        <div class="page-header">
+          <h1>🔑 Staff Login</h1>
+          <p>Manage staff authentication and access to the patient portal.</p>
         </div>
 
         <div class="grid-2">
@@ -50,30 +36,32 @@
               <h2>Patient Portal Login</h2>
             </div>
             <div class="card-body">
-              <div class="alert alert-warning">
-                <span>⚠️</span>
-                <div><strong>Vulnerability:</strong> No rate limiting, no CAPTCHA, no lockout after failed attempts.</div>
-              </div>
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Test staff login credentials. Use this form to verify that staff accounts can authenticate correctly.
+              </p>
               <div class="form-group">
                 <label class="form-label">Username</label>
                 <input type="text" class="form-control" id="bf-user" placeholder="e.g. admin" value="admin">
               </div>
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" class="form-control" id="bf-pass" placeholder="Enter password to test">
+                <input type="password" class="form-control" id="bf-pass" placeholder="Enter password">
               </div>
               <button class="btn btn-primary" onclick="manualLogin()">Attempt Login</button>
               <div id="manualResult" class="response-box"></div>
             </div>
           </div>
 
-          <!-- Auto Bruteforce Simulator -->
+          <!-- Bulk Login Tester -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-red">🤖</div>
-              <h2>Brute Force Simulator</h2>
+              <div class="card-icon card-icon-teal">🧪</div>
+              <h2>Bulk Credential Check</h2>
             </div>
             <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Verify multiple staff credentials at once against the user directory.
+              </p>
               <div class="form-group">
                 <label class="form-label">Target Username</label>
                 <select class="form-control" id="bf-target-user">
@@ -83,14 +71,14 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Wordlist</label>
+                <label class="form-label">Password List</label>
                 <select class="form-control" id="bf-wordlist">
                   <option value="short">Short List (10 passwords)</option>
                   <option value="medium">Medium List (25 passwords)</option>
                 </select>
               </div>
               <div class="flex gap-2">
-                <button class="btn btn-danger" id="bfStartBtn" onclick="startBruteForce()">▶ Start Attack</button>
+                <button class="btn btn-primary" id="bfStartBtn" onclick="startBruteForce()">▶ Run Check</button>
                 <button class="btn btn-outline" id="bfStopBtn" onclick="stopBruteForce()" disabled>⏹ Stop</button>
               </div>
               <div style="margin-top:12px;" id="bfProgress" class="hidden">
@@ -107,31 +95,6 @@
           </div>
         </div>
 
-        <!-- Vulnerable Code -->
-        <div class="card mt-6" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-red">🐛</div>
-            <h2>Vulnerable Code (api/login.js)</h2>
-          </div>
-          <div class="card-body">
-            <div class="code-block"><span class="c-comment">// ❌ NO rate limiting middleware</span>
-<span class="c-comment">// ❌ NO account lockout after N failures</span>
-<span class="c-comment">// ❌ NO CAPTCHA, NO delay</span>
-module.exports = <span class="c-kw">async</span> (req, res) => {
-  <span class="c-kw">const</span> { username, password } = req.body;
-  <span class="c-kw">const</span> user = db.users.find(u =>
-    u.username === username && u.password === password
-  );
-  <span class="c-kw">if</span> (user) {
-    res.json({ success: <span class="c-val">true</span>, user });
-  } <span class="c-kw">else</span> {
-    res.json({ success: <span class="c-val">false</span>, message: <span class="c-str">'Invalid credentials'</span> });
-  }
-  <span class="c-comment">// ✅ Fix: Use express-rate-limit, bcrypt, lockout after 5 fails</span>
-};</div>
-          </div>
-        </div>
-
       </div>
     </main>
   </div>
@@ -139,7 +102,7 @@ module.exports = <span class="c-kw">async</span> (req, res) => {
   <script src="../js/app.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('brute-force.html');
-    document.getElementById('topnavMount').outerHTML = renderTopnav('Brute Force Attack', 'Patient Portal Login — No rate limiting or lockout protection');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Staff Login', 'Patient Portal Authentication');
 
     const WORDLISTS = {
       short: ['123456','password','admin','admin123','letmein','welcome','monkey','dragon','master','password1'],
@@ -175,14 +138,13 @@ module.exports = <span class="c-kw">async</span> (req, res) => {
           box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
         }
       } catch(e) {
-        // Fallback local simulation
         const match = REAL_CREDS.find(c => c.username === user && c.password === pass);
         if (match) {
           box.classList.remove('error');
           box.textContent = `✅ LOGIN SUCCESS!\nUser: ${match.name}\nRole: ${match.role}\nToken: eyJhbGciOiJub25lIn0.eyJ1c2VyIjoiYWRtaW4ifQ.`;
         } else {
           box.classList.add('error');
-          box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\n[No rate limit — you can try unlimited times]`;
+          box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nInvalid credentials.`;
         }
       }
     }
@@ -213,8 +175,8 @@ module.exports = <span class="c-kw">async</span> (req, res) => {
         log.scrollTop = log.scrollHeight;
       };
 
-      appendLog(`[*] Starting brute force on user: ${username}`, 'log-info');
-      appendLog(`[*] Wordlist: ${list.length} passwords`, 'log-info');
+      appendLog(`[*] Starting credential check for user: ${username}`, 'log-info');
+      appendLog(`[*] Password list: ${list.length} entries`, 'log-info');
       appendLog(`[*] Target: POST /api/login`, 'log-info');
       appendLog('', 'log-info');
 
@@ -225,7 +187,7 @@ module.exports = <span class="c-kw">async</span> (req, res) => {
         if (!bfRunning || i >= list.length) {
           if (i >= list.length) {
             appendLog('', 'log-info');
-            appendLog('[!] Wordlist exhausted. No match found in this list.', 'log-info');
+            appendLog('[!] Password list exhausted. No matching credential found.', 'log-info');
           }
           document.getElementById('bfStartBtn').disabled = false;
           document.getElementById('bfStopBtn').disabled = true;
@@ -266,7 +228,7 @@ module.exports = <span class="c-kw">async</span> (req, res) => {
       const log = document.getElementById('bfLog');
       const line = document.createElement('div');
       line.className = 'log-line log-info';
-      line.textContent = '[!] Attack stopped by user.';
+      line.textContent = '[!] Check stopped by user.';
       log.appendChild(line);
     }
   </script>

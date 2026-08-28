@@ -3,35 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL Injection – MediCare Pro Lab</title>
+  <title>Patient Records – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
- 
+  
   <div class="app-layout">
     <div id="sidebarMount"></div>
     <main class="main">
       <div id="topnavMount"></div>
       <div class="page-content">
 
-        <div class="vuln-header">
-          <div class="vuln-title-group">
-            <h1>💉 SQL Injection</h1>
-            <p>Patient Records Lookup — Unsanitized Input Concatenated Into SQL Query</p>
-          </div>
-          <span class="severity-badge sev-critical">🔴 Critical</span>
-        </div>
-
-        <div class="hint-box">
-          <div class="hint-title">🧪 Lab Objective — Attack Payloads</div>
-          <p>The patient ID input is directly concatenated: <code>SELECT * FROM patients WHERE id = '{INPUT}'</code></p>
-          <ul style="margin-top:8px;">
-            <li>Normal query: <code>1</code></li>
-            <li>Bypass WHERE clause: <code>1' OR '1'='1</code></li>
-            <li>Comment out rest: <code>1'--</code> or <code>1' #</code></li>
-            <li>UNION attack (get users table): <code>1' UNION SELECT id,username,password,role,'' FROM users--</code></li>
-            <li>Drop/manipulate: <code>1'; DROP TABLE patients;--</code></li>
-          </ul>
+        <div class="page-header">
+          <h1>📋 Patient Records</h1>
+          <p>Search and retrieve patient information by ID.</p>
         </div>
 
         <div class="grid-2">
@@ -41,23 +26,22 @@
               <h2>Patient Record Lookup</h2>
             </div>
             <div class="card-body">
-              <div class="alert alert-danger">
-                <span>🚨</span>
-                <div><strong>Vulnerability:</strong> Input is concatenated directly into SQL — no prepared statements used.</div>
-              </div>
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Enter a patient ID to retrieve their records from the database.
+              </p>
               <div class="form-group">
                 <label class="form-label">Patient ID</label>
-                <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1  OR  1' OR '1'='1" value="1">
+                <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
               </div>
               <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:12px;color:#94a3b8;">
-                <span style="color:#64748b;">Generated SQL: </span>
+                <span style="color:#64748b;">Query: </span>
                 <span id="sqlPreview" style="color:#fbbf24;">SELECT * FROM patients WHERE id = '1'</span>
               </div>
-              <button class="btn btn-primary" onclick="doQuery()">Execute Query</button>
+              <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
 
               <div id="sqlResult" style="margin-top:16px;display:none;">
                 <div class="divider"></div>
-                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">Query Results: <span id="resultCount" style="color:var(--red-600);">0 rows</span></p>
+                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">Results: <span id="resultCount" style="color:var(--red-600);">0 rows</span></p>
                 <div style="overflow-x:auto;">
                   <table class="data-table" id="resultsTable">
                     <thead><tr id="tableHead"></tr></thead>
@@ -71,19 +55,17 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-red">⚡</div>
-              <h2>Quick Payload Library</h2>
+              <div class="card-icon card-icon-blue">👥</div>
+              <h2>Quick Select Patient</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Click any payload to auto-fill the input field:</p>
+              <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Click a patient to load their record:</p>
               <div style="display:flex;flex-direction:column;gap:8px;">
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`1`)">1 (normal)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`1' OR '1'='1`)">1' OR '1'='1 (dump all)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`1'--`)">1'-- (comment injection)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`0' UNION SELECT id,username,password,role,ssn FROM users--`)">UNION — dump users table</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`1' AND 1=2--`)">1' AND 1=2-- (false — no result)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`%' OR 1=1--`)">% OR 1=1 (wildcard)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;font-family:monospace;font-size:11px;" onclick="setPayload(`'; DROP TABLE patients;--`)">'; DROP TABLE patients (destructive)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('1')">Patient 1 — Maria Santos (Cardiology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('2')">Patient 2 — Juan Dela Cruz (Endocrinology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('3')">Patient 3 — Ana Reyes (Pulmonology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('4')">Patient 4 — Pedro Bautista (Rheumatology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('5')">Patient 5 — Rosario Garcia (Cardiology)</button>
               </div>
 
               <div class="divider" style="margin:16px 0;"></div>
@@ -97,24 +79,6 @@
           </div>
         </div>
 
-        <div class="card mt-6" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-red">🐛</div>
-            <h2>Vulnerable Code (api/sql.js)</h2>
-          </div>
-          <div class="card-body">
-            <div class="code-block">
-<span class="c-comment">// ❌ VULNERABLE — direct string concatenation</span>
-<span class="c-kw">const</span> query = <span class="c-str">`SELECT * FROM patients WHERE id = '<span class="c-val">${req.query.id}</span>'`</span>;
-db.execute(query); <span class="c-comment">// Direct execution — NO sanitization</span>
-
-<span class="c-comment">// ✅ SECURE — use parameterized queries</span>
-<span class="c-kw">const</span> query = <span class="c-str">"SELECT * FROM patients WHERE id = ?"</span>;
-db.execute(query, [req.query.id]); <span class="c-comment">// Safe binding</span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </main>
   </div>
@@ -122,7 +86,7 @@ db.execute(query, [req.query.id]); <span class="c-comment">// Safe binding</span
   <script src="../js/app.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-injection.html');
-    document.getElementById('topnavMount').outerHTML = renderTopnav('SQL Injection', 'Patient Records Lookup — Direct input concatenation in SQL query');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Records', 'Search and manage patient information');
 
     const DB = {
       patients: [
@@ -216,7 +180,7 @@ db.execute(query, [req.query.id]); <span class="c-comment">// Safe binding</span
 
       if (!results.length) {
         head.innerHTML = '';
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:20px;">No records returned</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:20px;">No records found</td></tr>';
         return;
       }
 

@@ -22,23 +22,6 @@
     .input-icon-wrap .form-control { padding-left: 38px; }
     .forgot { font-size: 12px; color: var(--blue-600); text-decoration: none; font-weight: 500; }
     .forgot:hover { text-decoration: underline; }
-    .labs-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(239,68,68,.15);
-      border: 1px solid rgba(239,68,68,.4);
-      color: #fca5a5;
-      border-radius: 20px;
-      padding: 3px 10px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .8px;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      position: relative;
-      z-index: 1;
-    }
   </style>
 </head>
 <body>
@@ -53,8 +36,6 @@
           <span>Hospital Management System v3.2</span>
         </div>
       </div>
-
-    
 
       <div class="login-tagline">
         <h2>Secure Patient<br>Care Portal</h2>
@@ -86,14 +67,12 @@
             <span id="loginAlertMsg">Invalid credentials. Please try again.</span>
           </div>
           <div id="loginSuccess" class="alert alert-success hidden">
-           
             <span>Authentication successful. Redirecting to dashboard…</span>
           </div>
 
           <div class="form-group">
             <label class="form-label">Username</label>
             <div class="input-icon-wrap">
-             
               <input type="text" class="form-control" id="username" placeholder="Enter username" autocomplete="off">
             </div>
           </div>
@@ -104,7 +83,6 @@
               <a href="#" class="forgot">Forgot password?</a>
             </div>
             <div class="input-icon-wrap">
-            
               <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="off">
             </div>
           </div>
@@ -112,11 +90,7 @@
           <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()" style="justify-content:center;margin-top:4px;">
             Sign In to MediCare Pro
           </button>
-
-         
         </div>
-
-     
       </div>
     </div>
   </div>
