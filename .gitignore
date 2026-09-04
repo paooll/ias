@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets — NEVER commit Firebase service-account keys
+.env
+.env.local
+.env.production
+*.service-account.json
+service-account.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db

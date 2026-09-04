@@ -38,17 +38,17 @@
         <div class="grid-3 mb-4" style="margin-bottom:20px;">
           <div class="card stat-card">
             <div class="stat-icon">🩺</div>
-            <div class="stat-val">247</div>
+            <div class="stat-val" id="statPatients">247</div>
             <div class="stat-label">Total Patients</div>
           </div>
           <div class="card stat-card">
             <div class="stat-icon">🛏️</div>
-            <div class="stat-val">85%</div>
+            <div class="stat-val" id="statBed">85%</div>
             <div class="stat-label">Bed Occupancy</div>
           </div>
           <div class="card stat-card">
             <div class="stat-icon">📋</div>
-            <div class="stat-val">38</div>
+            <div class="stat-val" id="statLabs">38</div>
             <div class="stat-label">Pending Lab Results</div>
           </div>
         </div>
@@ -92,7 +92,7 @@
               <div class="card-icon card-icon-teal">🕐</div>
               <h2>Recent Activity</h2>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="activityFeed">
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--teal-500);"></div>
                 <div>
@@ -143,36 +143,36 @@
               <div class="dept-row">
                 <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Cardiology</div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:90%;background:var(--red-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;">90%</span>
+                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-cardiology" style="width:90%;background:var(--red-500);"></div></div>
+                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-cardiology">90%</span>
                 </div>
               </div>
               <div class="dept-row">
                 <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Endocrinology</div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:75%;background:var(--orange-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;">75%</span>
+                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-endocrinology" style="width:75%;background:var(--orange-500);"></div></div>
+                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-endocrinology">75%</span>
                 </div>
               </div>
               <div class="dept-row">
                 <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Pulmonology</div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:60%;background:var(--teal-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;">60%</span>
+                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-pulmonology" style="width:60%;background:var(--teal-500);"></div></div>
+                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-pulmonology">60%</span>
                 </div>
               </div>
               <div class="dept-row">
                 <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Pediatrics</div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:55%;background:var(--blue-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;">55%</span>
+                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-pediatrics" style="width:55%;background:var(--blue-500);"></div></div>
+                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-pediatrics">55%</span>
                 </div>
               </div>
               <div class="dept-row">
                 <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Neurology</div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:40%;background:var(--teal-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;">40%</span>
+                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-neurology" style="width:40%;background:var(--teal-500);"></div></div>
+                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-neurology">40%</span>
                 </div>
               </div>
             </div>
@@ -221,6 +221,10 @@
   </div>
 
   <script src="js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('dashboard');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Dashboard', 'Welcome back — here\'s your daily overview');
@@ -231,6 +235,57 @@
       sessionStorage.removeItem('mpro_user');
       window.location.href = 'index.html';
     }
+
+    // ---- Firestore-driven dashboard (falls back to the hardcoded markup above) ----
+    (async function initDashboard() {
+      try {
+        const ctx = await window.mproFirebase;
+        if (!ctx || !ctx.configured || !ctx.auth.currentUser) return;
+
+        const data = await window.mproDb.getDashboard();
+        if (!data) return;
+
+        const { patients, pendingLabs, activity } = data;
+
+        // Stats
+        const admitted = patients.filter(p => p.status === 'Admitted').length;
+        const occupancy = Math.round((admitted / Math.max(1, patients.length)) * 100);
+        document.getElementById('statPatients').textContent = patients.length;
+        document.getElementById('statBed').textContent = occupancy + '%';
+        document.getElementById('statLabs').textContent = pendingLabs;
+
+        // Recent Activity (escape text — this feed is not a lab)
+        const feed = document.getElementById('activityFeed');
+        if (feed && activity.length) {
+          const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+          const colors = { lab: 'var(--teal-500)', admission: 'var(--blue-500)', treatment: 'var(--orange-500)', discharge: 'var(--red-500)', system: 'var(--gray-400)', note: 'var(--teal-500)' };
+          feed.innerHTML = activity.map(a => `
+            <div class="activity-item">
+              <div class="activity-dot" style="background:${colors[a.type] || 'var(--teal-500)'};"></div>
+              <div>
+                <div class="activity-text">${esc(a.text)}</div>
+                <div class="activity-time">${window.mproDb.timeAgo(a.createdAt)} · ${esc(a.dept)}</div>
+              </div>
+            </div>`).join('');
+        }
+
+        // Department Overview bars (admitted / total per department)
+        const DEPTS = ['Cardiology', 'Endocrinology', 'Pulmonology', 'Pediatrics', 'Neurology'];
+        DEPTS.forEach(dept => {
+          const inDept = patients.filter(p => p.department === dept);
+          if (!inDept.length) return;
+          const pct = Math.round((inDept.filter(p => p.status === 'Admitted').length / inDept.length) * 100);
+          const key = dept.toLowerCase();
+          const fill = document.getElementById('fill-' + key);
+          const label = document.getElementById('pct-' + key);
+          if (fill) fill.style.width = pct + '%';
+          if (label) label.textContent = pct + '%';
+        });
+      } catch (e) {
+        console.warn('Dashboard Firestore load skipped (fallback shown):', e.message);
+      }
+    })();
   </script>
 </body>
-</html>
+</html>

@@ -75,6 +75,9 @@
 <span class="c-kw">TABLE</span> users (id, username, password, role, email)
 <span class="c-kw">TABLE</span> lab_results (id, patient_id, test, result, date)
               </div>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="dataSourceNote">
+                Data source: simulated demo database.
+              </p>
             </div>
           </div>
         </div>
@@ -84,6 +87,10 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-injection.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Records', 'Search and manage patient information');
@@ -103,6 +110,33 @@
         { id: 4, username: 'radiologist', password: 'xray2024', role: 'Radiologist', email: 'rad@medicare.ph' },
       ]
     };
+
+    // When Firebase is configured, replace the simulated patient data with the
+    // real Firestore records — the SQLi simulation then operates on live data.
+    let dbFromFirestore = false;
+
+    (async function loadFirestorePatients() {
+      try {
+        const patients = await window.mproDb.getPatients();
+        if (!patients || !patients.length) return;
+        DB.patients = patients.map(p => ({
+          id: p.id,
+          patientId: p.patientId,
+          name: p.name,
+          diagnosis: p.diagnosis,
+          department: p.department,
+          room: p.room,
+          status: p.status,
+          ssn: p.ssn,
+          notes: p.notes,
+        }));
+        dbFromFirestore = true;
+        document.getElementById('dataSourceNote').textContent =
+          `Data source: Firestore (${DB.patients.length} patient records). The SQL injection simulation runs against this live data.`;
+      } catch (e) {
+        // Firebase not configured — keep the simulated demo data.
+      }
+    })();
 
     document.getElementById('sqlInput').addEventListener('input', updatePreview);
 
@@ -157,6 +191,14 @@
     async function doQuery() {
       const input = document.getElementById('sqlInput').value;
 
+      // With Firestore data loaded, run the simulation client-side on live
+      // records. Otherwise prefer the server API, then fall back to simulation.
+      if (dbFromFirestore) {
+        const { results, tableName, log } = simulateSQLi(input);
+        renderResults(results, `SELECT * FROM patients WHERE id = '${input}'`, tableName, log);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/sql?id=${encodeURIComponent(input)}`);
         const data = await res.json();
@@ -192,4 +234,4 @@
     }
   </script>
 </body>
-</html>
+</html>

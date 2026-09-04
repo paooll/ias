@@ -47,6 +47,9 @@
                 <button class="btn btn-primary" onclick="addNote()">💾 Save Note</button>
                 <button class="btn btn-outline btn-sm" onclick="clearNotes()">🗑 Clear All</button>
               </div>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="noteSourceHint">
+                Notes are stored in this browser (localStorage).
+              </p>
             </div>
           </div>
 
@@ -69,6 +72,10 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('xss-stored.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Notes', 'Clinical observations and care notes');
@@ -81,8 +88,7 @@
       localStorage.setItem('mpro_notes', JSON.stringify(notes));
     }
 
-    function renderNotes() {
-      const notes = getNotes();
+    function renderNoteList(notes) {
       const feed = document.getElementById('notesFeed');
 
       if (!notes.length) {
@@ -90,6 +96,7 @@
         return;
       }
 
+      // ❌ VULNERABLE: notes rendered with innerHTML — stored XSS payloads execute (lab)
       feed.innerHTML = notes.map(n => `
         <div class="note-item">
           <div class="note-meta">
@@ -101,6 +108,22 @@
       `).join('');
     }
 
+    async function renderNotes() {
+      // Prefer Firestore (persists for all staff); fall back to localStorage.
+      try {
+        const firestoreNotes = await window.mproDb.getNotes();
+        if (firestoreNotes) {
+          document.getElementById('noteSourceHint').textContent =
+            'Notes are stored in Firestore and shared with all signed-in staff. Clear All removes notes authored by you.';
+          renderNoteList(firestoreNotes);
+          return;
+        }
+      } catch (e) { /* fall back */ }
+
+      document.getElementById('noteSourceHint').textContent = 'Notes are stored in this browser (localStorage).';
+      renderNoteList(getNotes());
+    }
+
     async function addNote() {
       const patient = document.getElementById('notePatient').value.trim();
       const content = document.getElementById('noteContent').value.trim();
@@ -108,6 +131,21 @@
 
       const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Dr. Anonymous"}');
 
+      // Firestore path (persistent, shared)
+      try {
+        const added = await window.mproDb.addNote({
+          patient,
+          content,
+          author: userData.name || 'Dr. Anonymous',
+        });
+        if (added) {
+          document.getElementById('noteContent').value = '';
+          await renderNotes();
+          return;
+        }
+      } catch (e) { /* fall through */ }
+
+      // Existing server API path
       try {
         const res = await fetch('/api/xss-stored', {
           method: 'POST',
@@ -116,18 +154,13 @@
         });
         const data = await res.json();
         if (data.notes) {
-          const feed = document.getElementById('notesFeed');
-          feed.innerHTML = data.notes.map(n => `
-            <div class="note-item">
-              <div class="note-meta"><span>Patient: <strong>${n.patient}</strong> &nbsp;|&nbsp; <span class="note-author">${n.author}</span></span><span>${n.time}</span></div>
-              <div class="note-content">${n.content}</div>
-            </div>
-          `).join('');
+          renderNoteList(data.notes);
           document.getElementById('noteContent').value = '';
           return;
         }
       } catch(e) {}
 
+      // Local fallback
       const notes = getNotes();
       notes.push({
         patient,
@@ -140,7 +173,16 @@
       document.getElementById('noteContent').value = '';
     }
 
-    function clearNotes() {
+    async function clearNotes() {
+      // Firestore path: deletes notes authored by the signed-in user (rules enforce this)
+      try {
+        const removed = await window.mproDb.clearMyNotes();
+        if (removed !== null) {
+          await renderNotes();
+          return;
+        }
+      } catch (e) { /* fall back */ }
+
       localStorage.removeItem('mpro_notes');
       renderNotes();
     }

@@ -22,6 +22,8 @@
     .input-icon-wrap .form-control { padding-left: 38px; }
     .forgot { font-size: 12px; color: var(--blue-600); text-decoration: none; font-weight: 500; }
     .forgot:hover { text-decoration: underline; }
+    .demo-creds { margin-top: 14px; padding: 10px 12px; background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 8px; font-size: 11px; color: var(--gray-500); line-height: 1.7; }
+    .demo-creds code { background: var(--gray-100); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
   </style>
 </head>
 <body>
@@ -90,11 +92,21 @@
           <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()" style="justify-content:center;margin-top:4px;">
             Sign In to MediCare Pro
           </button>
+
+          <div class="demo-creds">
+            <strong>Demo accounts</strong> (seeded via Firebase Auth):<br>
+            <code>admin / admin123</code> · <code>doctor / password1</code> · <code>nurse / nurse123</code>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Firebase (compat SDK) — session is established with the custom token from /api/login -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
   <script>
     async function doLogin() {
       const btn = document.getElementById('loginBtn');
@@ -125,6 +137,21 @@
 
         if (data.success) {
           sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+
+          // Establish the Firebase Auth SDK session (custom token from the API)
+          // so Firestore reads/writes work on the pages that follow. This is
+          // non-fatal: without Firebase configured the site still works offline.
+          try {
+            if (data.customToken && window.mproFirebase) {
+              const ctx = await window.mproFirebase;
+              if (ctx && ctx.auth) {
+                await ctx.auth.signInWithCustomToken(data.customToken);
+              }
+            }
+          } catch (e) {
+            console.warn('Firebase session not established:', e.message);
+          }
+
           success.classList.remove('hidden');
           setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
         } else {
@@ -159,4 +186,4 @@
     });
   </script>
 </body>
-</html>
+</html>

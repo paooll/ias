@@ -1,25 +1,57 @@
 /**
- * MediCare Pro — VULNERABLE Login API
- * ❌ No rate limiting
- * ❌ No account lockout
- * ❌ Passwords stored in plain text
- * ❌ No CAPTCHA
- * ❌ Verbose error messages
+ * MediCare Pro — Staff Login API
+ * ---------------------------------------------------------------------------
+ * Backed by Firebase Authentication (Email/Password):
+ *   1. Looks up the staff profile in Firestore by username.
+ *   2. Signs the user in via the Firebase Auth REST API (web API key).
+ *   3. Creates a short-lived custom token (Admin SDK) that the client uses to
+ *      establish a persisted SDK session so Firestore works on later pages.
+ *
+ * Kept intentionally "verbose" (username-exists vs wrong-password) because the
+ * brute-force lab page teaches about that. Firebase Auth itself rate-limits
+ * sign-in attempts, which is the real-world mitigation for brute forcing.
+ *
+ * If Firebase env vars are NOT configured, it falls back to the legacy
+ * in-memory users so the site still works before setup (graceful degradation).
  */
+let admin = null;
+try {
+  admin = require('firebase-admin');
+} catch (e) {
+  // firebase-admin not installed locally — legacy fallback still works.
+}
 
-// Simulated user database (plain text passwords — another vulnerability!)
-const USERS = [
-  { id: 1, username: 'admin',       password: 'admin123',  role: 'Administrator', name: 'Dr. Admin',       email: 'admin@medicare.ph' },
-  { id: 2, username: 'doctor',      password: 'password1', role: 'Physician',     name: 'Dr. Santos',      email: 'santos@medicare.ph' },
-  { id: 3, username: 'nurse',       password: 'nurse123',  role: 'Nurse',         name: 'Nurse Reyes',     email: 'reyes@medicare.ph' },
-  { id: 4, username: 'radiologist', password: 'xray2024',  role: 'Radiologist',   name: 'Dr. Bautista',    email: 'bautista@medicare.ph' },
+// Legacy fallback users (used only when Firebase is not configured)
+const LEGACY_USERS = [
+  { id: 1, username: 'admin',       password: 'admin123',  role: 'Administrator', name: 'Dr. Admin',    email: 'admin@medicare.ph' },
+  { id: 2, username: 'doctor',      password: 'password1', role: 'Physician',     name: 'Dr. Santos',   email: 'santos@medicare.ph' },
+  { id: 3, username: 'nurse',       password: 'nurse123',  role: 'Nurse',         name: 'Nurse Reyes',  email: 'reyes@medicare.ph' },
+  { id: 4, username: 'radiologist', password: 'xray2024',  role: 'Radiologist',   name: 'Dr. Bautista', email: 'bautista@medicare.ph' },
 ];
 
-// ❌ No rate limit state (would need Redis/DB for persistence, but we track in-memory)
-const attempts = {};
+function legacyLogin(username, password) {
+  const user = LEGACY_USERS.find((u) => u.username === username && u.password === password);
+  if (user) {
+    const { password: _pw, ...safeUser } = user;
+    return { success: true, user: safeUser, message: null };
+  }
+  const userExists = LEGACY_USERS.find((u) => u.username === username);
+  return {
+    success: false,
+    message: userExists ? 'Incorrect password. Please try again.' : 'User not found.',
+  };
+}
+
+function getAdmin() {
+  const saJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!saJson) return null;
+  if (admin && admin.apps.length === 0) {
+    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(saJson)) });
+  }
+  return admin && admin.apps.length ? admin : null;
+}
 
 module.exports = async (req, res) => {
-  // Allow CORS from anywhere — another vulnerability
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -28,33 +60,72 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username, password } = req.body || {};
-
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
-  // ❌ VULNERABLE: No rate limiting — unlimited attempts
-  // A secure implementation would:
-  //   1. Track attempts per IP with express-rate-limit
-  //   2. Lock account after 5 failed attempts
-  //   3. Use bcrypt to compare hashed passwords
-  //   4. Add CAPTCHA after 3 failures
+  const firebaseApp = getAdmin();
+  const apiKey = process.env.FIREBASE_WEB_API_KEY;
 
-  const user = USERS.find(u => u.username === username && u.password === password);
+  // ---- Firebase path (configured) ---------------------------------------
+  if (firebaseApp && apiKey) {
+    try {
+      // 1) Find staff profile by username (Admin SDK bypasses rules on purpose)
+      const staffSnap = await firebaseApp
+        .firestore()
+        .collection('staff')
+        .where('username', '==', username)
+        .limit(1)
+        .get();
 
-  if (user) {
-    // Log successful login (but don't return sensitive fields)
-    console.log(`[LOGIN] Success: ${username} @ ${new Date().toISOString()}`);
-    const { password: _, ...safeUser } = user;
-    return res.status(200).json({ success: true, user: safeUser });
+      if (staffSnap.empty) {
+        console.log(`[LOGIN] Failed (no such user): ${username} @ ${new Date().toISOString()}`);
+        return res.status(200).json({ success: false, message: 'User not found.' });
+      }
+      const staff = staffSnap.docs[0].data();
+
+      // 2) Sign in with Firebase Auth REST API
+      const authRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: staff.email, password, returnSecureToken: true }),
+        }
+      );
+      const authData = await authRes.json();
+
+      if (authData.error) {
+        const knownUser = staffSnap.size > 0; // staff doc exists -> valid username
+        console.log(`[LOGIN] Failed: ${username} @ ${new Date().toISOString()} (${authData.error.message})`);
+        return res.status(200).json({
+          success: false,
+          message: knownUser ? 'Incorrect password. Please try again.' : 'User not found.',
+        });
+      }
+
+      // 3) Custom token so the browser SDK session persists (Firestore access)
+      const customToken = await firebaseApp.auth().createCustomToken(authData.localId);
+
+      const safeUser = {
+        uid: authData.localId,
+        username: staff.username,
+        name: staff.name,
+        role: staff.role,
+        department: staff.department || '',
+        email: staff.email,
+      };
+
+      console.log(`[LOGIN] Success: ${username} @ ${new Date().toISOString()}`);
+      return res.status(200).json({ success: true, user: safeUser, token: authData.idToken, customToken });
+    } catch (e) {
+      console.error('[LOGIN] Firebase error:', e.message);
+      return res.status(500).json({ success: false, message: 'Authentication service unavailable. Please try again.' });
+    }
   }
 
-  // ❌ VULNERABLE: Verbose error — confirms username exists vs wrong password
-  const userExists = USERS.find(u => u.username === username);
-  const message = userExists
-    ? 'Incorrect password. Please try again.'  // ← reveals username is valid!
-    : 'User not found.';                        // ← reveals username is invalid!
-
-  console.log(`[LOGIN] Failed: ${username} @ ${new Date().toISOString()}`);
-  return res.status(200).json({ success: false, message });
+  // ---- Legacy fallback path (Firebase not configured) --------------------
+  const result = legacyLogin(username, password);
+  console.log(`[LOGIN] ${result.success ? 'Success' : 'Failed'}: ${username} @ ${new Date().toISOString()}`);
+  return res.status(200).json(result);
 };

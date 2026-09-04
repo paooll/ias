@@ -58,6 +58,9 @@
               </div>
 
               <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="profileSourceHint">
+                Profile changes are stored in this session.
+              </p>
             </div>
           </div>
 
@@ -97,6 +100,10 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('csrf.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Profile Settings', 'Manage your account information');
@@ -104,6 +111,28 @@
     const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Administrator","role":"Admin","username":"admin"}');
     document.getElementById('accountRole').textContent = userData.role || 'Administrator';
     document.getElementById('accountUser').textContent = userData.username || 'admin';
+
+    // Load the real profile from Firestore when available (persists across sessions).
+    (async function loadProfile() {
+      try {
+        const profile = await window.mproDb.getOwnProfile();
+        if (!profile) return;
+        document.getElementById('pName').value = profile.name || '';
+        document.getElementById('pEmail').value = profile.email || '';
+        const deptSelect = document.getElementById('pDept');
+        if (profile.department) {
+          if (![...deptSelect.options].some(o => o.value === profile.department)) {
+            const opt = document.createElement('option');
+            opt.value = profile.department;
+            opt.textContent = profile.department;
+            deptSelect.appendChild(opt);
+          }
+          deptSelect.value = profile.department;
+        }
+        document.getElementById('profileSourceHint').textContent =
+          'Profile is stored in Firestore and synced with your staff account.';
+      } catch (e) { /* Firebase not configured — keep defaults */ }
+    })();
 
     async function updateProfile() {
       const payload = {
@@ -113,6 +142,7 @@
         password: document.getElementById('pPass').value
       };
 
+      // CSRF lab: the insecure endpoint still accepts the update from any origin.
       try {
         const res = await fetch('/api/csrf-update', {
           method: 'POST',
@@ -121,6 +151,21 @@
         });
         await res.json();
       } catch(e) {}
+
+      // Real persistence: write to the Firestore staff document for this user.
+      try {
+        const updated = await window.mproDb.updateOwnProfile({
+          name: payload.name,
+          email: payload.email,
+          department: payload.dept,
+        });
+        if (updated) {
+          document.getElementById('profileSourceHint').textContent =
+            'Profile is stored in Firestore and synced with your staff account.';
+        }
+      } catch (e) {
+        console.warn('Firestore profile update skipped:', e.message);
+      }
 
       const user = JSON.parse(sessionStorage.getItem('mpro_user') || '{}');
       user.name = payload.name;

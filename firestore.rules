@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// MediCare Pro – Firestore Security Rules
+// ---------------------------------------------------------------------------
+// Principles:
+//  * NOTHING is readable or writable by unauthenticated users.
+//  * Reference data (patients, lab_reports) is written ONLY via the Admin SDK
+//    (seed script / server functions) — clients may read when signed in.
+//  * Users may create/update/delete their OWN notes and their OWN staff profile.
+//  * Seeding must be done with a service account (Admin SDK bypasses rules);
+//    regular client code can never bulk-write or wipe the database.
+// ---------------------------------------------------------------------------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ---- Staff profiles (created by seed script / /api/login via Admin SDK) ----
+    // Clients can read/update only their own profile document (doc id == auth uid).
+    match /staff/{uid} {
+      allow read:   if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // ---- Patient records ----
+    // Read-only for authenticated staff. Writes happen only through the
+    // Admin SDK (seed script), never from the browser.
+    match /patients/{patientId} {
+      allow read:  if signedIn();
+      allow write: if false;
+    }
+
+    // ---- Clinical notes (stored-XSS lab) ----
+    // Authenticated staff can read all notes, but only create/update/delete
+    // notes they authored themselves.
+    match /notes/{noteId} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.authorUid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
+    // ---- Lab reports ----
+    // Read-only for authenticated staff, written only via Admin SDK (seed).
+    match /lab_reports/{reportId} {
+      allow read:  if signedIn();
+      allow write: if false;
+    }
+
+    // ---- Activity feed ----
+    // Authenticated staff can read; activity entries are created by the app
+    // (signed-in users) but never edited or deleted from the browser.
+    match /activity/{activityId} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

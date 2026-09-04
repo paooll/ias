@@ -2,6 +2,7 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/login", "destination": "/api/login.js" },
+    { "source": "/api/firebase-config", "destination": "/api/firebase-config.js" },
     { "source": "/api/execute", "destination": "/api/execute.js" },
     { "source": "/api/sql", "destination": "/api/sql.js" },
     { "source": "/api/sql-blind", "destination": "/api/sql-blind.js" },
@@ -10,4 +11,4 @@
     { "source": "/api/csrf-update", "destination": "/api/csrf-update.js" },
     { "source": "/api/xss-stored", "destination": "/api/xss-stored.js" }
   ]
-}
+}

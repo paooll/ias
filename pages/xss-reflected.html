@@ -43,6 +43,7 @@
                   <thead><tr><th>Patient ID</th><th>Name</th><th>Department</th><th>Status</th></tr></thead>
                   <tbody id="mockResults"></tbody>
                 </table>
+                <p style="font-size:11px;color:var(--gray-500);margin-top:8px;" id="searchSourceNote"></p>
               </div>
             </div>
           </div>
@@ -78,6 +79,10 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('xss-reflected.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Search', 'Search patients by name across departments');
@@ -93,23 +98,43 @@
       { id: 'P-001', name: 'Maria Santos', dept: 'Cardiology', status: 'Admitted' },
       { id: 'P-002', name: 'Juan Dela Cruz', dept: 'Endocrinology', status: 'Outpatient' },
       { id: 'P-003', name: 'Ana Reyes', dept: 'Pulmonology', status: 'Admitted' },
+      { id: 'P-004', name: 'Pedro Bautista', dept: 'Rheumatology', status: 'Outpatient' },
+      { id: 'P-005', name: 'Rosario Garcia', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-006', name: 'Jose Ramirez', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-015', name: 'Teresa Flores', dept: 'Pulmonology', status: 'Admitted' },
+      { id: 'P-026', name: 'Victor Manalo', dept: 'Neurology', status: 'Admitted' },
     ];
 
-    function doSearch() {
+    async function doSearch() {
       const input = document.getElementById('searchInput').value;
       const results = document.getElementById('searchResults');
       const reflected = document.getElementById('reflectedOutput');
       const tbody = document.getElementById('mockResults');
+      const note = document.getElementById('searchSourceNote');
 
       results.classList.remove('hidden');
 
-      // ❌ VULNERABLE: innerHTML — scripts and HTML execute
+      // ❌ VULNERABLE: innerHTML — scripts and HTML execute (reflected XSS lab)
       reflected.innerHTML = input;
+
+      // Prefer real Firestore data; fall back to the mock list.
+      try {
+        const real = await window.mproDb.searchPatients(input);
+        if (real) {
+          const mapped = real.map(p => ({ id: p.patientId, name: p.name, dept: p.department, status: p.status }));
+          tbody.innerHTML = (mapped.length ? mapped : MOCK_PATIENTS).map(p =>
+            `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.dept}</td><td><span style="background:var(--teal-100);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${p.status}</span></td></tr>`
+          ).join('');
+          note.textContent = mapped.length ? `Source: Firestore — ${mapped.length} record(s) found.` : '';
+          return;
+        }
+      } catch (e) { /* fall through to mock */ }
 
       const filtered = MOCK_PATIENTS.filter(p => p.name.toLowerCase().includes(input.toLowerCase().replace(/<[^>]*>/g, '')));
       tbody.innerHTML = (filtered.length ? filtered : MOCK_PATIENTS).map(p =>
         `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.dept}</td><td><span style="background:var(--teal-100);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${p.status}</span></td></tr>`
       ).join('');
+      note.textContent = 'Source: simulated demo data.';
     }
 
     function injectPayload(p) {
