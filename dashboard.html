@@ -20,6 +20,7 @@
     .quick-link .ql-icon { font-size:20px; width:24px; text-align:center; }
     .quick-link .ql-label { font-size:13px; font-weight:600; }
     .quick-link .ql-desc { font-size:11px; color:var(--gray-500); }
+    .stat-sub { font-size:11px; color:var(--gray-500); font-weight:500; margin-top:2px; }
   </style>
 </head>
 <body>
@@ -38,18 +39,21 @@
         <div class="grid-3 mb-4" style="margin-bottom:20px;">
           <div class="card stat-card">
             <div class="stat-icon">🩺</div>
-            <div class="stat-val" id="statPatients">247</div>
+            <div class="stat-val" id="statPatients">50</div>
             <div class="stat-label">Total Patients</div>
+            <div class="stat-sub" id="statPatientsSub">38 admitted · 12 outpatient</div>
           </div>
           <div class="card stat-card">
             <div class="stat-icon">🛏️</div>
-            <div class="stat-val" id="statBed">85%</div>
+            <div class="stat-val" id="statBed">76%</div>
             <div class="stat-label">Bed Occupancy</div>
+            <div class="stat-sub" id="statBedSub">38 of 50 beds in use</div>
           </div>
           <div class="card stat-card">
             <div class="stat-icon">📋</div>
-            <div class="stat-val" id="statLabs">38</div>
+            <div class="stat-val" id="statLabs">5</div>
             <div class="stat-label">Pending Lab Results</div>
+            <div class="stat-sub" id="statLabsSub">awaiting results</div>
           </div>
         </div>
 
@@ -96,36 +100,57 @@
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--teal-500);"></div>
                 <div>
-                  <div class="activity-text">Lab results uploaded for <strong>Patient P-002</strong> (Juan Dela Cruz)</div>
+                  <div class="activity-text">Lab results uploaded for Patient P-002 (Juan Dela Cruz)</div>
                   <div class="activity-time">10 minutes ago · Lab Department</div>
                 </div>
               </div>
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--blue-500);"></div>
                 <div>
-                  <div class="activity-text">New patient admitted to <strong>Cardiology Ward</strong> — Room 214</div>
+                  <div class="activity-text">New patient admitted to Cardiology Ward — Room 103</div>
                   <div class="activity-time">25 minutes ago · Admissions</div>
                 </div>
               </div>
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--orange-500);"></div>
                 <div>
-                  <div class="activity-text">Dr. Santos updated treatment plan for <strong>Maria Santos (P-001)</strong></div>
+                  <div class="activity-text">Dr. Santos updated treatment plan for Maria Santos (P-001)</div>
                   <div class="activity-time">1 hour ago · Dr. Santos</div>
                 </div>
               </div>
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--red-500);"></div>
                 <div>
-                  <div class="activity-text">Discharge summary completed for <strong>Ana Reyes (P-003)</strong></div>
+                  <div class="activity-text">Discharge summary completed for Ana Reyes (P-003)</div>
                   <div class="activity-time">2 hours ago · Nursing Staff</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot" style="background:var(--gray-400);"></div>
+                <div>
+                  <div class="activity-text">System backup completed successfully</div>
+                  <div class="activity-time">2 hours ago · System</div>
                 </div>
               </div>
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--teal-500);"></div>
                 <div>
-                  <div class="activity-text">System backup completed successfully</div>
-                  <div class="activity-time">2 hours ago · System</div>
+                  <div class="activity-text">Chest X-Ray uploaded for Patient P-003 (Ana Reyes)</div>
+                  <div class="activity-time">3 hours ago · Radiology</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot" style="background:var(--blue-500);"></div>
+                <div>
+                  <div class="activity-text">New patient admitted to Pediatrics Ward — Room 402</div>
+                  <div class="activity-time">4 hours ago · Admissions</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot" style="background:var(--teal-500);"></div>
+                <div>
+                  <div class="activity-text">Clinical note added for Patient P-005 (Rosario Garcia)</div>
+                  <div class="activity-time">5 hours ago · Dr. Santos</div>
                 </div>
               </div>
             </div>
@@ -139,43 +164,7 @@
               <div class="card-icon card-icon-orange">🏥</div>
               <h2>Department Overview</h2>
             </div>
-            <div class="card-body">
-              <div class="dept-row">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Cardiology</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-cardiology" style="width:90%;background:var(--red-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-cardiology">90%</span>
-                </div>
-              </div>
-              <div class="dept-row">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Endocrinology</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-endocrinology" style="width:75%;background:var(--orange-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-endocrinology">75%</span>
-                </div>
-              </div>
-              <div class="dept-row">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Pulmonology</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-pulmonology" style="width:60%;background:var(--teal-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-pulmonology">60%</span>
-                </div>
-              </div>
-              <div class="dept-row">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Pediatrics</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-pediatrics" style="width:55%;background:var(--blue-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-pediatrics">55%</span>
-                </div>
-              </div>
-              <div class="dept-row">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Neurology</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="dept-bar-bg"><div class="dept-bar-fill" id="fill-neurology" style="width:40%;background:var(--teal-500);"></div></div>
-                  <span style="font-size:11px;color:var(--gray-500);width:30px;text-align:right;" id="pct-neurology">40%</span>
-                </div>
-              </div>
-            </div>
+            <div class="card-body" id="deptOverview"></div>
           </div>
 
           <!-- Today's Schedule -->
@@ -236,7 +225,49 @@
       window.location.href = 'index.html';
     }
 
-    // ---- Firestore-driven dashboard (falls back to the hardcoded markup above) ----
+    // ---- Department data: fallback mirrors the seeded Firestore records ----
+    const FALLBACK_DEPTS = [
+      { name: 'Cardiology',         admitted: 6, total: 7 },
+      { name: 'Endocrinology',      admitted: 3, total: 5 },
+      { name: 'Pulmonology',        admitted: 4, total: 4 },
+      { name: 'Rheumatology',       admitted: 0, total: 2 },
+      { name: 'Pediatrics',         admitted: 5, total: 7 },
+      { name: 'Neurology',          admitted: 5, total: 6 },
+      { name: 'Gastroenterology',   admitted: 3, total: 4 },
+      { name: 'Orthopedics',        admitted: 4, total: 5 },
+      { name: 'General Medicine',   admitted: 4, total: 5 },
+      { name: 'Dermatology',        admitted: 2, total: 3 },
+      { name: 'Nephrology',         admitted: 2, total: 2 },
+    ];
+    const DEPT_PALETTE = ['var(--red-500)', 'var(--orange-500)', 'var(--teal-500)', 'var(--blue-500)',
+                          'var(--yellow-500)', 'var(--blue-600)', 'var(--teal-600)', 'var(--orange-500)',
+                          'var(--red-500)', 'var(--blue-500)', 'var(--teal-500)'];
+
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function renderDeptOverview(depts) {
+      const wrap = document.getElementById('deptOverview');
+      if (!wrap) return;
+      wrap.innerHTML = depts.map((d, i) => {
+        const pct = d.total ? Math.round((d.admitted / d.total) * 100) : 0;
+        return `
+          <div class="dept-row">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--gray-700);">${esc(d.name)}</div>
+              <div style="font-size:11px;color:var(--gray-500);margin-top:1px;">${d.admitted} admitted · ${d.total} patients</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:${pct}%;background:${DEPT_PALETTE[i % DEPT_PALETTE.length]};"></div></div>
+              <span style="font-size:11px;color:var(--gray-500);width:34px;text-align:right;">${pct}%</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    renderDeptOverview(FALLBACK_DEPTS);
+
+    // ---- Firestore-driven dashboard (falls back to the seeded markup above) ----
     (async function initDashboard() {
       try {
         const ctx = await window.mproFirebase;
@@ -253,12 +284,13 @@
         document.getElementById('statPatients').textContent = patients.length;
         document.getElementById('statBed').textContent = occupancy + '%';
         document.getElementById('statLabs').textContent = pendingLabs;
+        document.getElementById('statPatientsSub').textContent = `${admitted} admitted · ${patients.length - admitted} outpatient`;
+        document.getElementById('statBedSub').textContent = `${admitted} of ${patients.length} beds in use`;
+        document.getElementById('statLabsSub').textContent = pendingLabs === 1 ? '1 result awaiting review' : 'awaiting results';
 
-        // Recent Activity (escape text — this feed is not a lab)
+        // Recent Activity (escaped text — this feed is not a lab)
         const feed = document.getElementById('activityFeed');
         if (feed && activity.length) {
-          const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
           const colors = { lab: 'var(--teal-500)', admission: 'var(--blue-500)', treatment: 'var(--orange-500)', discharge: 'var(--red-500)', system: 'var(--gray-400)', note: 'var(--teal-500)' };
           feed.innerHTML = activity.map(a => `
             <div class="activity-item">
@@ -270,18 +302,16 @@
             </div>`).join('');
         }
 
-        // Department Overview bars (admitted / total per department)
-        const DEPTS = ['Cardiology', 'Endocrinology', 'Pulmonology', 'Pediatrics', 'Neurology'];
-        DEPTS.forEach(dept => {
-          const inDept = patients.filter(p => p.department === dept);
-          if (!inDept.length) return;
-          const pct = Math.round((inDept.filter(p => p.status === 'Admitted').length / inDept.length) * 100);
-          const key = dept.toLowerCase();
-          const fill = document.getElementById('fill-' + key);
-          const label = document.getElementById('pct-' + key);
-          if (fill) fill.style.width = pct + '%';
-          if (label) label.textContent = pct + '%';
+        // Department Overview — computed live from the patient records
+        const byDept = {};
+        patients.forEach(p => {
+          const d = p.department || 'Unassigned';
+          if (!byDept[d]) byDept[d] = { name: d, admitted: 0, total: 0 };
+          byDept[d].total++;
+          if (p.status === 'Admitted') byDept[d].admitted++;
         });
+        const depts = Object.values(byDept).sort((a, b) => b.total - a.total);
+        if (depts.length) renderDeptOverview(depts);
       } catch (e) {
         console.warn('Dashboard Firestore load skipped (fallback shown):', e.message);
       }

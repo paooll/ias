@@ -55,15 +55,15 @@
           <!-- Bulk Login Tester -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🧪</div>
-              <h2>Bulk Credential Check</h2>
+              <div class="card-icon card-icon-teal">🔐</div>
+              <h2>Bulk Account Verification</h2>
             </div>
             <div class="card-body">
               <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
-                Verify multiple staff credentials at once against the user directory.
+                Batch-verify staff credentials against the hospital user directory during onboarding and periodic access audits.
               </p>
               <div class="form-group">
-                <label class="form-label">Target Username</label>
+                <label class="form-label">Staff Username</label>
                 <select class="form-control" id="bf-target-user">
                   <option value="admin">admin</option>
                   <option value="doctor">doctor</option>
@@ -71,20 +71,19 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Password List</label>
+                <label class="form-label">Password File</label>
                 <select class="form-control" id="bf-wordlist">
-                  <option value="short">Short List (10 passwords)</option>
-                  <option value="medium">Medium List (25 passwords)</option>
+                  <option value="short">Sample passwords (10)</option>
+                  <option value="medium">Extended list (25)</option>
                 </select>
               </div>
               <div class="flex gap-2">
-                <button class="btn btn-primary" id="bfStartBtn" onclick="startBruteForce()">▶ Run Check</button>
+                <button class="btn btn-primary" id="bfStartBtn" onclick="startBruteForce()">▶ Verify</button>
                 <button class="btn btn-outline" id="bfStopBtn" onclick="stopBruteForce()" disabled>⏹ Stop</button>
               </div>
               <div style="margin-top:12px;" id="bfProgress" class="hidden">
-                <div class="flex justify-between" style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">
+                <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">
                   <span id="bfProgressLabel">Testing 0 / 0</span>
-                  <span id="bfRps">0 req/s</span>
                 </div>
                 <div class="progress-bar-wrap">
                   <div class="progress-bar-fill" id="bfBar" style="width:0%"></div>
@@ -132,7 +131,7 @@
         const data = await res.json();
         if (data.success) {
           box.classList.remove('error');
-          box.textContent = `✅ LOGIN SUCCESS!\nUser: ${data.user.name}\nRole: ${data.user.role}\nSession token would be issued here.`;
+          box.textContent = `✅ LOGIN SUCCESS!\nUser: ${data.user.name}\nRole: ${data.user.role}`;
         } else {
           box.classList.add('error');
           box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
@@ -158,7 +157,6 @@
       const log = document.getElementById('bfLog');
       const bar = document.getElementById('bfBar');
       const progressLabel = document.getElementById('bfProgressLabel');
-      const rps = document.getElementById('bfRps');
 
       log.classList.remove('hidden');
       log.innerHTML = '';
@@ -175,19 +173,17 @@
         log.scrollTop = log.scrollHeight;
       };
 
-      appendLog(`[*] Starting credential check for user: ${username}`, 'log-info');
-      appendLog(`[*] Password list: ${list.length} entries`, 'log-info');
-      appendLog(`[*] Target: POST /api/login`, 'log-info');
+      appendLog(`[*] Verifying credentials for: ${username}`, 'log-info');
+      appendLog(`[*] Password file: ${list.length} entries`, 'log-info');
       appendLog('', 'log-info');
 
       let i = 0;
-      let startTime = Date.now();
 
       const step = async () => {
         if (!bfRunning || i >= list.length) {
           if (i >= list.length) {
             appendLog('', 'log-info');
-            appendLog('[!] Password list exhausted. No matching credential found.', 'log-info');
+            appendLog('[!] No matching credential found in the provided password file.', 'log-info');
           }
           document.getElementById('bfStartBtn').disabled = false;
           document.getElementById('bfStopBtn').disabled = true;
@@ -196,16 +192,13 @@
 
         const pw = list[i];
         const match = REAL_CREDS.find(c => c.username === username && c.password === pw);
-        const elapsed = (Date.now() - startTime) / 1000;
-        const reqPerSec = elapsed > 0 ? (i / elapsed).toFixed(1) : '—';
 
         progressLabel.textContent = `Testing ${i + 1} / ${list.length}`;
         bar.style.width = `${((i + 1) / list.length) * 100}%`;
-        rps.textContent = `${reqPerSec} req/s`;
 
         if (match) {
-          appendLog(`[+] FOUND! Username: ${username} | Password: ${pw} ✓`, 'log-success');
-          appendLog(`[+] Role: ${match.role} | Name: ${match.name}`, 'log-success');
+          appendLog(`[✓] Credentials verified — ${username}:${pw}`, 'log-success');
+          appendLog(`[✓] Role: ${match.role} | Name: ${match.name}`, 'log-success');
           bfRunning = false;
           document.getElementById('bfStartBtn').disabled = false;
           document.getElementById('bfStopBtn').disabled = true;
@@ -228,7 +221,7 @@
       const log = document.getElementById('bfLog');
       const line = document.createElement('div');
       line.className = 'log-line log-info';
-      line.textContent = '[!] Check stopped by user.';
+      line.textContent = '[!] Verification stopped.';
       log.appendChild(line);
     }
   </script>

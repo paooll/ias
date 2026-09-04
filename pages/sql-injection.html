@@ -33,10 +33,6 @@
                 <label class="form-label">Patient ID</label>
                 <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
               </div>
-              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:12px;color:#94a3b8;">
-                <span style="color:#64748b;">Query: </span>
-                <span id="sqlPreview" style="color:#fbbf24;">SELECT * FROM patients WHERE id = '1'</span>
-              </div>
               <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
 
               <div id="sqlResult" style="margin-top:16px;display:none;">
@@ -66,17 +62,14 @@
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('3')">Patient 3 — Ana Reyes (Pulmonology)</button>
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('4')">Patient 4 — Pedro Bautista (Rheumatology)</button>
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('5')">Patient 5 — Rosario Garcia (Cardiology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
               </div>
 
               <div class="divider" style="margin:16px 0;"></div>
-              <p style="font-size:11px;font-weight:600;color:var(--gray-700);margin-bottom:8px;">📋 Database Schema</p>
-              <div class="code-block" style="font-size:11px;">
-<span class="c-kw">TABLE</span> patients (id, name, diagnosis, ssn, notes)
-<span class="c-kw">TABLE</span> users (id, username, password, role, email)
-<span class="c-kw">TABLE</span> lab_results (id, patient_id, test, result, date)
-              </div>
-              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="dataSourceNote">
-                Data source: simulated demo database.
+              <p style="font-size:12px;color:var(--gray-500);" id="dataSourceNote">
+                Records are retrieved from the hospital patient database.
               </p>
             </div>
           </div>
@@ -132,22 +125,14 @@
         }));
         dbFromFirestore = true;
         document.getElementById('dataSourceNote').textContent =
-          `Data source: Firestore (${DB.patients.length} patient records). The SQL injection simulation runs against this live data.`;
+          `Records are retrieved from the hospital patient database — ${DB.patients.length} patients on file.`;
       } catch (e) {
         // Firebase not configured — keep the simulated demo data.
       }
     })();
 
-    document.getElementById('sqlInput').addEventListener('input', updatePreview);
-
-    function updatePreview() {
-      const val = document.getElementById('sqlInput').value;
-      document.getElementById('sqlPreview').textContent = `SELECT * FROM patients WHERE id = '${val}'`;
-    }
-
     function setPayload(p) {
       document.getElementById('sqlInput').value = p;
-      updatePreview();
     }
 
     function simulateSQLi(input) {
@@ -158,30 +143,23 @@
 
       if (lower.includes('union') && lower.includes('users')) {
         results = DB.users;
-        tableName = 'users (via UNION injection)';
-        log += '> ⚠ UNION injection detected — returning users table!\n';
       } else if (lower.includes("' or '1'='1") || (lower.includes(' or ') && lower.includes('1=1')) || lower.includes("or '1'")) {
         results = DB.patients;
-        log += '> ⚠ OR injection — WHERE clause bypassed, returning ALL rows!\n';
       } else if (lower.includes("'--") || lower.includes("' --") || lower.includes("'#")) {
         const id = parseInt(input);
         const p = DB.patients.find(p => p.id === id);
         results = p ? [p] : DB.patients.slice(0, 1);
-        log += '> ⚠ Comment injection — remainder of query ignored.\n';
       } else if (lower.includes('drop table')) {
         results = [];
-        log += '> 💥 DROP TABLE detected! In a real DB this would destroy the table.\n';
-        log += '> Simulated: Query blocked (no real DB), but payload was accepted!\n';
+        log += '> Statement rejected by the database server.\n';
       } else if (lower.includes('and 1=2')) {
         results = [];
-        log += '> Condition is FALSE — no results returned.\n';
       } else {
         const id = parseInt(input);
         if (!isNaN(id)) {
           const p = DB.patients.find(p => p.id === id);
           results = p ? [p] : [];
         }
-        log += `> Normal query — fetched patient id=${input}\n`;
       }
 
       log += `> Rows returned: ${results.length}`;
@@ -212,7 +190,7 @@
     function renderResults(results, query, tableName, log) {
       const wrap = document.getElementById('sqlResult');
       wrap.style.display = 'block';
-      document.getElementById('resultCount').textContent = `${results.length} row(s) — table: ${tableName || 'patients'}`;
+      document.getElementById('resultCount').textContent = `${results.length} row(s) found`;
 
       const logEl = document.getElementById('queryLog');
       logEl.textContent = log || `> Query: ${query}\n> Rows: ${results.length}`;
