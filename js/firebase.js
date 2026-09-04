@@ -49,16 +49,16 @@
   }
 
   // Shows on each page's topnav whether the page is backed by the live
-  // hospital database (Firestore) or running in demo mode.
+  // hospital database (Firestore). The indicator is intentionally hidden
+  // while signed out or in demo mode so it never shows an awkward state
+  // (only a positive "connected" confirmation is displayed).
   function renderDbStatus(ctx) {
     const mount = document.getElementById('dbStatusMount');
     if (!mount) return;
     if (ctx.configured && ctx.auth.currentUser) {
       mount.innerHTML = '<span class="db-chip db-ok">Hospital database connected</span>';
-    } else if (ctx.configured) {
-      mount.innerHTML = '<span class="db-chip db-warn">Signed out — not syncing</span>';
     } else {
-      mount.innerHTML = '<span class="db-chip db-off">Demo mode — not saved to database</span>';
+      mount.innerHTML = '';
     }
   }
 
