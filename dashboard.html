@@ -273,7 +273,7 @@
         const ctx = await window.mproFirebase;
         if (!ctx || !ctx.configured || !ctx.auth.currentUser) return;
 
-        const data = await window.mproDb.getDashboard();
+        const renderDashboard = (data) => {
         if (!data) return;
 
         const { patients, pendingLabs, activity } = data;
@@ -312,10 +312,15 @@
         });
         const depts = Object.values(byDept).sort((a, b) => b.total - a.total);
         if (depts.length) renderDeptOverview(depts);
+        };
+
+        // Keep statistics, recent activity, and department totals in sync
+        // with Firestore changes made by any signed-in staff member.
+        await window.mproDb.watchDashboard(renderDashboard);
       } catch (e) {
         console.warn('Dashboard Firestore load skipped (fallback shown):', e.message);
       }
     })();
   </script>
 </body>
-</html>
+</html>

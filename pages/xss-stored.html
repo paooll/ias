@@ -187,7 +187,19 @@
       renderNotes();
     }
 
-    renderNotes();
+    (async function initNotes() {
+      // Firestore is the source of truth when authenticated. The snapshot
+      // listener also reflects notes written by other staff without refresh.
+      try {
+        const unsubscribe = await window.mproDb.watchNotes((notes) => {
+          document.getElementById('noteSourceHint').textContent =
+            'Notes are stored in Firestore and shared with all signed-in staff. Clear All removes notes authored by you.';
+          renderNoteList(notes);
+        });
+        if (unsubscribe) return;
+      } catch (e) { /* use the offline demo fallback */ }
+      renderNotes();
+    })();
   </script>
 </body>
 </html>

@@ -150,6 +150,15 @@
       return snap.docs.map(noteToRecord);
     },
 
+    async watchNotes(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('notes').orderBy('createdAt', 'desc').onSnapshot(
+        (snap) => callback(snap.docs.map(noteToRecord)),
+        (error) => console.warn('Live notes subscription failed:', error.message)
+      );
+    },
+
     /** Add a note (author = signed-in user) and log an activity entry. */
     async addNote({ patient, content, author }) {
       const ctx = await fb();
@@ -203,6 +212,30 @@
       return { patients, pendingLabs, activity };
     },
 
+    async watchDashboard(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      let patients = null, labs = null, activity = null;
+      const publish = () => {
+        if (!patients || !labs || !activity) return;
+        callback({
+          patients: patients.docs.map(patientToRecord),
+          pendingLabs: labs.docs.filter((d) => (d.data().status || '') === 'pending').length,
+          activity: activity.docs.map((d) => {
+            const x = d.data();
+            const createdAt = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+            return { id: d.id, type: x.type || 'system', text: x.text || '', dept: x.dept || '', createdAt };
+          }),
+        });
+      };
+      const unsubs = [
+        ctx.db.collection('patients').onSnapshot((snap) => { patients = snap; publish(); }),
+        ctx.db.collection('lab_reports').onSnapshot((snap) => { labs = snap; publish(); }),
+        ctx.db.collection('activity').orderBy('createdAt', 'desc').limit(6).onSnapshot((snap) => { activity = snap; publish(); }),
+      ];
+      return () => unsubs.forEach((unsubscribe) => unsubscribe());
+    },
+
     /** Signed-in user's own staff profile. */
     async getOwnProfile() {
       const ctx = await fb();
@@ -247,6 +280,19 @@
         const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
         return { id: d.id, name: x.name || 'Untitled', size: x.size || 0, type: x.type || '', ext: x.ext || '', uploadedBy: x.uploadedBy || '', uploader: x.uploader || '', dataUrl: x.dataUrl || '', createdAt: ts };
       });
+    },
+
+    async watchDocuments(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('documents').orderBy('createdAt', 'desc').onSnapshot(
+        (snap) => callback(snap.docs.map((d) => {
+          const x = d.data();
+          const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+          return { id: d.id, name: x.name || 'Untitled', size: x.size || 0, type: x.type || '', ext: x.ext || '', uploadedBy: x.uploadedBy || '', uploader: x.uploader || '', dataUrl: x.dataUrl || '', createdAt: ts };
+        })),
+        (error) => console.warn('Live documents subscription failed:', error.message)
+      );
     },
 
     /** Store an uploaded document (metadata + inline content for small files). */

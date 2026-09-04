@@ -14,6 +14,8 @@
  * If Firebase env vars are NOT configured, it falls back to the legacy
  * in-memory users so the site still works before setup (graceful degradation).
  */
+const fs = require('fs');
+const path = require('path');
 let admin = null;
 try {
   admin = require('firebase-admin');
@@ -45,7 +47,9 @@ function legacyLogin(username, password) {
 function getAdmin() {
   if (!admin) return null;
   const saJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const saPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const configuredPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const localKey = path.resolve(process.cwd(), 'service-account.json');
+  const saPath = configuredPath || (fs.existsSync(localKey) ? localKey : '');
   if (!saJson && !saPath) return null;
 
   if (admin.apps.length === 0) {

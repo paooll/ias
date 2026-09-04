@@ -132,6 +132,18 @@ async function loadDocs() {
   renderDocs(docs || [], fsMode);
 }
 
+async function startDocumentSync() {
+  try {
+    const unsubscribe = await window.mproDb.watchDocuments((docs) => {
+      const hintEl = document.getElementById('docSourceHint');
+      if (hintEl) hintEl.textContent = 'Documents are stored in the hospital document database and shared with signed-in staff.';
+      renderDocs(docs, true);
+    });
+    if (unsubscribe) return true;
+  } catch (e) { /* local fallback remains available for the standalone lab */ }
+  return false;
+}
+
 function renderDocs(docs, fsMode) {
   const listEl = document.getElementById('docList');
   if (!listEl) return;
@@ -218,7 +230,9 @@ async function handleUpload(input) {
   } catch (e) { /* non-fatal */ }
 
   const where = await saveToStore(doc);
-  await loadDocs();
+  // The Firestore listener refreshes the list automatically when connected.
+  // Retain the direct load for the standalone/local fallback.
+  if (!window.__documentsLive) await loadDocs();
 
   const msg = document.getElementById('uploadMsg');
   const wrap = document.getElementById('uploadSuccess');
@@ -312,7 +326,8 @@ async function deleteDoc(i) {
     const u = await window.mproDb.currentUser();
     if (u) window.__mproUid = u.uid;
   } catch (e) { /* not signed in */ }
-  await loadDocs();
+  window.__documentsLive = await startDocumentSync();
+  if (!window.__documentsLive) await loadDocs();
 })();
 </script>
 </body>

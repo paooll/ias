@@ -19,12 +19,26 @@
 require('dotenv').config();
 
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 const { STAFF, PATIENTS, NOTES, LAB_REPORTS, ACTIVITY } = require('./seed-data');
+
+// Metadata-only samples for the shared Documents screen. Real file uploads are
+// added by the client and retain their own document IDs, so reseeding never
+// removes them.
+const DOCUMENTS = [
+  { id: 'sample-consent-001', name: 'patient-consent-001.pdf', size: 124 * 1024, ext: 'pdf', type: 'application/pdf', uploader: 'Records Department', daysAgo: 1 },
+  { id: 'sample-discharge-p002', name: 'discharge-summary-P002.docx', size: 87 * 1024, ext: 'docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', uploader: 'Dr. Santos', daysAgo: 2 },
+  { id: 'sample-xray-p003', name: 'xray-chest-P003.jpg', size: 2458 * 1024, ext: 'jpg', type: 'image/jpeg', uploader: 'Radiology', daysAgo: 2 },
+  { id: 'sample-billing-november', name: 'billing-november-2024.xlsx', size: 341 * 1024, ext: 'xlsx', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', uploader: 'Billing Department', daysAgo: 4 },
+];
 
 // ---- Init Admin SDK from environment (never from committed files) ----------
 function initApp() {
   const saJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const configuredPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const localKey = path.resolve(process.cwd(), 'service-account.json');
+  const credPath = configuredPath || (fs.existsSync(localKey) ? localKey : '');
 
   if (saJson) {
     try {
@@ -167,6 +181,24 @@ async function main() {
   }
   await flush();
   console.log(`[seed] activity: ${ACTIVITY.length} documents`);
+
+  // 6) Shared document metadata --------------------------------------------
+  batch = db.batch(); ops = 0;
+  for (const d of DOCUMENTS) {
+    batch.set(db.collection('documents').doc(d.id), {
+      name: d.name,
+      size: d.size,
+      ext: d.ext,
+      type: d.type,
+      dataUrl: '',
+      uploader: d.uploader,
+      uploadedBy: 'system',
+      createdAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() - d.daysAgo * 86400000)),
+    });
+    ops++;
+  }
+  await flush();
+  console.log(`[seed] documents: ${DOCUMENTS.length} metadata records`);
 
   console.log('\n[seed] Done. Demo login credentials:');
   for (const s of STAFF) console.log(`         ${s.username} / ${s.password}  (${s.name} — ${s.role})`);
