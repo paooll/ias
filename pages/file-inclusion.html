@@ -65,11 +65,36 @@
           </div>
         </div>
 
+        <!-- Laboratory Results (Firestore) -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-teal">🧪</div>
+            <h2>Recent Laboratory Results</h2>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead><tr><th>Report ID</th><th>Patient</th><th>Test</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="labResultsBody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">Loading results…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="labResultsNote">
+              Latest diagnostic results from the laboratory and imaging departments.
+            </p>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('file-inclusion.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Lab Reports', 'View laboratory test results and diagnostic reports');
@@ -118,6 +143,70 @@
         out.textContent = `[ERROR] ENOENT: no such file or directory, open '${filePath}'\n\nPlease check the file path and try again. Use one of the available reports from the list.`;
       }
     }
+
+    // ---- Laboratory results browser (Firestore-backed; fallback mirrors demo files) ----
+    const FALLBACK_REPORTS = [
+      { reportId: 'LR-20241105',  patientId: 'P-002', patientName: 'Juan Dela Cruz',   test: 'Fasting Blood Glucose', result: '8.2 mmol/L (ELEVATED)',   reference: '3.9-6.1 mmol/L',   status: 'completed', date: '2024-11-05', department: 'Laboratory', orderedBy: 'Dr. Santos' },
+      { reportId: 'LR-20241104',  patientId: 'P-001', patientName: 'Maria Santos',     test: 'Complete Blood Count',  result: 'WBC 7.2, Hb 13.2, PLT 245 — NORMAL', reference: 'Standard ranges', status: 'completed', date: '2024-11-04', department: 'Laboratory', orderedBy: 'Dr. Santos' },
+      { reportId: 'LR-20241104',  patientId: 'P-003', patientName: 'Ana Reyes',        test: 'Chest X-Ray',           result: 'Mild bilateral bronchial wall thickening.', reference: 'Radiologist read', status: 'completed', date: '2024-11-04', department: 'Radiology', orderedBy: 'Dr. Tan' },
+      { reportId: 'LR-20241104',  patientId: 'P-004', patientName: 'Pedro Bautista',   test: 'Brain MRI',             result: 'No acute intracranial abnormality.',      reference: 'Radiologist read', status: 'completed', date: '2024-11-04', department: 'Radiology', orderedBy: 'Dr. Tan' },
+      { reportId: 'LR-20241105',  patientId: 'P-005', patientName: 'Rosario Garcia',   test: 'ECG Report',            result: 'Mild ST depression V4-V6. Recommend cardiology consult.', reference: 'Cardiology read', status: 'completed', date: '2024-11-05', department: 'Cardiology', orderedBy: 'Dr. Santos' },
+    ];
+
+    let lastReports = [];
+
+    function reportModalHTML(r) {
+      const pending = /pending/i.test(r.status || '');
+      let html = kv('Report ID', escapeHtml(r.reportId));
+      html += kv('Patient', escapeHtml([r.patientName, r.patientId].filter(Boolean).join(' (')) + (r.patientId ? ')' : ''));
+      html += kv('Test', escapeHtml(r.test));
+      html += kv('Result', pending ? statusChip('Pending') : escapeHtml(r.result));
+      html += kv('Reference', escapeHtml(r.reference));
+      html += kv('Status', statusChip(r.status));
+      html += kv('Ordered By', escapeHtml(r.orderedBy));
+      html += kv('Department', escapeHtml(r.department));
+      html += kv('Report Date', escapeHtml(r.date));
+      return html;
+    }
+
+    function viewReport(idx) {
+      const r = lastReports[idx];
+      if (!r) return;
+      openModal({
+        title: '🧪 Laboratory Report',
+        subtitle: escapeHtml(r.reportId || 'Report'),
+        body: reportModalHTML(r),
+        footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
+      });
+    }
+
+    function renderReports(list) {
+      const body = document.getElementById('labResultsBody');
+      const note = document.getElementById('labResultsNote');
+      if (!body) return;
+      lastReports = list;
+      body.innerHTML = list.length
+        ? list.map((r, i) =>
+            `<tr><td style="font-family:monospace;font-size:11.5px;">${escapeHtml(r.reportId)}</td>` +
+            `<td>${escapeHtml(r.patientName)}<div style="font-size:11px;color:var(--gray-500);">${escapeHtml(r.patientId)}</div></td>` +
+            `<td>${escapeHtml(r.test)}</td><td>${escapeHtml(r.date || '')}</td>` +
+            `<td>${statusChip(r.status)}</td>` +
+            `<td><button class="btn-link" onclick="viewReport(${i})">View report →</button></td></tr>`
+          ).join('')
+        : '<tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">No reports on file.</td></tr>';
+      if (note) note.textContent = list.length && list !== FALLBACK_REPORTS
+        ? `Source: laboratory records database — ${list.length} results.`
+        : 'Latest diagnostic results from the laboratory and imaging departments.';
+    }
+
+    (async function initLabReports() {
+      try {
+        const reports = await window.mproDb.getLabReports();
+        renderReports(reports && reports.length ? reports : FALLBACK_REPORTS);
+        return;
+      } catch (e) { /* fall through to fallback list */ }
+      renderReports(FALLBACK_REPORTS);
+    })();
   </script>
 </body>
 </html>

@@ -107,3 +107,99 @@ function clearResponse(id) {
   el.classList.remove('show', 'error');
   el.textContent = '';
 }
+
+/* ── Shared UI helpers: modals, chips, patient detail ─────────────────────── */
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function humanSize(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function statusChip(status) {
+  const s = String(status == null ? '' : status);
+  const low = s.toLowerCase();
+  let cls = 'chip-gray';
+  if (low === 'admitted' || low === 'completed' || low === 'active' || low === 'verified') cls = 'chip-teal';
+  else if (low === 'pending' || low === 'in progress' || low === 'referred') cls = 'chip-orange';
+  else if (low === 'critical' || low === 'rejected' || low === 'failed') cls = 'chip-red';
+  else if (low === 'outpatient' || low === 'discharged') cls = 'chip-blue';
+  return `<span class="chip ${cls}">${escapeHtml(s)}</span>`;
+}
+
+function openModal(opts) {
+  closeModal();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'mproModal';
+  const title = opts.title || '';
+  const subtitle = opts.subtitle ? `<div class="modal-subtitle">${opts.subtitle}</div>` : '';
+  backdrop.innerHTML = `
+    <div class="modal ${opts.large ? 'modal-lg' : ''}" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><div class="modal-title">${title}</div>${subtitle}</div>
+        <button class="modal-x" onclick="closeModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">${opts.body || ''}</div>
+      ${opts.footer ? `<div class="modal-footer">${opts.footer}</div>` : ''}
+    </div>`;
+  backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) closeModal(); });
+  document.body.appendChild(backdrop);
+  document.body.classList.add('modal-open');
+}
+
+function closeModal() {
+  const b = document.getElementById('mproModal');
+  if (b) b.remove();
+  document.body.classList.remove('modal-open');
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+function kv(label, value, extraClass) {
+  if (value == null || value === '') return '';
+  return `<div class="kv"><div class="kv-label">${escapeHtml(label)}</div>` +
+         `<div class="kv-value ${extraClass || ''}">${value}</div></div>`;
+}
+
+function patientDetailHTML(p) {
+  if (!p) return '';
+  const age = p.dob ? (new Date().getFullYear() - parseInt(String(p.dob).slice(0, 4), 10)) : null;
+  const pid = p.patientId || (p.id != null ? 'P-' + String(p.id).padStart(3, '0') : '');
+  const dob = p.dob ? `${p.dob}${age ? ' · ' + age + ' yrs' : ''}` : '';
+  const allergies = Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies;
+
+  let html = kv('Patient ID', escapeHtml(pid || p.id));
+  html += kv('Date of Birth', escapeHtml(dob));
+  html += kv('Gender', escapeHtml(p.gender));
+  html += kv('Blood Type', escapeHtml(p.bloodType));
+  html += kv('Department', escapeHtml(p.department));
+  html += kv('Ward / Room', escapeHtml([p.ward, p.room].filter(Boolean).join(' · ')));
+  html += kv('Status', p.status ? statusChip(p.status) : '');
+  html += kv('Physician', escapeHtml(p.physician));
+  html += kv('Diagnosis', escapeHtml(p.diagnosis));
+  html += kv('Medications', escapeHtml(p.medications));
+  html += kv('Allergies', escapeHtml(allergies));
+  html += kv('Phone', escapeHtml(p.phone));
+  html += kv('Admitted', escapeHtml(p.admitDate));
+  html += kv('Notes', escapeHtml(p.notes), 'notes');
+  return html || '<p style="color:var(--gray-500);font-size:13px;">No additional details on record.</p>';
+}
+
+function openPatientModal(p) {
+  if (!p) return;
+  const name = p.name || 'Unknown Patient';
+  const pid = p.patientId || (p.id != null ? 'P-' + String(p.id).padStart(3, '0') : '');
+  openModal({
+    title: '🩺 Patient Record',
+    subtitle: `${escapeHtml(name)}${pid ? ' — ' + escapeHtml(pid) : ''}`,
+    body: patientDetailHTML(p),
+    footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
+  });
+}

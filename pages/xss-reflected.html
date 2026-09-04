@@ -40,7 +40,7 @@
                   Showing results for: "<span id="reflectedOutput" style="color:var(--blue-600);"></span>"
                 </div>
                 <table class="data-table">
-                  <thead><tr><th>Patient ID</th><th>Name</th><th>Department</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Patient ID</th><th>Name</th><th>Department</th><th>Status</th><th>Action</th></tr></thead>
                   <tbody id="mockResults"></tbody>
                 </table>
                 <p style="font-size:11px;color:var(--gray-500);margin-top:8px;" id="searchSourceNote"></p>
@@ -99,12 +99,55 @@
       { id: 'P-026', name: 'Victor Manalo', dept: 'Neurology', status: 'Admitted' },
     ];
 
+    // Last rendered result set, so View can open the full patient record.
+    let lastSearchRows = [];
+
+    function viewSearchResult(idx) {
+      const rec = lastSearchRows[idx];
+      if (rec) openPatientModal(rec);
+    }
+
+    // Normalize any record (Firestore or mock) to the shared patient shape.
+    function normalizePatient(p) {
+      return {
+        id: p.id,
+        patientId: p.patientId || (p.id && String(p.id).startsWith('P-') ? p.id : null),
+        name: p.name || '',
+        department: p.department || p.dept || '',
+        status: p.status || '',
+        diagnosis: p.diagnosis || '',
+        physician: p.physician || '',
+        ssn: p.ssn || '',
+        notes: p.notes || '',
+        room: p.room || '',
+        ward: p.ward || '',
+        dob: p.dob || '',
+        gender: p.gender || '',
+        bloodType: p.bloodType || '',
+        medications: p.medications || '',
+        allergies: p.allergies || [],
+        admitDate: p.admitDate || '',
+        phone: p.phone || '',
+      };
+    }
+
+    function renderSearchRows(rows, noteText) {
+      const tbody = document.getElementById('mockResults');
+      const note = document.getElementById('searchSourceNote');
+      const list = rows.length ? rows : MOCK_PATIENTS.map(normalizePatient);
+      lastSearchRows = list;
+      tbody.innerHTML = list.map((p, i) =>
+        `<tr><td>${p.patientId || p.id}</td><td>${p.name}</td><td>${p.department}</td>` +
+        `<td>${statusChip(p.status)}</td>` +
+        `<td><button class="btn-link" onclick="viewSearchResult(${i})">View →</button></td></tr>`
+      ).join('');
+      if (note) note.textContent = noteText || '';
+    }
+
     async function doSearch() {
       const input = document.getElementById('searchInput').value;
       const results = document.getElementById('searchResults');
       const reflected = document.getElementById('reflectedOutput');
-      const tbody = document.getElementById('mockResults');
-      const note = document.getElementById('searchSourceNote');
 
       results.classList.remove('hidden');
 
@@ -115,20 +158,16 @@
       try {
         const real = await window.mproDb.searchPatients(input);
         if (real) {
-          const mapped = real.map(p => ({ id: p.patientId, name: p.name, dept: p.department, status: p.status }));
-          tbody.innerHTML = (mapped.length ? mapped : MOCK_PATIENTS).map(p =>
-            `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.dept}</td><td><span style="background:var(--teal-100);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${p.status}</span></td></tr>`
-          ).join('');
-          note.textContent = mapped.length ? `Source: Firestore — ${mapped.length} record(s) found.` : '';
+          renderSearchRows(real.map(normalizePatient),
+            real.length ? `Source: Firestore — ${real.length} record(s) found.` : '');
           return;
         }
       } catch (e) { /* fall through to mock */ }
 
-      const filtered = MOCK_PATIENTS.filter(p => p.name.toLowerCase().includes(input.toLowerCase().replace(/<[^>]*>/g, '')));
-      tbody.innerHTML = (filtered.length ? filtered : MOCK_PATIENTS).map(p =>
-        `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.dept}</td><td><span style="background:var(--teal-100);color:var(--teal-600);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${p.status}</span></td></tr>`
-      ).join('');
-      note.textContent = 'Source: simulated demo data.';
+      const q = input.toLowerCase().replace(/<[^>]*>/g, '');
+      const filtered = MOCK_PATIENTS.map(normalizePatient)
+        .filter(p => (p.name || '').toLowerCase().includes(q));
+      renderSearchRows(filtered, 'Source: simulated demo data.');
     }
 
     function injectPayload(p) {

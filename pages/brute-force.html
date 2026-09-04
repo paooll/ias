@@ -131,7 +131,7 @@
         const data = await res.json();
         if (data.success) {
           box.classList.remove('error');
-          box.textContent = `✅ LOGIN SUCCESS!\nUser: ${data.user.name}\nRole: ${data.user.role}`;
+          enterPortal(data.user);
         } else {
           box.classList.add('error');
           box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
@@ -140,12 +140,25 @@
         const match = REAL_CREDS.find(c => c.username === user && c.password === pass);
         if (match) {
           box.classList.remove('error');
-          box.textContent = `✅ LOGIN SUCCESS!\nUser: ${match.name}\nRole: ${match.role}\nToken: eyJhbGciOiJub25lIn0.eyJ1c2VyIjoiYWRtaW4ifQ.`;
+          enterPortal(match);
         } else {
           box.classList.add('error');
           box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nInvalid credentials.`;
         }
       }
+    }
+
+    // A successful login opens the patient portal (session stored, then redirect).
+    function enterPortal(profile) {
+      const box = document.getElementById('manualResult');
+      box.textContent = `✅ LOGIN SUCCESS!\nUser: ${profile.name}\nRole: ${profile.role}\n\nOpening patient portal…`;
+      sessionStorage.setItem('mpro_user', JSON.stringify({
+        name: profile.name,
+        role: profile.role,
+        username: profile.username,
+      }));
+      setTimeout(() => { window.location.href = '../dashboard.html'; }, 1200);
+    }
     }
 
     let bfRunning = false;
@@ -199,6 +212,7 @@
         if (match) {
           appendLog(`[✓] Credentials verified — ${username}:${pw}`, 'log-success');
           appendLog(`[✓] Role: ${match.role} | Name: ${match.name}`, 'log-success');
+          appendLog(`[✓] Access granted — use the login form above to open the patient portal.`, 'log-success');
           bfRunning = false;
           document.getElementById('bfStartBtn').disabled = false;
           document.getElementById('bfStopBtn').disabled = true;

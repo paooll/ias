@@ -200,6 +200,55 @@
       return patch;
     },
 
+    /** Lab reports (used by the Lab Reports page). */
+    async getLabReports() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('lab_reports').get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : null;
+        return { id: d.id, ...x, createdAt: ts };
+      });
+    },
+
+    /** Uploaded documents (Documents page), newest first. */
+    async getDocuments() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('documents').orderBy('createdAt', 'desc').get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return { id: d.id, name: x.name || 'Untitled', size: x.size || 0, type: x.type || '', ext: x.ext || '', uploadedBy: x.uploadedBy || '', uploader: x.uploader || '', dataUrl: x.dataUrl || '', createdAt: ts };
+      });
+    },
+
+    /** Store an uploaded document (metadata + inline content for small files). */
+    async addDocument({ name, size, type, ext, dataUrl, uploader }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('documents').add({
+        name,
+        size: size || 0,
+        type: type || '',
+        ext: ext || '',
+        dataUrl: dataUrl || '',
+        uploader: uploader || 'Staff',
+        uploadedBy: ctx.auth.currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return ref.id;
+    },
+
+    /** Delete a document the signed-in user uploaded. */
+    async deleteDocument(docId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('documents').doc(docId).delete();
+      return true;
+    },
+
     /** Current signed-in Firebase user (or null). */
     async currentUser() {
       const ctx = await fb();

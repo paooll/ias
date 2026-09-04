@@ -61,5 +61,15 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+
+    // ---- Uploaded documents (Documents page) ----
+    // Signed-in staff can read all documents; they may upload new ones and
+    // delete only documents they uploaded themselves.
+    match /documents/{docId} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.uploadedBy == request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uploadedBy == request.auth.uid;
+    }
   }
 }

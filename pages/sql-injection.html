@@ -122,6 +122,15 @@
           status: p.status,
           ssn: p.ssn,
           notes: p.notes,
+          dob: p.dob,
+          gender: p.gender,
+          bloodType: p.bloodType,
+          physician: p.physician,
+          ward: p.ward,
+          medications: p.medications,
+          allergies: p.allergies,
+          admitDate: p.admitDate,
+          phone: p.phone,
         }));
         dbFromFirestore = true;
         document.getElementById('dataSourceNote').textContent =
@@ -187,6 +196,28 @@
       }
     }
 
+    // Holds the records of the last rendered result set, so the View button can
+    // open a full patient-detail modal without embedding data in markup.
+    let lastResultRows = [];
+
+    function viewPatientRow(idx) {
+      const rec = lastResultRows[idx];
+      if (!rec) return;
+      // Users-table rows (UNION result) have no patient fields — show a generic view.
+      if (!rec.name) {
+        openModal({
+          title: '🗄️ Record',
+          subtitle: escapeHtml(String(rec.username || rec.id || '')),
+          body: Object.keys(rec).map(k =>
+            kv(k.replace(/_/g, ' '), `<span style="font-family:monospace;">${escapeHtml(rec[k])}</span>`)
+          ).join(''),
+          footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
+        });
+        return;
+      }
+      openPatientModal(rec);
+    }
+
     function renderResults(results, query, tableName, log) {
       const wrap = document.getElementById('sqlResult');
       wrap.style.display = 'block';
@@ -204,10 +235,17 @@
         return;
       }
 
+      lastResultRows = results;
       const cols = Object.keys(results[0]);
-      head.innerHTML = cols.map(c => `<th>${c}</th>`).join('');
-      body.innerHTML = results.map(r =>
-        `<tr>${cols.map(c => `<td style="font-size:12px;">${r[c] ?? ''}</td>`).join('')}</tr>`
+      const isPatientSet = results.every(r => 'name' in r);
+      head.innerHTML = cols.map(c => `<th>${c}</th>`).join('') + (isPatientSet ? '<th>Action</th>' : '');
+
+      body.innerHTML = results.map((r, i) =>
+        `<tr>${cols.map(c => `<td style="font-size:12px;">${r[c] ?? ''}</td>`).join('')}` +
+        (isPatientSet
+          ? `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details →</button></td>`
+          : '') +
+        '</tr>'
       ).join('');
     }
   </script>

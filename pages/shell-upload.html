@@ -8,6 +8,8 @@
     .file-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--white);transition:.18s}
     .file-row:hover{border-color:var(--blue)}
     .file-ext{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
+    .file-actions{display:flex;gap:6px;flex-shrink:0}
+    .doc-preview-img{max-width:100%;max-height:340px;border-radius:var(--radius-sm);border:1px solid var(--gray-200);margin:4px 0}
   </style>
 </head>
 <body>
@@ -39,6 +41,9 @@
             <div id="uploadSuccess" style="margin-top:14px;display:none;">
               <div class="alert alert-success"><span>✅</span><div id="uploadMsg">File uploaded successfully.</div></div>
             </div>
+            <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="docSourceHint">
+              Uploaded documents are kept on this device.
+            </p>
           </div>
         </div>
 
@@ -48,26 +53,7 @@
             <h2>Recent Documents</h2>
           </div>
           <div class="card-body" id="docList">
-            <div class="file-row">
-              <span class="file-ext" style="background:#fee2e2;color:#dc2626;">PDF</span>
-              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">patient-consent-001.pdf</div><div style="font-size:11px;color:var(--gray-500);">124 KB · Uploaded Nov 4</div></div>
-              <button class="btn btn-outline btn-xs">Download</button>
-            </div>
-            <div class="file-row">
-              <span class="file-ext" style="background:#dbeafe;color:#1a56db;">DOCX</span>
-              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">discharge-summary-P002.docx</div><div style="font-size:11px;color:var(--gray-500);">87 KB · Uploaded Nov 3</div></div>
-              <button class="btn btn-outline btn-xs">Download</button>
-            </div>
-            <div class="file-row">
-              <span class="file-ext" style="background:#ccfbf1;color:#0d9488;">JPG</span>
-              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">xray-chest-P003.jpg</div><div style="font-size:11px;color:var(--gray-500);">2.4 MB · Uploaded Nov 3</div></div>
-              <button class="btn btn-outline btn-xs">Download</button>
-            </div>
-            <div class="file-row">
-              <span class="file-ext" style="background:#ffedd5;color:#f97316;">XLSX</span>
-              <div style="flex:1;"><div style="font-size:13px;font-weight:500;">billing-november-2024.xlsx</div><div style="font-size:11px;color:var(--gray-500);">341 KB · Uploaded Nov 1</div></div>
-              <button class="btn btn-outline btn-xs">Download</button>
-            </div>
+            <p style="font-size:13px;color:var(--gray-500);text-align:center;padding:18px;">Loading documents…</p>
           </div>
         </div>
       </div>
@@ -76,46 +62,258 @@
   </main>
 </div>
 <script src="../js/app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../js/firebase.js"></script>
 <script>
 renderSidebar('documents');
 renderTopnav('Documents','Upload and manage hospital documents');
 
-const EXEC_EXTS=['php','php5','phtml','asp','aspx','jsp','cgi','sh','py','rb'];
+// ---------------------------------------------------------------------------
+// Documents store: Firestore when signed in, otherwise localStorage, with the
+// sample documents below as a starting point. Every action (upload, preview,
+// download, delete) is wired — nothing on this page is decorative.
+// ---------------------------------------------------------------------------
 
-async function handleUpload(input){
-  const file=input.files[0];if(!file)return;
-  const ext=file.name.split('.').pop().toLowerCase();
-  const isExec=EXEC_EXTS.includes(ext);
+const MAX_INLINE = 300 * 1024;           // store inline content up to 300 KB
+const EXEC_EXTS = ['php','php5','phtml','asp','aspx','jsp','cgi','sh','py','rb'];
 
-  try{
-    const res=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json','X-Filename':file.name}});
-    const d=await res.json();
-    if(d.success){showUpload(file.name,file.size,isExec,d.url);return;}
-  }catch(e){}
-  showUpload(file.name,file.size,isExec,`/uploads/${file.name}`);
+const SEED_DOCS = [
+  { name: 'patient-consent-001.pdf',       size: 124 * 1024,  ext: 'pdf',  type: 'application/pdf',      label: 'Uploaded Nov 4' },
+  { name: 'discharge-summary-P002.docx',   size: 87 * 1024,   ext: 'docx', type: 'application/octet-stream', label: 'Uploaded Nov 3' },
+  { name: 'xray-chest-P003.jpg',           size: 2458 * 1024, ext: 'jpg',  type: 'image/jpeg',           label: 'Uploaded Nov 3' },
+  { name: 'billing-november-2024.xlsx',    size: 341 * 1024,  ext: 'xlsx', type: 'application/octet-stream', label: 'Uploaded Nov 1' },
+];
+
+const LS_KEY = 'mpro_docs';
+const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Administrator"}');
+const uploaderName = userData.name || 'Staff';
+
+const EXT_COLORS = { pdf:'#dc2626', docx:'#1a56db', doc:'#1a56db', jpg:'#0d9488', jpeg:'#0d9488', png:'#0d9488', gif:'#0d9488', svg:'#0d9488', xlsx:'#f97316', xls:'#f97316', csv:'#f97316', txt:'#64748b', php:'#7c2d12', asp:'#7c2d12', jsp:'#7c2d12', sh:'#7c2d12', py:'#7c2d12' };
+function extStyle(ext, isExec) {
+  const color = isExec ? '#7c2d12' : (EXT_COLORS[ext] || '#64748b');
+  const bg = isExec ? '#fef2f2' : (EXT_COLORS[ext] ? '#f0fdf4' : '#f1f5f9');
+  return { color, bg };
 }
 
-function showUpload(name,size,isExec,url){
-  const wrap=document.getElementById('uploadSuccess');
-  const msg=document.getElementById('uploadMsg');
-  const ext=name.split('.').pop().toUpperCase();
-  const colorMap={PDF:'#dc2626',DOCX:'#1a56db',JPG:'#0d9488',PNG:'#0d9488',XLSX:'#f97316',PHP:'#7c2d12',ASP:'#7c2d12'};
-  const bg=isExec?'#7c2d12':'#0d9488';
-
-  wrap.style.display='block';
-  msg.textContent=`"${name}" uploaded successfully. Stored at ${url}`;
-
-  const list=document.getElementById('docList');
-  const row=document.createElement('div');row.className='file-row';
-  row.innerHTML=`
-    <span class="file-ext" style="background:${isExec?'#fef2f2':'#f0fdf4'};color:${bg};">${ext}</span>
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:500;">${name}</div>
-      <div style="font-size:11px;color:var(--gray-500);">${Math.round(size/1024)||'<1'} KB · Just now · ${url}</div>
-    </div>
-    <button class="btn btn-outline btn-xs">Download</button>`;
-  list.prepend(row);
+function getLocalDocs() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
 }
+function setLocalDocs(docs) { localStorage.setItem(LS_KEY, JSON.stringify(docs)); }
+function timeLabel(d) {
+  const diff = Date.now() - new Date(d).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return min + ' min ago';
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return hrs + ' hour' + (hrs === 1 ? '' : 's') + ' ago';
+  const days = Math.floor(hrs / 24);
+  return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+}
+
+// Combined list: Firestore docs when configured, else seeds + local uploads.
+async function loadDocs() {
+  const hintEl = document.getElementById('docSourceHint');
+  let docs = null, fsMode = false;
+
+  try {
+    const firestoreDocs = await window.mproDb.getDocuments();
+    if (firestoreDocs) { docs = firestoreDocs; fsMode = true; }
+  } catch (e) { /* fall through */ }
+
+  if (fsMode) {
+    // Database is reachable — show its state (possibly empty).
+    if (hintEl) hintEl.textContent = 'Documents are stored in the hospital document database and shared with signed-in staff.';
+  } else {
+    docs = SEED_DOCS.map(d => Object.assign({}, d, { seeded: true })).concat(getLocalDocs());
+    if (hintEl) hintEl.textContent = 'Uploaded documents are kept on this device.';
+  }
+  renderDocs(docs || [], fsMode);
+}
+
+function renderDocs(docs, fsMode) {
+  const listEl = document.getElementById('docList');
+  if (!listEl) return;
+
+  if (!docs.length) {
+    listEl.innerHTML = '<p style="font-size:13px;color:var(--gray-500);text-align:center;padding:18px;">No documents yet. Upload one above.</p>';
+    return;
+  }
+
+  const currentUser = fsMode && window.__mproUid;
+  listEl.innerHTML = docs.map((d, i) => {
+    const isExec = EXEC_EXTS.includes((d.ext || '').toLowerCase());
+    const st = extStyle((d.ext || '').toLowerCase(), isExec);
+    const meta = d.label
+      ? humanSize(d.size) + ' · ' + d.label
+      : humanSize(d.size) + ' · ' + timeLabel(d.createdAt) + (d.uploader ? ' · ' + d.uploader : '');
+    const canDelete = fsMode
+      ? (d.uploadedBy && d.uploadedBy === currentUser)
+      : !!(d.local);
+    return `
+      <div class="file-row">
+        <span class="file-ext" style="background:${st.bg};color:${st.color};">${escapeHtml((d.ext || 'FILE').toUpperCase())}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;word-break:break-all;">${escapeHtml(d.name)}</div>
+          <div style="font-size:11px;color:var(--gray-500);">${escapeHtml(meta)}</div>
+        </div>
+        <div class="file-actions">
+          <button class="btn btn-outline btn-xs" onclick="previewDoc(${i})">👁 Preview</button>
+          <button class="btn btn-outline btn-xs" onclick="downloadDoc(${i})">⬇ Download</button>
+          ${canDelete ? `<button class="btn btn-outline btn-xs" style="color:var(--red-600);" onclick="deleteDoc(${i})">🗑</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Keep a reference for the action buttons.
+  window.__docList = { docs, fsMode };
+}
+
+async function saveToStore(doc) {
+  // Firestore path (shared, persists across devices).
+  try {
+    const id = await window.mproDb.addDocument({
+      name: doc.name, size: doc.size, type: doc.type, ext: doc.ext,
+      dataUrl: doc.dataUrl || '', uploader: uploaderName,
+    });
+    if (id) return 'firestore';
+  } catch (e) { /* fall through to local */ }
+
+  // Local fallback.
+  doc.local = true;
+  doc.uploader = 'You';
+  doc.createdAt = new Date().toISOString();
+  const docs = getLocalDocs();
+  docs.unshift(doc);
+  setLocalDocs(docs);
+  return 'local';
+}
+
+async function handleUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const isExec = EXEC_EXTS.includes(ext);
+
+  // Keep reading the real file so Preview/Download work with actual content.
+  let dataUrl = '';
+  if (file.size <= MAX_INLINE) {
+    try {
+      dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+    } catch (e) { /* metadata only */ }
+  }
+
+  const doc = { name: file.name, size: file.size, type: file.type || '', ext, dataUrl, createdAt: new Date().toISOString(), uploader: uploaderName };
+
+  // The server accepts the file (demo upload endpoint) — content itself is
+  // kept in the document store so it can be previewed and downloaded later.
+  try {
+    await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Filename': file.name } });
+  } catch (e) { /* non-fatal */ }
+
+  const where = await saveToStore(doc);
+  await loadDocs();
+
+  const msg = document.getElementById('uploadMsg');
+  const wrap = document.getElementById('uploadSuccess');
+  if (msg) msg.textContent = `"${file.name}" uploaded successfully` + (where === 'firestore' ? ' to the document database.' : '.');
+  if (wrap) wrap.style.display = 'block';
+  if (input) input.value = '';
+}
+
+function docContent(doc) {
+  // Returns a data URL when the file content is available, otherwise builds a
+  // small placeholder text file so Download always produces a file.
+  if (doc.dataUrl) return doc.dataUrl;
+  const body = `MediCare Pro — Document\n\nFile: ${doc.name || 'document'}\nSize: ${humanSize(doc.size)}\n\nThis sample document is stored on the server.\nIn the full system, opening this file would show its actual contents.\n`;
+  return 'data:text/plain;charset=utf-8,' + encodeURIComponent(body);
+}
+
+function previewDoc(i) {
+  const ctx = window.__docList;
+  if (!ctx) return;
+  const doc = ctx.docs[i];
+  if (!doc) return;
+
+  const ext = (doc.ext || '').toLowerCase();
+  const isImage = ['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext);
+  const isText = ['txt','csv','log','json','md'].includes(ext) ||
+                 (doc.dataUrl && doc.dataUrl.startsWith('data:text/'));
+  const isPdf = ext === 'pdf' || (doc.dataUrl && doc.dataUrl.startsWith('data:application/pdf'));
+
+  let body = '';
+  if (isImage && doc.dataUrl) {
+    body = `<img class="doc-preview-img" src="${doc.dataUrl}" alt="${escapeHtml(doc.name)}">`;
+  } else if (isText && doc.dataUrl) {
+    try {
+      const raw = decodeURIComponent(doc.dataUrl.split(',')[1] || '');
+      body = `<pre style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px;font-size:12px;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word;">${escapeHtml(raw)}</pre>`;
+    } catch (e) { body = ''; }
+  } else if (isPdf && doc.dataUrl) {
+    body = `<iframe src="${doc.dataUrl}" style="width:100%;height:360px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);" title="${escapeHtml(doc.name)}"></iframe>`;
+  }
+
+  body += `<div style="margin-top:12px;">` +
+    `<div class="kv"><div class="kv-label">File</div><div class="kv-value">${escapeHtml(doc.name)}</div></div>` +
+    `<div class="kv"><div class="kv-label">Size</div><div class="kv-value">${escapeHtml(humanSize(doc.size))}</div></div>` +
+    `<div class="kv"><div class="kv-label">Type</div><div class="kv-value">${escapeHtml((doc.type || (doc.ext || '').toUpperCase() || 'File'))}</div></div>` +
+    `<div class="kv"><div class="kv-label">Uploaded</div><div class="kv-value">${escapeHtml(doc.label || timeLabel(doc.createdAt) + (doc.uploader ? ' · ' + doc.uploader : ''))}</div></div>` +
+    `</div>`;
+
+  if (!body.includes('<img') && !body.includes('<pre') && !body.includes('<iframe')) {
+    body = `<div style="text-align:center;padding:26px 0 14px;"><div style="font-size:40px;">📄</div>` +
+      `<p style="font-size:13px;color:var(--gray-500);margin-top:8px;">Preview is not available for this file type.<br>Use Download to open the document.</p></div>` + body;
+  }
+
+  openModal({
+    title: '📄 ' + escapeHtml(doc.name),
+    large: !!isPdf,
+    body,
+    footer: `<button class="btn btn-primary btn-sm" onclick="downloadDoc(${i})">⬇ Download</button>` +
+            `<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>`,
+  });
+}
+
+function downloadDoc(i) {
+  const ctx = window.__docList;
+  if (!ctx) return;
+  const doc = ctx.docs[i];
+  if (!doc) return;
+  const a = document.createElement('a');
+  a.href = docContent(doc);
+  a.download = doc.name || 'document';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function deleteDoc(i) {
+  const ctx = window.__docList;
+  if (!ctx) return;
+  const doc = ctx.docs[i];
+  if (!doc) return;
+  if (ctx.fsMode) {
+    await window.mproDb.deleteDocument(doc.id);
+  } else {
+    setLocalDocs(getLocalDocs().filter(d => d !== doc && d.name !== doc.name));
+  }
+  await loadDocs();
+}
+
+(async function initDocs() {
+  // Remember the signed-in uid so delete buttons only appear for the owner.
+  try {
+    const u = await window.mproDb.currentUser();
+    if (u) window.__mproUid = u.uid;
+  } catch (e) { /* not signed in */ }
+  await loadDocs();
+})();
 </script>
 </body>
 </html>
