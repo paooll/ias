@@ -34,6 +34,9 @@
         const unsub = auth.onAuthStateChanged(() => { unsub(); resolve(); });
       });
 
+      // Keep the topnav indicator in sync with sign-in/sign-out changes.
+      auth.onAuthStateChanged(() => renderDbStatus({ configured: true, db, auth }));
+
       return { configured: true, db, auth, user: auth.currentUser };
     } catch (e) {
       return { configured: false, error: e };
@@ -44,6 +47,28 @@
     const ctx = await window.mproFirebase;
     return ctx && ctx.configured && ctx.auth.currentUser ? ctx : null;
   }
+
+  // Shows on each page's topnav whether the page is backed by the live
+  // hospital database (Firestore) or running in demo mode.
+  function renderDbStatus(ctx) {
+    const mount = document.getElementById('dbStatusMount');
+    if (!mount) return;
+    if (ctx.configured && ctx.auth.currentUser) {
+      mount.innerHTML = '<span class="db-chip db-ok">Hospital database connected</span>';
+    } else if (ctx.configured) {
+      mount.innerHTML = '<span class="db-chip db-warn">Signed out — not syncing</span>';
+    } else {
+      mount.innerHTML = '<span class="db-chip db-off">Demo mode — not saved to database</span>';
+    }
+  }
+
+  // Fill the indicator once init settles (configured or not).
+  (async () => {
+    try {
+      const ctx = await window.mproFirebase;
+      renderDbStatus(ctx);
+    } catch (e) { /* page without a mount */ }
+  })();
 
   function timeAgo(date) {
     if (!date) return '';

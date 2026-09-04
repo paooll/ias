@@ -90,6 +90,7 @@ function renderTopnav(title, subtitle) {
       </svg>
       <div class="topnav-right">
         <div class="status-dot">System Online</div>
+        <span id="dbStatusMount"></span>
         <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
     </nav>`;

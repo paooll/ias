@@ -62,7 +62,7 @@
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('5')">Patient 5 — Rosario Garcia</button>
               </div>
               <div class="divider" style="margin:16px 0;"></div>
-              <p style="font-size:12px;color:var(--gray-500);">
+              <p style="font-size:12px;color:var(--gray-500);" id="dirNote">
                 This endpoint checks if a patient exists and returns a simple TRUE or FALSE response. Used for quick verification during admissions and transfers.
               </p>
             </div>
@@ -74,6 +74,10 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-blind.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Verification', 'Verify patient existence in the system');
@@ -124,13 +128,34 @@
       return !isNaN(id) && id >= 1 && id <= 5;
     }
 
-    async function doBlindQuery() {
-      const input = document.getElementById('blindInput').value;
-      const result = document.getElementById('boolResult');
-      const badge = document.getElementById('boolBadge');
-      const msg = document.getElementById('boolMsg');
+    // Live patient directory: when Firebase is configured, plain ID lookups are
+    // answered against the real Firestore patients collection.
+    let directory = null;
 
+    (async function loadDirectory() {
+      try {
+        const patients = await window.mproDb.getPatients();
+        if (patients && patients.length) {
+          directory = new Set(patients.map(p => String(p.id)));
+          const note = document.getElementById('dirNote');
+          if (note) note.textContent =
+            `Checks against the hospital patient directory (${patients.length} records on file). Returns TRUE (found) or FALSE (not found).`;
+        }
+      } catch (e) { /* demo directory stays */ }
+    })();
+
+    async function doBlindQuery() {
+      const input = document.getElementById('blindInput').value.trim();
+      const result = document.getElementById('boolResult');
       result.classList.remove('hidden');
+
+      // Plain numeric / P-### lookups are answered by the live directory when loaded.
+      const num = /^\d+$/.test(input) ? parseInt(input, 10)
+                : /^P-\d{1,3}$/i.test(input) ? parseInt(input.replace(/^P-/i, ''), 10) : null;
+      if (num != null && directory) {
+        renderBool(directory.has(String(num)), input);
+        return;
+      }
 
       try {
         const res = await fetch(`/api/sql-blind?id=${encodeURIComponent(input)}`);
