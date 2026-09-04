@@ -108,7 +108,7 @@
     // real Firestore records — the SQLi simulation then operates on live data.
     let dbFromFirestore = false;
 
-    (async function loadFirestorePatients() {
+    const patientLoadPromise = (async function loadFirestorePatients() {
       try {
         const patients = await window.mproDb.getPatients();
         if (!patients || !patients.length) return;
@@ -177,6 +177,10 @@
 
     async function doQuery() {
       const input = document.getElementById('sqlInput').value;
+
+      // Wait for the live collection before searching. Without this, an early
+      // click can query the offline demonstration data (patients 1-5 only).
+      await patientLoadPromise;
 
       // With Firestore data loaded, run the simulation client-side on live
       // records. Otherwise prefer the server API, then fall back to simulation.
@@ -250,4 +254,4 @@
     }
   </script>
 </body>
-</html>
+</html>
