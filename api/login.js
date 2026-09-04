@@ -43,12 +43,24 @@ function legacyLogin(username, password) {
 }
 
 function getAdmin() {
+  if (!admin) return null;
   const saJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!saJson) return null;
-  if (admin && admin.apps.length === 0) {
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(saJson)) });
+  const saPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!saJson && !saPath) return null;
+
+  if (admin.apps.length === 0) {
+    if (saJson && String(saJson).trim().startsWith('{')) {
+      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(saJson)) });
+    } else if (saPath && String(saPath).trim().startsWith('{')) {
+      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(saPath)) });
+    } else if (saPath) {
+      // File path (or Application Default Credentials via the env var).
+      admin.initializeApp({ credential: admin.credential.cert(saPath) });
+    } else {
+      admin.initializeApp();
+    }
   }
-  return admin && admin.apps.length ? admin : null;
+  return admin.apps.length ? admin : null;
 }
 
 module.exports = async (req, res) => {

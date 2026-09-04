@@ -141,15 +141,23 @@
           // Establish the Firebase Auth SDK session (custom token from the API)
           // so Firestore reads/writes work on the pages that follow. This is
           // non-fatal: without Firebase configured the site still works offline.
+          let sessionEstablished = false;
           try {
             if (data.customToken && window.mproFirebase) {
               const ctx = await window.mproFirebase;
               if (ctx && ctx.auth) {
                 await ctx.auth.signInWithCustomToken(data.customToken);
+                sessionEstablished = true;
               }
             }
           } catch (e) {
             console.warn('Firebase session not established:', e.message);
+          }
+
+          // Give the SDK a moment to persist the session before navigating,
+          // so Firestore stays authenticated on the pages that follow.
+          if (sessionEstablished) {
+            await new Promise((r) => setTimeout(r, 800));
           }
 
           success.classList.remove('hidden');
