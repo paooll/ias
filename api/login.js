@@ -50,7 +50,10 @@ function getAdmin() {
   const configuredPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   const localKey = path.resolve(process.cwd(), 'service-account.json');
   const saPath = configuredPath || (fs.existsSync(localKey) ? localKey : '');
-  if (!saJson && !saPath) return null;
+  // Cloud Functions supplies Application Default Credentials automatically.
+  // Keep Vercel/local fallback behavior when no explicit credential exists.
+  const firebaseRuntime = Boolean(process.env.K_SERVICE || process.env.FUNCTION_TARGET || process.env.FUNCTIONS_EMULATOR);
+  if (!saJson && !saPath && !firebaseRuntime) return null;
 
   if (admin.apps.length === 0) {
     if (saJson && String(saJson).trim().startsWith('{')) {

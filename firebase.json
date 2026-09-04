@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "source": ".",
+    "ignore": [".git", ".git/**", ".env", ".env.*", "service-account.json", "node_modules", "node_modules/**"]
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "vercel.json", "package.json", "package-lock.json", "firestore.rules", ".git/**", ".env", ".env.*", "service-account.json", "node_modules/**", "api/**", "functions/**", "scripts/**", "data/**"],
+    "rewrites": [
+      { "source": "/api/**", "function": { "functionId": "api", "region": "asia-east1" } }
+    ]
+  },
+  "firestore": { "rules": "firestore.rules" }
+}
