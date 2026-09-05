@@ -77,6 +77,10 @@ function renderSidebar(active) {
 function renderTopnav(title, subtitle) {
   const isSubPage = window.location.pathname.includes('/pages/');
   const logoutHref = isSubPage ? '../index.html' : 'index.html';
+  const dashboardHref = isSubPage ? '../dashboard.html' : 'dashboard.html';
+  const navigationAction = isSubPage
+    ? `<a class="btn btn-outline btn-sm topnav-dashboard" href="${dashboardHref}">← Dashboard</a>`
+    : '';
 
   return `
     <nav class="topnav">
@@ -91,6 +95,7 @@ function renderTopnav(title, subtitle) {
       <div class="topnav-right">
         <div class="status-dot">System Online</div>
         <span id="dbStatusMount"></span>
+        ${navigationAction}
         <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
     </nav>`;

@@ -15,6 +15,13 @@ const root = __dirname;
 const routes = {
   login: require('./api/login'),
   'firebase-config': require('./api/firebase-config'),
+  'csrf-update': require('./api/csrf-update'),
+  execute: require('./api/execute'),
+  file: require('./api/file'),
+  'sql-blind': require('./api/sql-blind'),
+  sql: require('./api/sql'),
+  upload: require('./api/upload'),
+  'xss-stored': require('./api/xss-stored'),
 };
 
 app.disable('x-powered-by');
