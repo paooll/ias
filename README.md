@@ -30,7 +30,7 @@ before setup and as a pure lab environment.
 
 ## 2. Environment variables
 
-Copy `.env.example` values into the **Vercel dashboard**
+Copy `.env.example` values into the **Render dashboard**
 (Project → Settings → Environment Variables) — and into a local `.env` only if
 you run the seed script locally with them:
 
@@ -66,19 +66,18 @@ This creates the Firebase Auth users and writes the fictional demo data:
 | `radiologist` | `xray2024`   | Radiologist       |
 | `labtech`     | `lab2024`    | Lab Technician    |
 
-## 4. Deploy to Vercel
+## 4. Deploy to Render
 
-```bash
-vercel
-```
+Create a Render **Web Service** with the **Docker** runtime. Render builds the
+included `Dockerfile` and sends traffic to port `3000`.
 
-Set the env vars from step 2 in the Vercel project first. `/api/*.js` are
-serverless functions; `vercel.json` maps the routes.
+Set the environment variables from step 2 in Render first, including the
+service-account JSON as a secret. Do not commit `.env` or `service-account.json`.
 
 ## Testing locally
 
 ```bash
-vercel dev          # full stack with serverless functions
+npm start           # full stack at http://localhost:3000
 npm run check       # syntax-checks the JS entry points
 ```
 
