@@ -86,6 +86,7 @@ function renderTopnav(title, subtitle) {
 
   return `
     <nav class="topnav">
+      <button class="hamburger" onclick="toggleMobileNav(true)" aria-label="Open menu" aria-expanded="false">☰</button>
       <div>
         <div class="topnav-title">${title}</div>
         <div class="topnav-subtitle">${subtitle}</div>
@@ -101,6 +102,22 @@ function renderTopnav(title, subtitle) {
         <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
     </nav>`;
+}
+
+/* ── Mobile navigation drawer ── */
+function toggleMobileNav(open) {
+  const sidebar = document.querySelector('.sidebar');
+  let backdrop = document.querySelector('.drawer-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.className = 'drawer-backdrop';
+    backdrop.addEventListener('click', () => toggleMobileNav(false));
+    document.body.appendChild(backdrop);
+  }
+  const btn = document.querySelector('.hamburger');
+  if (sidebar) sidebar.classList.toggle('open', open);
+  backdrop.classList.toggle('show', open);
+  if (btn) btn.setAttribute('aria-expanded', String(open));
 }
 
 function showResponse(id, content, isError = false) {
@@ -168,7 +185,17 @@ function closeModal() {
   document.body.classList.remove('modal-open');
 }
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeModal(); toggleMobileNav(false); }
+});
+
+// Close the mobile drawer when a nav link is tapped
+function initMobileNavClose() {
+  document.querySelectorAll('.sidebar .nav-item').forEach((el) =>
+    el.addEventListener('click', () => toggleMobileNav(false)));
+}
+if (document.readyState !== 'loading') initMobileNavClose();
+else document.addEventListener('DOMContentLoaded', initMobileNavClose);
 
 function kv(label, value, extraClass) {
   if (value == null || value === '') return '';

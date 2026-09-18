@@ -573,47 +573,105 @@ body.modal-open { overflow: hidden; }
   background: var(--blue-100);
 }
 
+/* ── HAMBURGER (mobile) ── */
+.hamburger {
+  display: none;
+  width: 38px; height: 38px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-size: 18px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .18s;
+}
+.hamburger:active { background: var(--gray-200); }
+
+.drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 27, 42, .5);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.drawer-backdrop.show { display: block; opacity: 1; }
+
 @media (max-width: 900px) {
-  :root { --sidebar-w: 220px; }
-  .topnav { padding: 0 18px; }
+  :root { --sidebar-w: 240px; }
+  .topnav { padding: 0 14px; }
   .topnav-ecg { display: none; }
   .topnav-right { margin-left: auto; gap: 8px; }
   .status-dot { display: none; }
-  .page-content { padding: 22px 18px; }
+  .page-content { padding: 20px 16px; }
 }
 
 @media (max-width: 640px) {
+  /* Drawer sidebar with hamburger + backdrop */
   :root { --sidebar-w: 0px; }
+  .hamburger { display: inline-flex; }
   .sidebar {
-    width: 236px;
+    width: 252px;
     transform: translateX(-100%);
-    transition: transform .2s ease;
-    z-index: 100;
+    transition: transform .22s ease;
+    z-index: 95;
   }
-  .sidebar:hover,
-  .sidebar:focus-within { transform: translateX(0); }
-  .sidebar::after {
-    content: '☰';
-    position: absolute;
-    left: 236px;
-    top: 14px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    background: var(--navy-900);
-    border-radius: 0 8px 8px 0;
-    font-size: 18px;
-  }
+  .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-md); }
   .main { margin-left: 0; }
-  .topnav { height: auto; min-height: var(--header-h); padding: 12px 14px; }
-  .topnav-subtitle { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topnav { height: auto; min-height: var(--header-h); padding: 10px 12px; gap: 10px; }
+  .topnav-title { font-size: 14px; }
+  .topnav-subtitle { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
   .topnav-right { flex-wrap: wrap; justify-content: flex-end; }
   .topnav-dashboard { display: inline-flex; }
-  .page-content { padding: 18px 14px; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .card-body { padding: 16px; }
+  .page-content { padding: 16px 12px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 14px; }
+  .card-body { padding: 14px; }
+  .card-header { padding: 14px 14px; }
+  .page-header h1 { font-size: 19px; }
+  .page-header { margin-bottom: 16px; }
+  .stat-card .stat-val { font-size: 23px; }
+
+  /* Tables become horizontally scrollable with a scroll hint */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { min-width: 560px; }
+
+  /* Forms stack their 2-col rows and fix iOS zoom-on-focus (16px) */
+  .modal-form .form-row { grid-template-columns: 1fr; gap: 0; }
+  .form-control { font-size: 16px; }
+  .form-label { font-size: 12.5px; }
+
+  /* Modals fill the screen bottom-sheet style */
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal { max-width: 100%; border-radius: 14px 14px 0 0; max-height: 92vh; }
+  .modal-lg { max-width: 100%; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
+
+  .btn { padding: 9px 16px; font-size: 12.5px; }
+  .btn-sm, .btn-xs { padding: 7px 12px; }
+
+  /* Full-width stacked bed cards */
+  .bed-grid { grid-template-columns: 1fr; }
+  .bed-card .bed-actions .btn { flex: 1; justify-content: center; }
+
+  /* Code blocks and response boxes wrap instead of overflowing */
+  .code-block { font-size: 11px; }
+  .response-box { font-size: 11px; }
+
+  /* Login page stacks vertically */
+  .login-page { flex-direction: column; }
+  .login-left { width: 100%; min-height: 30vh; padding: 32px 24px; }
+  .login-tagline h2 { font-size: 22px; }
+  .login-features { display: none; }
+  .login-right { padding: 28px 20px; }
+}
+
+/* Reduced-motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
