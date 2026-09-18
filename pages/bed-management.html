@@ -112,7 +112,7 @@ ICU      — Intensive Care</div>
       ).join('');
       return `
         <div class="modal-form">
-          <input type="hidden" id="pfId" value="${p.id || ''}">
+          <input type="hidden" id="pfId" value="${p.docId || p.patientId || p.id || ''}">
           <div class="form-row">
             <div class="form-group" style="margin:0;">
               <label class="form-label">Full Name *</label>
@@ -231,7 +231,7 @@ ICU      — Intensive Care</div>
         large: true,
         body: patientFormHTML(p),
         footer: `
-          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.id}')">🗑 Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.docId || p.id}')">🗑 Delete</button>
           <span style="flex:1"></span>
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
           <button class="btn btn-primary btn-sm" onclick="submitEdit()">💾 Save Changes</button>`,
@@ -254,7 +254,7 @@ ICU      — Intensive Care</div>
     }
 
     function confirmDelete(patientId) {
-      const p = bedCache.find(x => x.id === patientId);
+      const p = bedCache.find(x => (x.docId || x.id) === patientId);
       if (!p) return;
       openModal({
         title: '🗑 Discharge & Delete Record',
@@ -298,7 +298,7 @@ ICU      — Intensive Care</div>
           <div class="bed-actions">
             <button class="btn btn-primary btn-xs" onclick="openEditModal('${p.patientId || p.id}')">Edit</button>
             <button class="btn btn-outline btn-xs" onclick="quickMove('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
-            <button class="btn btn-outline btn-xs" onclick="confirmDelete('${p.id}')">Delete</button>
+            <button class="btn btn-outline btn-xs" onclick="confirmDelete('${p.docId || p.id}')">Delete</button>
           </div>
         </div>`;
     }
@@ -325,7 +325,7 @@ ICU      — Intensive Care</div>
           </div>`,
         footer: `
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.id}')">🚚 Move</button>`,
+          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.docId || p.id}')">🚚 Move</button>`,
       });
     }
 

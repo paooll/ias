@@ -86,6 +86,7 @@
     const d = p.data ? p.data() : p;
     return {
       id: d.id,
+      docId: p.id, // Firestore document ID (e.g. "P-001") — use for updates/deletes
       patientId: d.patientId || p.id,
       name: d.name || 'Unknown',
       diagnosis: d.diagnosis || '',
