@@ -104,8 +104,20 @@
         if (savedId) {
           document.getElementById('fbSourceHint').textContent =
             'Saved to the hospital database (Firestore) and visible to all staff below.';
+          // Also ask the server to render the summary report (template engine).
+          let report = '';
+          try {
+            const res = await fetch('/api/feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            report = data.report || '';
+          } catch (e) { /* report generation is best-effort */ }
           box.classList.add('show');
-          box.textContent = '✅ Feedback saved to the database (reference ' + savedId + ').';
+          box.textContent = '✅ Feedback saved to the database (reference ' + savedId + ')\n\n' +
+            (report || 'Report generation unavailable.');
           document.getElementById('fbComments').value = '';
           return;
         }
