@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Feedback – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .rating-opts { display:flex; gap:6px; flex-wrap:wrap; }
+    .rating-opts label { padding:6px 12px; border:1.5px solid var(--gray-200); border-radius:20px; font-size:12px; cursor:pointer; transition:all .15s; }
+    .rating-opts label:has(input:checked) { background:var(--blue-600); color:white; border-color:var(--blue-600); }
+    .rating-opts input { display:none; }
+    .feedback-result { margin-top:14px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1>⭐ Patient Feedback</h1>
+          <p>Record and review patient satisfaction surveys.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">⭐</div>
+              <h2>Submit Feedback</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
+                Log a patient's post-discharge satisfaction survey. A summary report
+                is generated and shown below after submission.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Patient ID</label>
+                <input type="text" class="form-control" id="fbPatient" value="P-001" placeholder="P-001">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Satisfaction Rating</label>
+                <div class="rating-opts" id="ratingOpts">
+                  <label><input type="radio" name="rating" value="1"> 1 ★</label>
+                  <label><input type="radio" name="rating" value="2"> 2 ★</label>
+                  <label><input type="radio" name="rating" value="3" checked> 3 ★</label>
+                  <label><input type="radio" name="rating" value="4"> 4 ★</label>
+                  <label><input type="radio" name="rating" value="5"> 5 ★</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Comments</label>
+                <textarea class="form-control" id="fbComments" rows="4" placeholder="Patient remarks about their stay..."></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="submitFeedback()">💾 Submit Feedback</button>
+              <pre class="response-box feedback-result" id="fbResult"></pre>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue">📊</div>
+              <h2>Survey Guidelines</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);">
+                Feedback reports are compiled nightly for the quality assurance
+                dashboard. Ratings below 3 automatically notify the ward manager.
+              </p>
+              <p style="font-size:12px;color:var(--gray-500);margin-top:12px;">
+                Reports use the standard hospital letterhead template with the
+                reviewer's remarks included verbatim for audit purposes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('feedback.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Feedback', 'Satisfaction Surveys');
+
+    async function submitFeedback() {
+      const payload = {
+        patientId: document.getElementById('fbPatient').value.trim(),
+        rating: document.querySelector('input[name="rating"]:checked').value,
+        comments: document.getElementById('fbComments').value.trim(),
+        reviewer: (JSON.parse(sessionStorage.getItem('mpro_user') || '{}').name) || 'Anonymous Staff',
+      };
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        const box = document.getElementById('fbResult');
+        box.classList.add('show');
+        box.classList.toggle('error', !data.ok);
+        box.textContent = data.report || data.error || 'Submission failed.';
+      } catch (e) {
+        const box = document.getElementById('fbResult');
+        box.classList.add('show', 'error');
+        box.textContent = 'Request failed: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

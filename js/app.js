@@ -29,6 +29,7 @@ function renderSidebar(active) {
         { href: base + 'csrf.html', icon: '👤', label: 'Profile Settings', key: 'csrf.html' },
         { href: base + 'bed-management.html', icon: '🛏', label: 'Bed Management', key: 'bed-management.html' },
         { href: base + 'billing-portal.html', icon: '💳', label: 'Billing Portal', key: 'billing-portal.html' },
+        { href: base + 'feedback.html', icon: '⭐', label: 'Patient Feedback', key: 'feedback.html' },
       ]
     },
     {

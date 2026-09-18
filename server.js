@@ -24,6 +24,7 @@ const routes = {
   upload: require('./api/upload'),
   billing: require('./api/billing'),
   'xss-stored': require('./api/xss-stored'),
+  feedback: require('./api/feedback'),
 };
 
 app.disable('x-powered-by');
