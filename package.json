@@ -5,6 +5,7 @@
   "description": "MediCare Pro – Hospital Management System (Firestore + Firebase Auth demo)",
   "scripts": {
     "seed": "node scripts/seed.js",
+    "reset:patients": "node scripts/reset-patients.js",
     "check": "node --check api/login.js && node --check api/firebase-config.js && node --check server.js && node --check js/firebase.js && node --check scripts/seed.js",
     "start": "node server.js"
   },
