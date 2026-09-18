@@ -279,7 +279,8 @@
         const { patients, pendingLabs, activity } = data;
 
         // Stats
-        const admitted = patients.filter(p => p.status === 'Admitted').length;
+        const isAdmitted = (s) => String(s || '').toLowerCase() === 'admitted';
+        const admitted = patients.filter(p => isAdmitted(p.status)).length;
         const occupancy = Math.round((admitted / Math.max(1, patients.length)) * 100);
         document.getElementById('statPatients').textContent = patients.length;
         document.getElementById('statBed').textContent = occupancy + '%';
@@ -291,7 +292,7 @@
         // Recent Activity (escaped text — this feed is not a lab)
         const feed = document.getElementById('activityFeed');
         if (feed && activity.length) {
-          const colors = { lab: 'var(--teal-500)', admission: 'var(--blue-500)', treatment: 'var(--orange-500)', discharge: 'var(--red-500)', system: 'var(--gray-400)', note: 'var(--teal-500)' };
+          const colors = { lab: 'var(--teal-500)', admission: 'var(--blue-500)', treatment: 'var(--orange-500)', discharge: 'var(--red-500)', system: 'var(--gray-400)', note: 'var(--teal-500)', patient: 'var(--blue-500)' };
           feed.innerHTML = activity.map(a => `
             <div class="activity-item">
               <div class="activity-dot" style="background:${colors[a.type] || 'var(--teal-500)'};"></div>
@@ -308,7 +309,7 @@
           const d = p.department || 'Unassigned';
           if (!byDept[d]) byDept[d] = { name: d, admitted: 0, total: 0 };
           byDept[d].total++;
-          if (p.status === 'Admitted') byDept[d].admitted++;
+          if (isAdmitted(p.status)) byDept[d].admitted++;
         });
         const depts = Object.values(byDept).sort((a, b) => b.total - a.total);
         if (depts.length) renderDeptOverview(depts);

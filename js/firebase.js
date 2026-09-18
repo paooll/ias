@@ -260,7 +260,7 @@
       return ref.id;
     },
 
-    /** Update fields on an existing patient document. */
+    /** Update fields on an existing patient document. Logs an activity entry. */
     async updatePatient(patientId, updates) {
       const ctx = await fb();
       if (!ctx) return null;
@@ -268,14 +268,31 @@
         ...updates,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
+      try {
+        const label = updates.name || updates.diagnosis || 'record';
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient record updated: ${label} (${patientId})`,
+          dept: ctx.auth.currentUser.displayName || ctx.auth.currentUser.email || 'Staff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
       return true;
     },
 
-    /** Delete a patient document by doc id. */
+    /** Delete a patient document by doc id. Logs an activity entry. */
     async deletePatient(patientId) {
       const ctx = await fb();
       if (!ctx) return null;
       await ctx.db.collection('patients').doc(patientId).delete();
+      try {
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient record deleted (${patientId})`,
+          dept: ctx.auth.currentUser.displayName || ctx.auth.currentUser.email || 'Staff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
       return true;
     },
 
