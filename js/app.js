@@ -1,5 +1,32 @@
 /* MediCare Pro — App JS */
 
+/* ── Liquid Glass theme (light/dark) ──────────────────────────────────── */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-toggle').forEach((btn) => {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.classList.toggle('dark', theme === 'dark');
+  });
+}
+
+function getTheme() {
+  return localStorage.getItem('mpro_theme') || 'light';
+}
+
+function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('mpro_theme', next);
+  applyTheme(next);
+}
+
+// Apply saved theme before first paint to avoid flashing
+(function initTheme() {
+  let t = 'light';
+  try { t = getTheme(); } catch (e) { /* storage unavailable */ }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+
 function renderSidebar(active) {
   // Determine base path: empty string if on root (dashboard.html), 'pages/' if inside pages/
   const isSubPage = window.location.pathname.includes('/pages/');
@@ -99,11 +126,19 @@ function renderTopnav(title, subtitle) {
       <div class="topnav-right">
         <div class="status-dot">System Online</div>
         <span id="dbStatusMount"></span>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
         ${navigationAction}
         <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
     </nav>`;
 }
+
+// Keep any theme toggles in sync once the topnav is rendered
+function syncThemeButtons() {
+  applyTheme(getTheme());
+}
+if (document.readyState !== 'loading') syncThemeButtons();
+else document.addEventListener('DOMContentLoaded', syncThemeButtons);
 
 /* ── Mobile navigation drawer ── */
 function toggleMobileNav(open) {

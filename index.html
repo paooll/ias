@@ -111,7 +111,23 @@
     </div>
   </div>
 
-  <!-- Firebase (compat SDK) — session is established with the custom token from /api/login -->
+  <button class="theme-toggle theme-toggle-float" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+
+  <!-- Theme bootstrap (runs before app.js paint) -->
+  <script>
+    (function () {
+      var t = 'light';
+      try { t = localStorage.getItem('mpro_theme') || 'light'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t);
+      window.addEventListener('DOMContentLoaded', function () {
+        var b = document.querySelector('.theme-toggle-float');
+        if (b) {
+          b.textContent = t === 'dark' ? '☀️' : '🌙';
+          b.classList.toggle('dark', t === 'dark');
+        }
+      });
+    })();
+  </script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
