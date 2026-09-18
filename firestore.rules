@@ -28,11 +28,11 @@ service cloud.firestore {
     }
 
     // ---- Patient records ----
-    // Read-only for authenticated staff. Writes happen only through the
-    // Admin SDK (seed script), never from the browser.
+    // Readable and writable by any authenticated staff (CRUD for all users).
+    // (Note: this is intentionally permissive for the demo environment; in a
+    // real deployment, writes would go through the Admin SDK only.)
     match /patients/{patientId} {
-      allow read:  if signedIn();
-      allow write: if false;
+      allow read, write: if signedIn();
     }
 
     // ---- Clinical notes (stored-XSS lab) ----

@@ -11,11 +11,15 @@
     .bed-card .bed-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .bed-card .bed-id { font-weight:700; font-size:13px; color:var(--gray-900); }
     .bed-card .bed-meta { font-size:12px; color:var(--gray-500); }
-    .bed-card .bed-actions { display:flex; gap:8px; margin-top:10px; }
+    .bed-card .bed-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
     .badge-critical { background:var(--red-100); color:var(--red-600); }
     .badge-stable { background:var(--teal-100); color:var(--teal-600); }
     .badge-observation { background:var(--orange-100); color:#c2410c; }
+    .badge-discharged { background:var(--blue-100); color:var(--blue-600); }
     .badge { padding:2px 10px; border-radius:20px; font-size:10.5px; font-weight:600; }
+    .modal-form { display:grid; gap:12px; }
+    .modal-form .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:640px) { .modal-form .form-row { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -26,9 +30,12 @@
       <div id="topnavMount"></div>
       <div class="page-content">
 
-        <div class="page-header">
-          <h1>🛏 Bed Management</h1>
-          <p>Ward occupancy and patient bed assignments across the hospital.</p>
+        <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h1>🛏 Bed Management</h1>
+            <p>Ward occupancy, patient bed assignments, and patient records.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddModal()">➕ Admit Patient</button>
         </div>
 
         <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
@@ -40,8 +47,8 @@
             </div>
             <div class="card-body">
               <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
-                Move patients between wards/rooms or update their status. Changes are
-                saved to the hospital database immediately and reflected on the dashboard.
+                Admit, move, update, or discharge patients. Changes are saved to the
+                hospital database immediately and reflected on the dashboard.
               </p>
               <div class="bed-grid" id="bedGrid">
                 <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
@@ -63,7 +70,9 @@ Ward D   — Oncology
 ICU      — Intensive Care</div>
               <p style="font-size:12px;color:var(--gray-500);margin-top:14px;">
                 Bed assignments are synced with the Dashboard occupancy stats.
-                Contact the ward clerk for bed availability outside your department.
+                Use <strong>Admit Patient</strong> to register a new patient, or edit
+                any bed card to update details. Discharging removes the patient from
+                the ward board.
               </p>
             </div>
           </div>
@@ -82,43 +91,200 @@ ICU      — Intensive Care</div>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('bed-management.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Bed Management', 'Ward Bed Assignments');
 
-    // ❌ VULNERABLE (mass assignment): the client sends the whole patient document,
-    // including any fields the user adds, straight to Firestore. Combined with
-    // permissive DB rules, any signed-in staff can update ANY patient's fields —
-    // including fields that should never be client-editable.
-    async function saveBed(patientId, updates) {
+    const WARDS = ['Ward A', 'Ward B', 'Ward C', 'Ward D', 'ICU'];
+    const STATUSES = ['admitted', 'stable', 'observation', 'critical', 'discharged'];
+    let bedCache = [];
+
+    async function db() {
+      const ctx = await window.mproFirebase;
+      if (!ctx || !ctx.configured || !ctx.auth.currentUser) return null;
+      return ctx;
+    }
+
+    // ---------- Patient form modal (add / edit) ----------
+    function patientFormHTML(p) {
+      p = p || {};
+      const wardOpts = ['<option value="">Unassigned</option>'].concat(
+        WARDS.map(w => `<option value="${w}" ${p.ward === w ? 'selected' : ''}>${w}</option>`)
+      ).join('');
+      const statusOpts = STATUSES.map(s =>
+        `<option value="${s}" ${(p.status || 'admitted') === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+      ).join('');
+      return `
+        <div class="modal-form">
+          <input type="hidden" id="pfId" value="${p.id || ''}">
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Full Name *</label>
+              <input type="text" class="form-control" id="pfName" value="${p.name || ''}" placeholder="Juan Dela Cruz">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-control" id="pfDob" value="${p.dob || ''}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Gender</label>
+              <select class="form-control" id="pfGender">
+                <option value="">—</option>
+                <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
+                <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Blood Type</label>
+              <select class="form-control" id="pfBlood">
+                <option value="">—</option>
+                ${['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => `<option value="${b}" ${p.bloodType === b ? 'selected' : ''}>${b}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Ward</label>
+              <select class="form-control" id="pfWard">${wardOpts}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Room</label>
+              <input type="text" class="form-control" id="pfRoom" value="${p.room || ''}" placeholder="101">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="pfStatus">${statusOpts}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-control" id="pfDept" value="${p.department || ''}" placeholder="Internal Medicine">
+            </div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Physician</label>
+            <input type="text" class="form-control" id="pfPhysician" value="${p.physician || ''}" placeholder="Dr. E. Santos">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Diagnosis</label>
+            <input type="text" class="form-control" id="pfDiagnosis" value="${p.diagnosis || ''}" placeholder="Primary diagnosis">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Medications</label>
+            <input type="text" class="form-control" id="pfMeds" value="${p.medications || ''}" placeholder="Current medications">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="pfNotes" rows="3" placeholder="Additional notes...">${p.notes || ''}</textarea>
+          </div>
+        </div>`;
+    }
+
+    function collectPatientForm() {
+      return {
+        name: document.getElementById('pfName').value.trim(),
+        dob: document.getElementById('pfDob').value,
+        gender: document.getElementById('pfGender').value,
+        bloodType: document.getElementById('pfBlood').value,
+        ward: document.getElementById('pfWard').value,
+        room: document.getElementById('pfRoom').value.trim(),
+        status: document.getElementById('pfStatus').value,
+        department: document.getElementById('pfDept').value.trim(),
+        physician: document.getElementById('pfPhysician').value.trim(),
+        diagnosis: document.getElementById('pfDiagnosis').value.trim(),
+        medications: document.getElementById('pfMeds').value.trim(),
+        notes: document.getElementById('pfNotes').value.trim(),
+      };
+    }
+
+    function openAddModal() {
+      openModal({
+        title: '➕ Admit New Patient',
+        subtitle: 'The record will be saved to the hospital database.',
+        large: true,
+        body: patientFormHTML(null),
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitAdd()">💾 Admit Patient</button>`,
+      });
+    }
+
+    async function submitAdd() {
+      const data = collectPatientForm();
+      if (!data.name) { alert('Patient name is required.'); return; }
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected — please sign in first.'); return; }
       try {
-        const ctx = await window.mproFirebase;
-        if (!ctx || !ctx.configured) {
-          alert('Hospital database not connected — running in demo mode.');
-          return;
-        }
-        // Direct Firestore write: whatever is in `updates` is merged into the record.
-        await ctx.db.collection('patients').doc(patientId).update(updates);
+        await window.mproDb.addPatient(data);
+        closeModal();
         loadBeds();
       } catch (e) {
-        alert('Update failed: ' + e.message);
+        alert('Failed to admit patient: ' + e.message);
       }
     }
 
-    function moveBed(patientId, currentWard) {
-      const wards = ['Ward A', 'Ward B', 'Ward C', 'Ward D', 'ICU'];
-      const ward = prompt('Move patient to which ward?', currentWard || 'Ward A');
-      if (!ward) return;
-      const room = prompt('Room number?', '101');
-      if (!room) return;
-      saveBed(patientId, { ward: ward, room: room });
+    function openEditModal(patientId) {
+      const p = bedCache.find(x => (x.patientId || x.id) === patientId);
+      if (!p) return;
+      openModal({
+        title: '✏️ Edit Patient',
+        subtitle: `${p.name || 'Patient'} — ${p.patientId || p.id}`,
+        large: true,
+        body: patientFormHTML(p),
+        footer: `
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.id}')">🗑 Delete</button>
+          <span style="flex:1"></span>
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitEdit()">💾 Save Changes</button>`,
+      });
     }
 
-    function changeStatus(patientId) {
-      const status = prompt('New status? (admitted / critical / stable / discharged)', 'stable');
-      if (!status) return;
-      saveBed(patientId, { status: status });
+    async function submitEdit() {
+      const id = document.getElementById('pfId').value;
+      const data = collectPatientForm();
+      if (!data.name) { alert('Patient name is required.'); return; }
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected — please sign in first.'); return; }
+      try {
+        await window.mproDb.updatePatient(id, data);
+        closeModal();
+        loadBeds();
+      } catch (e) {
+        alert('Failed to update patient: ' + e.message);
+      }
     }
 
+    function confirmDelete(patientId) {
+      const p = bedCache.find(x => x.id === patientId);
+      if (!p) return;
+      openModal({
+        title: '🗑 Discharge & Delete Record',
+        subtitle: 'This action cannot be undone.',
+        body: `<p style="font-size:13px;color:var(--gray-700);">
+          Are you sure you want to permanently delete the record for
+          <strong>${p.name || 'this patient'}</strong> (${p.patientId || p.id}) from the hospital database?</p>`,
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-danger btn-sm" onclick="doDelete('${p.id}')">Yes, Delete</button>`,
+      });
+    }
+
+    async function doDelete(patientId) {
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected.'); return; }
+      try {
+        await window.mproDb.deletePatient(patientId);
+        closeModal();
+        loadBeds();
+      } catch (e) {
+        alert('Failed to delete patient: ' + e.message);
+      }
+    }
+
+    // ---------- Bed card rendering ----------
     function bedCard(p) {
       const badgeCls = (p.status === 'critical') ? 'badge-critical'
-        : (p.status === 'observation') ? 'badge-observation' : 'badge-stable';
+        : (p.status === 'observation') ? 'badge-observation'
+        : (p.status === 'discharged') ? 'badge-discharged' : 'badge-stable';
       return `
         <div class="bed-card">
           <div class="bed-top">
@@ -128,11 +294,53 @@ ICU      — Intensive Care</div>
           <div class="bed-meta">🆔 ${p.patientId || p.id} · 🩸 ${p.bloodType || '—'}</div>
           <div class="bed-meta">🏥 ${p.ward || 'Unassigned'} · Room ${p.room || '—'}</div>
           <div class="bed-meta">👩‍⚕️ ${p.physician || '—'}</div>
+          <div class="bed-meta">🩺 ${p.diagnosis || 'No diagnosis on record'}</div>
           <div class="bed-actions">
-            <button class="btn btn-primary btn-xs" onclick="moveBed('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
-            <button class="btn btn-outline btn-xs" onclick="changeStatus('${p.patientId || p.id}')">Status</button>
+            <button class="btn btn-primary btn-xs" onclick="openEditModal('${p.patientId || p.id}')">Edit</button>
+            <button class="btn btn-outline btn-xs" onclick="quickMove('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
+            <button class="btn btn-outline btn-xs" onclick="confirmDelete('${p.id}')">Delete</button>
           </div>
         </div>`;
+    }
+
+    // Quick ward move (kept as a one-click shortcut; full edit via modal)
+    function quickMove(patientId, currentWard) {
+      const p = bedCache.find(x => (x.patientId || x.id) === patientId);
+      if (!p) return;
+      openModal({
+        title: '🚚 Move Patient',
+        subtitle: `${p.name || 'Patient'} — currently ${p.ward || 'Unassigned'}${p.room ? ' · Room ' + p.room : ''}`,
+        body: `
+          <div class="modal-form">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">New Ward</label>
+              <select class="form-control" id="qmWard">
+                ${WARDS.map(w => `<option value="${w}" ${currentWard === w ? 'selected' : ''}>${w}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Room</label>
+              <input type="text" class="form-control" id="qmRoom" value="${p.room || ''}" placeholder="101">
+            </div>
+          </div>`,
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.id}')">🚚 Move</button>`,
+      });
+    }
+
+    async function submitMove(id) {
+      const ward = document.getElementById('qmWard').value;
+      const room = document.getElementById('qmRoom').value.trim();
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected.'); return; }
+      try {
+        await window.mproDb.updatePatient(id, { ward, room });
+        closeModal();
+        loadBeds();
+      } catch (e) {
+        alert('Move failed: ' + e.message);
+      }
     }
 
     async function loadBeds() {
@@ -140,7 +348,9 @@ ICU      — Intensive Care</div>
       try {
         const patients = await window.mproDb.getPatients();
         if (patients) {
-          grid.innerHTML = patients.slice(0, 12).map(bedCard).join('');
+          bedCache = patients;
+          grid.innerHTML = patients.slice(0, 12).map(bedCard).join('') ||
+            '<p style="font-size:13px;color:var(--gray-500);">No patients on record. Click <strong>Admit Patient</strong> to add one.</p>';
           return;
         }
       } catch (e) { /* fall through */ }

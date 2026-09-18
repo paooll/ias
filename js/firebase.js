@@ -236,6 +236,48 @@
       return () => unsubs.forEach((unsubscribe) => unsubscribe());
     },
 
+    /** Create a new patient document (auto ID). Returns the new patientId. */
+    async addPatient(data) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('patients').add({
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // Keep patientId consistent with the seed format when not provided.
+      if (!data.patientId) {
+        await ctx.db.collection('patients').doc(ref.id).update({ patientId: ref.id });
+      }
+      try {
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient admitted: ${data.name || 'New patient'}`,
+          dept: data.department || 'Admissions',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
+      return ref.id;
+    },
+
+    /** Update fields on an existing patient document. */
+    async updatePatient(patientId, updates) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('patients').doc(patientId).update({
+        ...updates,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return true;
+    },
+
+    /** Delete a patient document by doc id. */
+    async deletePatient(patientId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('patients').doc(patientId).delete();
+      return true;
+    },
+
     /** Signed-in user's own staff profile. */
     async getOwnProfile() {
       const ctx = await fb();
