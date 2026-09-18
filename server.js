@@ -21,6 +21,7 @@ const routes = {
   'sql-blind': require('./api/sql-blind'),
   sql: require('./api/sql'),
   upload: require('./api/upload'),
+  billing: require('./api/billing'),
   'xss-stored': require('./api/xss-stored'),
 };
 
