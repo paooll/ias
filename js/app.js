@@ -27,6 +27,7 @@ function renderSidebar(active) {
       items: [
         { href: base + 'brute-force.html', icon: '🔑', label: 'Staff Login', key: 'brute-force.html' },
         { href: base + 'csrf.html', icon: '👤', label: 'Profile Settings', key: 'csrf.html' },
+        { href: base + 'bed-management.html', icon: '🛏', label: 'Bed Management', key: 'bed-management.html' },
         { href: base + 'billing-portal.html', icon: '💳', label: 'Billing Portal', key: 'billing-portal.html' },
       ]
     },

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bed Management – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+    .bed-card { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:10px; padding:14px; }
+    .bed-card .bed-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .bed-card .bed-id { font-weight:700; font-size:13px; color:var(--gray-900); }
+    .bed-card .bed-meta { font-size:12px; color:var(--gray-500); }
+    .bed-card .bed-actions { display:flex; gap:8px; margin-top:10px; }
+    .badge-critical { background:var(--red-100); color:var(--red-600); }
+    .badge-stable { background:var(--teal-100); color:var(--teal-600); }
+    .badge-observation { background:var(--orange-100); color:#c2410c; }
+    .badge { padding:2px 10px; border-radius:20px; font-size:10.5px; font-weight:600; }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1>🛏 Bed Management</h1>
+          <p>Ward occupancy and patient bed assignments across the hospital.</p>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
+          <!-- Bed board -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">🛏</div>
+              <h2>Ward Bed Board</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
+                Move patients between wards/rooms or update their status. Changes are
+                saved to the hospital database immediately and reflected on the dashboard.
+              </p>
+              <div class="bed-grid" id="bedGrid">
+                <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side panel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue">ℹ️</div>
+              <h2>Ward Directory</h2>
+            </div>
+            <div class="card-body">
+              <div class="code-block">Ward A   — Internal Medicine
+Ward B   — Surgery
+Ward C   — Pediatrics
+Ward D   — Oncology
+ICU      — Intensive Care</div>
+              <p style="font-size:12px;color:var(--gray-500);margin-top:14px;">
+                Bed assignments are synced with the Dashboard occupancy stats.
+                Contact the ward clerk for bed availability outside your department.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('bed-management.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Bed Management', 'Ward Bed Assignments');
+
+    // ❌ VULNERABLE (mass assignment): the client sends the whole patient document,
+    // including any fields the user adds, straight to Firestore. Combined with
+    // permissive DB rules, any signed-in staff can update ANY patient's fields —
+    // including fields that should never be client-editable.
+    async function saveBed(patientId, updates) {
+      try {
+        const ctx = await window.mproFirebase;
+        if (!ctx || !ctx.configured) {
+          alert('Hospital database not connected — running in demo mode.');
+          return;
+        }
+        // Direct Firestore write: whatever is in `updates` is merged into the record.
+        await ctx.db.collection('patients').doc(patientId).update(updates);
+        loadBeds();
+      } catch (e) {
+        alert('Update failed: ' + e.message);
+      }
+    }
+
+    function moveBed(patientId, currentWard) {
+      const wards = ['Ward A', 'Ward B', 'Ward C', 'Ward D', 'ICU'];
+      const ward = prompt('Move patient to which ward?', currentWard || 'Ward A');
+      if (!ward) return;
+      const room = prompt('Room number?', '101');
+      if (!room) return;
+      saveBed(patientId, { ward: ward, room: room });
+    }
+
+    function changeStatus(patientId) {
+      const status = prompt('New status? (admitted / critical / stable / discharged)', 'stable');
+      if (!status) return;
+      saveBed(patientId, { status: status });
+    }
+
+    function bedCard(p) {
+      const badgeCls = (p.status === 'critical') ? 'badge-critical'
+        : (p.status === 'observation') ? 'badge-observation' : 'badge-stable';
+      return `
+        <div class="bed-card">
+          <div class="bed-top">
+            <span class="bed-id">${p.name || 'Unknown'}</span>
+            <span class="badge ${badgeCls}">${(p.status || 'admitted').toUpperCase()}</span>
+          </div>
+          <div class="bed-meta">🆔 ${p.patientId || p.id} · 🩸 ${p.bloodType || '—'}</div>
+          <div class="bed-meta">🏥 ${p.ward || 'Unassigned'} · Room ${p.room || '—'}</div>
+          <div class="bed-meta">👩‍⚕️ ${p.physician || '—'}</div>
+          <div class="bed-actions">
+            <button class="btn btn-primary btn-xs" onclick="moveBed('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
+            <button class="btn btn-outline btn-xs" onclick="changeStatus('${p.patientId || p.id}')">Status</button>
+          </div>
+        </div>`;
+    }
+
+    async function loadBeds() {
+      const grid = document.getElementById('bedGrid');
+      try {
+        const patients = await window.mproDb.getPatients();
+        if (patients) {
+          grid.innerHTML = patients.slice(0, 12).map(bedCard).join('');
+          return;
+        }
+      } catch (e) { /* fall through */ }
+      grid.innerHTML = '<p style="font-size:13px;color:var(--gray-500);">Hospital database not connected. Sign in with a staff account to manage beds.</p>';
+    }
+
+    loadBeds();
+  </script>
+</body>
+</html>
