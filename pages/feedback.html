@@ -56,23 +56,21 @@
               </div>
               <button class="btn btn-primary" onclick="submitFeedback()">💾 Submit Feedback</button>
               <pre class="response-box feedback-result" id="fbResult"></pre>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="fbSourceHint">
+                Feedback is saved to the hospital database and shared with all staff.
+              </p>
             </div>
           </div>
 
           <div class="card">
             <div class="card-header">
               <div class="card-icon card-icon-blue">📊</div>
-              <h2>Survey Guidelines</h2>
+              <h2>Recent Feedback</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);">
-                Feedback reports are compiled nightly for the quality assurance
-                dashboard. Ratings below 3 automatically notify the ward manager.
-              </p>
-              <p style="font-size:12px;color:var(--gray-500);margin-top:12px;">
-                Reports use the standard hospital letterhead template with the
-                reviewer's remarks included verbatim for audit purposes.
-              </p>
+              <div id="feedbackList">
+                <p style="font-size:13px;color:var(--gray-500);text-align:center;padding:16px;">Loading feedback…</p>
+              </div>
             </div>
           </div>
         </div>
@@ -82,17 +80,42 @@
   </div>
 
   <script src="../js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
   <script>
     document.getElementById('sidebarMount').outerHTML = renderSidebar('feedback.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Feedback', 'Satisfaction Surveys');
 
     async function submitFeedback() {
       const payload = {
-        patientId: document.getElementById('fbPatient').value.trim(),
+        patientId: document.getElementById('fbPatient').value.trim() || 'P-001',
         rating: document.querySelector('input[name="rating"]:checked').value,
         comments: document.getElementById('fbComments').value.trim(),
         reviewer: (JSON.parse(sessionStorage.getItem('mpro_user') || '{}').name) || 'Anonymous Staff',
       };
+      const box = document.getElementById('fbResult');
+      box.classList.remove('error');
+
+      // 1) Firestore (persistent, shared with all staff)
+      try {
+        const savedId = await window.mproDb.addFeedback(payload);
+        if (savedId) {
+          document.getElementById('fbSourceHint').textContent =
+            'Saved to the hospital database (Firestore) and visible to all staff below.';
+          box.classList.add('show');
+          box.textContent = '✅ Feedback saved to the database (reference ' + savedId + ').';
+          document.getElementById('fbComments').value = '';
+          return;
+        }
+      } catch (e) {
+        box.classList.add('show', 'error');
+        box.textContent = 'Database save failed: ' + e.message;
+        return;
+      }
+
+      // 2) Fallback: demo API (not signed in / DB unavailable)
       try {
         const res = await fetch('/api/feedback', {
           method: 'POST',
@@ -100,16 +123,46 @@
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        const box = document.getElementById('fbResult');
         box.classList.add('show');
         box.classList.toggle('error', !data.ok);
+        document.getElementById('fbSourceHint').textContent =
+          'Demo mode — database not connected. Feedback kept for this session only.';
         box.textContent = data.report || data.error || 'Submission failed.';
       } catch (e) {
-        const box = document.getElementById('fbResult');
         box.classList.add('show', 'error');
         box.textContent = 'Request failed: ' + e.message;
       }
     }
+
+    function feedbackCard(f) {
+      const stars = '★'.repeat(parseInt(f.rating, 10) || 0) + '☆'.repeat(5 - (parseInt(f.rating, 10) || 0));
+      return `
+        <div class="note-item" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--gray-500);display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span><strong style="color:var(--blue-600);">${f.patientId}</strong> · ${f.reviewer || 'Anonymous'}</span>
+            <span>${f.createdAt ? window.mproDb.timeAgo(f.createdAt) : ''}</span>
+          </div>
+          <div style="color:var(--yellow-500);font-size:13px;letter-spacing:1px;">${stars}</div>
+          <div style="font-size:13px;color:var(--gray-900);margin-top:4px;">${f.comments || '<em>No comments</em>'}</div>
+        </div>`;
+    }
+
+    function renderFeedbackList(list) {
+      const wrap = document.getElementById('feedbackList');
+      wrap.innerHTML = (list && list.length)
+        ? list.map(feedbackCard).join('')
+        : '<p style="font-size:13px;color:var(--gray-500);text-align:center;padding:16px;">No feedback yet. Submit one on the left.</p>';
+    }
+
+    (async function initFeedback() {
+      // Live Firestore feed when signed in
+      try {
+        const unsub = await window.mproDb.watchFeedback(renderFeedbackList);
+        if (unsub) return;
+      } catch (e) { /* fall back */ }
+      document.getElementById('feedbackList').innerHTML =
+        '<p style="font-size:13px;color:var(--gray-500);text-align:center;padding:16px;">Sign in to see saved feedback from the hospital database.</p>';
+    })();
   </script>
 </body>
 </html>

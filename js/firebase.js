@@ -330,6 +330,48 @@
       });
     },
 
+    /** Feedback reviews (Patient Feedback page), newest first. */
+    async getFeedback(patientId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      let q = ctx.db.collection('feedback');
+      if (patientId) q = q.where('patientId', '==', patientId);
+      const snap = await q.orderBy('createdAt', 'desc').limit(50).get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return { id: d.id, patientId: x.patientId || '', rating: x.rating || '', reviewer: x.reviewer || '', comments: x.comments || '', createdAt: ts };
+      });
+    },
+
+    async watchFeedback(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('feedback').orderBy('createdAt', 'desc').limit(50).onSnapshot(
+        (snap) => callback(snap.docs.map((d) => {
+          const x = d.data();
+          const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+          return { id: d.id, patientId: x.patientId || '', rating: x.rating || '', reviewer: x.reviewer || '', comments: x.comments || '', createdAt: ts };
+        })),
+        (error) => console.warn('Live feedback subscription failed:', error.message)
+      );
+    },
+
+    /** Save a feedback review to Firestore. Returns doc id or null (not signed in). */
+    async addFeedback({ patientId, rating, reviewer, comments }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('feedback').add({
+        patientId: patientId || 'P-001',
+        rating: rating || '5',
+        reviewer: reviewer || 'Anonymous Staff',
+        comments: comments || '',
+        authorUid: ctx.auth.currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return ref.id;
+    },
+
     /** Uploaded documents (Documents page), newest first. */
     async getDocuments() {
       const ctx = await fb();

@@ -45,6 +45,14 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
+    // ---- Patient feedback (satisfaction surveys) ----
+    // Signed-in staff can read all feedback and submit new reviews.
+    match /feedback/{feedbackId} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
     // ---- Lab reports ----
     // Read-only for authenticated staff, written only via Admin SDK (seed).
     match /lab_reports/{reportId} {
