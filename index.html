@@ -82,7 +82,7 @@
           <div class="form-group">
             <div class="flex justify-between items-center mb-4" style="margin-bottom:6px;">
               <label class="form-label" style="margin-bottom:0;">Password</label>
-              <a href="#" class="forgot">Forgot password?</a>
+              <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
             </div>
             <div class="input-icon-wrap">
               <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="off">
@@ -96,6 +96,15 @@
           <div class="demo-creds">
             <strong>Demo accounts</strong><br>
             <code>admin / admin123</code> · <code>doctor / password1</code> · <code>nurse / nurse123</code>
+          </div>
+
+          <div id="forgotBox" class="hidden" style="margin-top:14px;padding:12px;border:1px solid var(--blue-100);background:var(--gray-50);border-radius:10px;font-size:12px;color:var(--gray-700);line-height:1.7;">
+            <strong>🔑 Password Reset</strong>
+            <p id="forgotMsg" style="margin:6px 0;">Enter your username, then click Request Reset.</p>
+            <div class="flex gap-2">
+              <button class="btn btn-primary btn-sm" id="forgotBtn" onclick="requestReset()">Request Reset</button>
+              <button class="btn btn-outline btn-sm" onclick="closeForgot()">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -190,8 +199,72 @@
     }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Enter') doLogin();
+      if (e.key === 'Enter' && !forgotOpen) doLogin();
     });
+
+    /* ── Forgot password flow ─────────────────────────────────────────── */
+    let forgotOpen = false;
+
+    function showForgot(e) {
+      e.preventDefault();
+      const alert = document.getElementById('loginAlert');
+      const success = document.getElementById('loginSuccess');
+      alert.classList.add('hidden');
+      success.classList.add('hidden');
+
+      const user = document.getElementById('username').value.trim();
+      const box = document.getElementById('forgotBox');
+      box.classList.remove('hidden');
+      forgotOpen = true;
+
+      document.getElementById('forgotMsg').textContent = user
+        ? `Send a password reset for account “${user}”?`
+        : 'Enter your username above, then click Request Reset.';
+    }
+
+    async function requestReset() {
+      const username = document.getElementById('username').value.trim();
+      const msg = document.getElementById('forgotMsg');
+      const btn = document.getElementById('forgotBtn');
+      const box = document.getElementById('forgotBox');
+
+      if (!username) {
+        msg.textContent = 'Please enter your username first.';
+        return;
+      }
+
+      btn.disabled = true;
+      msg.textContent = 'Requesting reset…';
+
+      try {
+        const res = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          msg.textContent = '❌ ' + data.message;
+        } else if (data.mode === 'demo') {
+          msg.innerHTML = `Demo mode — database not connected.<br>` +
+            `Account email: <code>${data.demoEmail}</code><br>` +
+            `Demo password: <code>${data.demoPassword}</code>`;
+        } else {
+          msg.innerHTML = `✅ Reset link generated for your account.<br>` +
+            `<a href="${data.resetLink}" style="color:var(--blue-600);word-break:break-all;">Open password reset page</a>`;
+        }
+      } catch (err) {
+        msg.textContent = '❌ Could not reach the reset service. Please try again.';
+      }
+
+      btn.disabled = false;
+    }
+
+    function closeForgot() {
+      document.getElementById('forgotBox').classList.add('hidden');
+      forgotOpen = false;
+    }
   </script>
 </body>
 </html>

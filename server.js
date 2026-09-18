@@ -14,6 +14,7 @@ const app = express();
 const root = __dirname;
 const routes = {
   login: require('./api/login'),
+  'forgot-password': require('./api/forgot-password'),
   'firebase-config': require('./api/firebase-config'),
   'csrf-update': require('./api/csrf-update'),
   execute: require('./api/execute'),
