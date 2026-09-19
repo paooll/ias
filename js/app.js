@@ -1,10 +1,95 @@
 /* MediCare Pro — App JS */
 
+/* ── Icons8 monochrome icon set (https://icons8.com — "iOS" style) ──────
+   Monochrome black icons rendered via CSS filter, so they follow the text
+   color and adapt automatically to light and dark themes.
+   Usage: icon('name', size) */
+const MPRO_ICONS = {
+  gauge: 'speed',
+  clipboard: 'clipboard',
+  search: 'search',
+  searchDoc: 'user-credentials',
+  note: 'note',
+  key: 'key',
+  person: 'user',
+  bed: 'hospital-bed',
+  creditcard: 'bank-card-back-side',
+  star: 'star',
+  folder: 'folder-invoices--v1',
+  desktop: 'command-line',
+  tray: 'download',
+  trayUp: 'upload',
+  cross: 'hospital',
+  clock: 'clock',
+  calendar: 'calendar',
+  warning: 'error--v1',
+  check: 'checked',
+  checkCircle: 'checkmark--v1',
+  xmark: 'close-window',
+  xCircle: 'error',
+  plus: 'add',
+  plusCircle: 'plus',
+  save: 'save',
+  trash: 'trash',
+  pencil: 'edit',
+  arrowRight: 'forward',
+  info: 'info--v1',
+  idCard: 'user-credentials',
+  drop: 'drop-of-blood',
+  stethoscope: 'stethoscope',
+  bolt: 'lightning-bolt',
+  people: 'group-objects--v1',
+  db: 'database',
+  flask: 'test-tube',
+  brain: 'brain',
+  heart: 'heart-health',
+  wifi: 'wifi',
+  eye: 'show-password',
+  download: 'download',
+  menu: 'menu',
+  sun: 'sun',
+  moon: 'moon',
+  building: 'building',
+  lightbulb: 'idea',
+  document: 'document',
+  folderGrid: 'group-objects--v1',
+  lock: 'lock',
+  shield: 'shield',
+  receipt: 'invoice',
+  signal: 'statistics',
+  terminal: 'console',
+  lungs: 'lungs',
+  pills: 'pills',
+  gear: 'settings',
+  move: 'move',
+  user: 'user',
+};
+
+// Mount icons declared statically in HTML: <span data-icon="name" data-icon-size="18"></span>
+function mountIcons(root) {
+  (root || document).querySelectorAll('[data-icon]').forEach((el) => {
+    el.innerHTML = icon(el.dataset.icon, el.dataset.iconSize || '1em');
+  });
+}
+if (document.readyState !== 'loading') mountIcons();
+else document.addEventListener('DOMContentLoaded', mountIcons);
+
+function icon(name, size) {
+  const s = size || 16;
+  const slug = MPRO_ICONS[name] || MPRO_ICONS.info;
+  // Locally-hosted monochrome Icons8 icons; tinted to the text color via CSS
+  // (inverted to white in dark mode) so they work in both themes.
+  const base = window.location.pathname.includes('/pages/') ? '../assets/icons/' : 'assets/icons/';
+  return '<img class="mpro-icon" src="' + base + slug + '.png" ' +
+    'width="' + s + '" height="' + s + '" alt="" aria-hidden="true" draggable="false" ' +
+    'style="width:' + s + 'px;height:' + s + 'px;object-fit:contain;vertical-align:middle;flex-shrink:0;">';
+}
+
 /* ── Liquid Glass theme (light/dark) ──────────────────────────────────── */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-toggle').forEach((btn) => {
-    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.innerHTML = icon(theme === 'dark' ? 'sun' : 'moon', 16);
     btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
     btn.classList.toggle('dark', theme === 'dark');
   });
@@ -37,34 +122,34 @@ function renderSidebar(active) {
     {
       label: 'Main',
       items: [
-        { href: dashHref, icon: '📊', label: 'Dashboard', key: 'dashboard' },
+        { href: dashHref, icon: 'gauge', label: 'Dashboard', key: 'dashboard' },
       ]
     },
     {
       label: 'Patient Management',
       items: [
-        { href: base + 'sql-injection.html', icon: '📋', label: 'Patient Records', key: 'sql-injection.html' },
-        { href: base + 'sql-blind.html', icon: '🔍', label: 'Patient Verification', key: 'sql-blind.html' },
-        { href: base + 'xss-reflected.html', icon: '🔎', label: 'Patient Search', key: 'xss-reflected.html' },
-        { href: base + 'xss-stored.html', icon: '📝', label: 'Patient Notes', key: 'xss-stored.html' },
+        { href: base + 'sql-injection.html', icon: 'clipboard', label: 'Patient Records', key: 'sql-injection.html' },
+        { href: base + 'sql-blind.html', icon: 'searchDoc', label: 'Patient Verification', key: 'sql-blind.html' },
+        { href: base + 'xss-reflected.html', icon: 'search', label: 'Patient Search', key: 'xss-reflected.html' },
+        { href: base + 'xss-stored.html', icon: 'note', label: 'Patient Notes', key: 'xss-stored.html' },
       ]
     },
     {
       label: 'Staff Portal',
       items: [
-        { href: base + 'brute-force.html', icon: '🔑', label: 'Staff Login', key: 'brute-force.html' },
-        { href: base + 'csrf.html', icon: '👤', label: 'Profile Settings', key: 'csrf.html' },
-        { href: base + 'bed-management.html', icon: '🛏', label: 'Bed Management', key: 'bed-management.html' },
-        { href: base + 'billing-portal.html', icon: '💳', label: 'Billing Portal', key: 'billing-portal.html' },
-        { href: base + 'feedback.html', icon: '⭐', label: 'Patient Feedback', key: 'feedback.html' },
+        { href: base + 'brute-force.html', icon: 'key', label: 'Staff Login', key: 'brute-force.html' },
+        { href: base + 'csrf.html', icon: 'person', label: 'Profile Settings', key: 'csrf.html' },
+        { href: base + 'bed-management.html', icon: 'bed', label: 'Bed Management', key: 'bed-management.html' },
+        { href: base + 'billing-portal.html', icon: 'creditcard', label: 'Billing Portal', key: 'billing-portal.html' },
+        { href: base + 'feedback.html', icon: 'star', label: 'Patient Feedback', key: 'feedback.html' },
       ]
     },
     {
       label: 'Administration',
       items: [
-        { href: base + 'file-inclusion.html', icon: '📁', label: 'Lab Reports', key: 'file-inclusion.html' },
-        { href: base + 'command-execution.html', icon: '🖥️', label: 'System Diagnostics', key: 'command-execution.html' },
-        { href: base + 'shell-upload.html', icon: '📤', label: 'Documents', key: 'documents' },
+        { href: base + 'file-inclusion.html', icon: 'folder', label: 'Lab Reports', key: 'file-inclusion.html' },
+        { href: base + 'command-execution.html', icon: 'desktop', label: 'System Diagnostics', key: 'command-execution.html' },
+        { href: base + 'shell-upload.html', icon: 'trayUp', label: 'Documents', key: 'documents' },
       ]
     }
   ];
@@ -76,7 +161,7 @@ function renderSidebar(active) {
       <div class="sidebar-label">${section.label}</div>
       ${section.items.map(i => `
         <a href="${i.href}" class="nav-item ${active === i.key ? 'active' : ''}">
-          <span class="nav-icon">${i.icon}</span> ${i.label}
+          <span class="nav-icon">${icon(i.icon, 15)}</span> ${i.label}
         </a>
       `).join('')}
     </div>
@@ -85,7 +170,7 @@ function renderSidebar(active) {
   return `
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">🏥</div>
+        <div class="logo-icon">${icon('cross', 20)}</div>
         <div class="logo-text">
           <span>MediCare Pro</span>
           <span>Healthcare Platform v3.2</span>
@@ -109,12 +194,12 @@ function renderTopnav(title, subtitle) {
   const logoutHref = isSubPage ? '../index.html' : 'index.html';
   const dashboardHref = isSubPage ? '../dashboard.html' : 'dashboard.html';
   const navigationAction = isSubPage
-    ? `<a class="btn btn-outline btn-sm topnav-dashboard" href="${dashboardHref}">← Dashboard</a>`
+    ? `<a class="btn btn-outline btn-sm topnav-dashboard" href="${dashboardHref}">‹ Dashboard</a>`
     : '';
 
   return `
     <nav class="topnav">
-      <button class="hamburger" onclick="toggleMobileNav(true)" aria-label="Open menu" aria-expanded="false">☰</button>
+      <button class="hamburger" onclick="toggleMobileNav(true)" aria-label="Open menu" aria-expanded="false">${icon('menu', 18)}</button>
       <div>
         <div class="topnav-title">${title}</div>
         <div class="topnav-subtitle">${subtitle}</div>
@@ -126,7 +211,7 @@ function renderTopnav(title, subtitle) {
       <div class="topnav-right">
         <div class="status-dot">System Online</div>
         <span id="dbStatusMount"></span>
-        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">${icon('moon', 16)}</button>
         ${navigationAction}
         <button class="btn btn-outline btn-sm" onclick="window.location.href='${logoutHref}'">Sign Out</button>
       </div>
@@ -205,7 +290,7 @@ function openModal(opts) {
     <div class="modal ${opts.large ? 'modal-lg' : ''}" role="dialog" aria-modal="true">
       <div class="modal-header">
         <div><div class="modal-title">${title}</div>${subtitle}</div>
-        <button class="modal-x" onclick="closeModal()" aria-label="Close">✕</button>
+        <button class="modal-x" onclick="closeModal()" aria-label="Close">${icon('xmark', 13)}</button>
       </div>
       <div class="modal-body">${opts.body || ''}</div>
       ${opts.footer ? `<div class="modal-footer">${opts.footer}</div>` : ''}
@@ -268,7 +353,7 @@ function openPatientModal(p) {
   const name = p.name || 'Unknown Patient';
   const pid = p.patientId || (p.id != null ? 'P-' + String(p.id).padStart(3, '0') : '');
   openModal({
-    title: '🩺 Patient Record',
+    title: icon('stethoscope', 15) + ' Patient Record',
     subtitle: `${escapeHtml(name)}${pid ? ' — ' + escapeHtml(pid) : ''}`,
     body: patientDetailHTML(p),
     footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',

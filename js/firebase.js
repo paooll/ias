@@ -70,6 +70,76 @@
     } catch (e) { /* page without a mount */ }
   })();
 
+  /* ── Google Single Sign-On ───────────────────────────────────────────
+     Signs in with Firebase Auth's Google provider, then verifies the
+     session on the server (/api/google-login) so the staff profile in
+     Firestore is created or linked. Returns the signed-in user object. */
+  window.mproGoogleSignIn = async function mproGoogleSignIn() {
+    const ctx = await window.mproFirebase;
+    if (!ctx || !ctx.configured) {
+      const err = new Error('Firebase is not configured, so Google Sign-In is unavailable.');
+      err.code = 'mpro/not-configured';
+      throw err;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    let credential;
+    try {
+      credential = await ctx.auth.signInWithPopup(provider);
+    } catch (e) {
+      // Popup blocked (common in embedded previews) — fall back to redirect.
+      if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+        await ctx.auth.signInWithRedirect(provider);
+        return null;
+      }
+      throw e;
+    }
+
+    const idToken = credential && credential.user ? await credential.user.getIdToken() : null;
+    if (!idToken) throw new Error('Google did not return a session token.');
+
+    // Verify server-side and sync the Firestore staff profile.
+    const res = await fetch('/api/google-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    const data = await res.json();
+    if (!data || !data.success) {
+      await ctx.auth.signOut();
+      const err = new Error((data && data.message) || 'Google sign-in was rejected by the server.');
+      err.code = 'mpro/server-rejected';
+      throw err;
+    }
+
+    sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
+  /* Completes a Google redirect sign-in (used after signInWithRedirect). */
+  window.mproCompleteGoogleRedirect = async function mproCompleteGoogleRedirect() {
+    const ctx = await window.mproFirebase;
+    if (!ctx || !ctx.configured) return null;
+    try {
+      const credential = await ctx.auth.getRedirectResult();
+      if (!credential || !credential.user) return null;
+      const idToken = await credential.user.getIdToken();
+      const res = await fetch('/api/google-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      if (!data || !data.success) return null;
+      sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+      return data.user;
+    } catch (e) {
+      return null;
+    }
+  };
+
   function timeAgo(date) {
     if (!date) return '';
     const diff = Math.max(0, Date.now() - new Date(date).getTime());

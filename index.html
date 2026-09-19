@@ -22,6 +22,10 @@
     .input-icon-wrap .form-control { padding-left: 38px; }
     .forgot { font-size: 12px; color: var(--blue-600); text-decoration: none; font-weight: 500; }
     .forgot:hover { text-decoration: underline; }
+    .login-divider { display:flex; align-items:center; gap:10px; margin:16px 0 12px; color:var(--gray-400); font-size:11px; }
+    .login-divider::before, .login-divider::after { content:''; flex:1; height:1px; background:var(--gray-200); }
+    .btn-google { background:var(--glass-bg-strong); border:1px solid var(--glass-border); color:var(--text-1); display:flex; align-items:center; gap:8px; }
+    .btn-google:hover { background:var(--blue-100); border-color:var(--blue-500); color:var(--blue-600); }
     .demo-creds { margin-top: 14px; padding: 10px 12px; background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 8px; font-size: 11px; color: var(--gray-500); line-height: 1.7; }
     .demo-creds code { background: var(--gray-100); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
   </style>
@@ -32,7 +36,7 @@
   <div class="login-page">
     <div class="login-left">
       <div class="login-brand">
-        <div class="login-brand-icon">🏥</div>
+        <div class="login-brand-icon" data-icon="cross" data-icon-size="28"></div>
         <div class="login-brand-text">
           <span>MediCare Pro</span>
           <span>Hospital Management System v3.2</span>
@@ -65,7 +69,7 @@
           <p class="subtitle">Sign in to your MediCare Pro account to continue.</p>
 
           <div id="loginAlert" class="alert alert-danger hidden">
-            <span>⚠️</span>
+            <span data-icon="warning" data-icon-size="14"></span>
             <span id="loginAlertMsg">Invalid credentials. Please try again.</span>
           </div>
           <div id="loginSuccess" class="alert alert-success hidden">
@@ -93,13 +97,25 @@
             Sign In to MediCare Pro
           </button>
 
+          <div class="login-divider"><span>or</span></div>
+
+          <button class="btn btn-google w-full" id="googleBtn" onclick="doGoogleLogin()" style="justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0;">
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.4 5.4 2.5 13.2l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5Z"/>
+              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.2-3.2-.5-4.7H24v9h12.7c-.6 3-2.3 5.6-4.8 7.3l7.6 5.9c4.4-4.1 7-10.2 7-17.5Z"/>
+              <path fill="#FBBC05" d="M10.3 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l7.8-6.1Z"/>
+              <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.8 2.2-8.3 2.2-6.4 0-11.8-3.7-13.7-9.1l-7.8 6.1C6.4 42.6 14.6 48 24 48Z"/>
+            </svg>
+            Continue with Google
+          </button>
+
           <div class="demo-creds">
             <strong>Demo accounts</strong><br>
             <code>admin / admin123</code> · <code>doctor / password1</code> · <code>nurse / nurse123</code>
           </div>
 
           <div id="forgotBox" class="hidden" style="margin-top:14px;padding:12px;border:1px solid var(--blue-100);background:var(--gray-50);border-radius:10px;font-size:12px;color:var(--gray-700);line-height:1.7;">
-            <strong>🔑 Password Reset</strong>
+            <strong data-icon="key" data-icon-size="14"></strong> Password Reset
             <p id="forgotMsg" style="margin:6px 0;">Enter your username, then click Request Reset.</p>
             <div class="flex gap-2">
               <button class="btn btn-primary btn-sm" id="forgotBtn" onclick="requestReset()">Request Reset</button>
@@ -111,7 +127,7 @@
     </div>
   </div>
 
-  <button class="theme-toggle theme-toggle-float" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+  <button class="theme-toggle theme-toggle-float" onclick="toggleTheme()" aria-label="Toggle dark mode" data-icon="moon" data-icon-size="16"></button>
 
   <!-- Theme bootstrap (runs before app.js paint) -->
   <script>
@@ -121,10 +137,7 @@
       document.documentElement.setAttribute('data-theme', t);
       window.addEventListener('DOMContentLoaded', function () {
         var b = document.querySelector('.theme-toggle-float');
-        if (b) {
-          b.textContent = t === 'dark' ? '☀️' : '🌙';
-          b.classList.toggle('dark', t === 'dark');
-        }
+        if (b && typeof applyTheme === 'function') applyTheme(t);
       });
     })();
   </script>
@@ -218,6 +231,57 @@
       if (e.key === 'Enter' && !forgotOpen) doLogin();
     });
 
+    /* ── Google Single Sign-On ─────────────────────────────────────────── */
+    async function doGoogleLogin() {
+      const btn = document.getElementById('googleBtn');
+      const alert = document.getElementById('loginAlert');
+      alert.classList.add('hidden');
+      document.getElementById('loginSuccess').classList.add('hidden');
+
+      if (typeof window.mproGoogleSignIn !== 'function') {
+        document.getElementById('loginAlertMsg').textContent =
+          'Google Sign-In needs the hospital database connection. Set the Firebase keys and try again.';
+        alert.classList.remove('hidden');
+        return;
+      }
+
+      const label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Contacting Google…';
+
+      try {
+        const user = await window.mproGoogleSignIn();
+        if (!user) return; // redirected to Google — the page will reload
+        document.getElementById('loginSuccess').classList.remove('hidden');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+      } catch (e) {
+        let msg = e && e.message ? e.message : 'Google sign-in failed. Please try again.';
+        if (e && e.code === 'auth/popup-closed-by-user') msg = 'Google sign-in was cancelled.';
+        if (e && e.code === 'auth/account-exists-with-different-credential') {
+          msg = 'An account with this email already exists. Sign in with your username and password instead.';
+        }
+        if (e && e.code === 'auth/operation-not-allowed') {
+          msg = 'Google Sign-In is not enabled for this project yet.';
+        }
+        document.getElementById('loginAlertMsg').textContent = msg;
+        alert.classList.remove('hidden');
+        btn.innerHTML = label;
+        btn.disabled = false;
+      }
+    }
+
+    // Finish a Google redirect sign-in (used when the popup is blocked).
+    (async function finishGoogleRedirect() {
+      if (typeof window.mproCompleteGoogleRedirect !== 'function') return;
+      try {
+        const user = await window.mproCompleteGoogleRedirect();
+        if (user) {
+          document.getElementById('loginSuccess').classList.remove('hidden');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        }
+      } catch (e) { /* no pending redirect */ }
+    })();
+
     /* ── Forgot password flow ─────────────────────────────────────────── */
     let forgotOpen = false;
 
@@ -261,17 +325,17 @@
         const data = await res.json();
 
         if (!data.success) {
-          msg.textContent = '❌ ' + data.message;
+          msg.textContent = data.message;
         } else if (data.mode === 'demo') {
           msg.innerHTML = `Demo mode — database not connected.<br>` +
             `Account email: <code>${data.demoEmail}</code><br>` +
             `Demo password: <code>${data.demoPassword}</code>`;
         } else {
-          msg.innerHTML = `✅ Reset link generated for your account.<br>` +
+          msg.innerHTML = `Reset link generated for your account.<br>` +
             `<a href="${data.resetLink}" style="color:var(--blue-600);word-break:break-all;">Open password reset page</a>`;
         }
       } catch (err) {
-        msg.textContent = '❌ Could not reach the reset service. Please try again.';
+        msg.textContent = 'Could not reach the reset service. Please try again.';
       }
 
       btn.disabled = false;

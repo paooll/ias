@@ -20,7 +20,7 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>📝 Patient Notes</h1>
+          <h1><span data-icon="note" data-icon-size="18"></span> Patient Notes</h1>
           <p>Add and view clinical observations for patients.</p>
         </div>
 
@@ -28,7 +28,7 @@
           <!-- Add Note -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">📝</div>
+              <div class="card-icon card-icon-teal" data-icon="note" data-icon-size="18"></div>
               <h2>Add Patient Note</h2>
             </div>
             <div class="card-body">
@@ -44,8 +44,8 @@
                 <textarea class="form-control" id="noteContent" rows="4" placeholder="Enter clinical notes here..."></textarea>
               </div>
               <div class="flex gap-2">
-                <button class="btn btn-primary" onclick="addNote()">💾 Save Note</button>
-                <button class="btn btn-outline btn-sm" onclick="clearNotes()">🗑 Clear All</button>
+                <button class="btn btn-primary" onclick="addNote()"><span data-icon="save" data-icon-size="14"></span> Save Note</button>
+                <button class="btn btn-outline btn-sm" onclick="clearNotes()"><span data-icon="trash" data-icon-size="13"></span> Clear All</button>
               </div>
               <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="noteSourceHint">
                 Notes are stored in this browser (localStorage).
@@ -56,7 +56,7 @@
           <!-- Notes Feed -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">📋</div>
+              <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
               <h2>Patient Notes Feed</h2>
             </div>
             <div class="card-body">
@@ -96,7 +96,7 @@
         return;
       }
 
-      // ❌ VULNERABLE: notes rendered with innerHTML — stored XSS payloads execute (lab)
+      // VULNERABLE (intentional lab): notes rendered with innerHTML — stored XSS payloads execute
       feed.innerHTML = notes.map(n => `
         <div class="note-item">
           <div class="note-meta">

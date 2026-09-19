@@ -14,14 +14,14 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>🔎 Patient Search</h1>
+          <h1><span data-icon="search" data-icon-size="18"></span> Patient Search</h1>
           <p>Search for patients by name across all departments.</p>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🔍</div>
+              <div class="card-icon card-icon-teal" data-icon="search" data-icon-size="18"></div>
               <h2>Patient Search</h2>
             </div>
             <div class="card-body">
@@ -50,7 +50,7 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">💡</div>
+              <div class="card-icon card-icon-blue" data-icon="lightbulb" data-icon-size="18"></div>
               <h2>Common Searches</h2>
             </div>
             <div class="card-body">
@@ -139,7 +139,7 @@
       tbody.innerHTML = list.map((p, i) =>
         `<tr><td>${p.patientId || p.id}</td><td>${p.name}</td><td>${p.department}</td>` +
         `<td>${statusChip(p.status)}</td>` +
-        `<td><button class="btn-link" onclick="viewSearchResult(${i})">View →</button></td></tr>`
+        `<td><button class="btn-link" onclick="viewSearchResult(${i})">View »</button></td></tr>`
       ).join('');
       if (note) note.textContent = noteText || '';
     }
@@ -151,7 +151,7 @@
 
       results.classList.remove('hidden');
 
-      // ❌ VULNERABLE: innerHTML — scripts and HTML execute (reflected XSS lab)
+      // VULNERABLE (intentional lab): innerHTML — scripts and HTML execute (reflected XSS lab)
       reflected.innerHTML = input;
 
       // Prefer real Firestore data; fall back to the mock list.

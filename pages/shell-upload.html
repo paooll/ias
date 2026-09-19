@@ -19,27 +19,27 @@
     <div id="topnavMount"></div>
     <div class="page-content">
       <div class="page-header">
-        <h1>📤 Documents</h1>
+        <h1><span data-icon="trayUp" data-icon-size="18"></span> Documents</h1>
         <p>Upload, organize, and access hospital documents and patient consent forms.</p>
       </div>
 
       <div class="grid-2">
         <div class="card">
           <div class="card-header">
-            <div class="card-icon card-icon-blue">📤</div>
+            <div class="card-icon card-icon-blue" data-icon="trayUp" data-icon-size="18"></div>
             <h2>Upload Document</h2>
           </div>
           <div class="card-body">
             <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Upload patient consent forms, referral letters, imaging results, or administrative documents.</p>
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-              <div style="font-size:36px;margin-bottom:10px;">📁</div>
+              <div style="margin-bottom:10px;color:var(--gray-400);" data-icon="folder" data-icon-size="40"></div>
               <p style="font-size:13px;font-weight:600;color:var(--gray-700);">Click to select file or drag & drop</p>
               <p style="font-size:12px;color:var(--gray-500);margin-top:4px;">Supported: PDF, DOCX, JPG, PNG, XLSX</p>
             </div>
             <input type="file" id="fileInput" style="display:none" onchange="handleUpload(this)">
 
             <div id="uploadSuccess" style="margin-top:14px;display:none;">
-              <div class="alert alert-success"><span>✅</span><div id="uploadMsg">File uploaded successfully.</div></div>
+              <div class="alert alert-success"><span data-icon="checkCircle" data-icon-size="14"></span><div id="uploadMsg">File uploaded successfully.</div></div>
             </div>
             <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="docSourceHint">
               Uploaded documents are kept on this device.
@@ -49,7 +49,7 @@
 
         <div class="card">
           <div class="card-header">
-            <div class="card-icon card-icon-teal">🗂️</div>
+            <div class="card-icon card-icon-teal" data-icon="folderGrid" data-icon-size="18"></div>
             <h2>Recent Documents</h2>
           </div>
           <div class="card-body" id="docList">
@@ -171,9 +171,9 @@ function renderDocs(docs, fsMode) {
           <div style="font-size:11px;color:var(--gray-500);">${escapeHtml(meta)}</div>
         </div>
         <div class="file-actions">
-          <button class="btn btn-outline btn-xs" onclick="previewDoc(${i})">👁 Preview</button>
-          <button class="btn btn-outline btn-xs" onclick="downloadDoc(${i})">⬇ Download</button>
-          ${canDelete ? `<button class="btn btn-outline btn-xs" style="color:var(--red-600);" onclick="deleteDoc(${i})">🗑</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="previewDoc(${i})"><span data-icon="eye" data-icon-size="12"></span> Preview</button>
+          <button class="btn btn-outline btn-xs" onclick="downloadDoc(${i})"><span data-icon="download" data-icon-size="12"></span> Download</button>
+          ${canDelete ? `<button class="btn btn-outline btn-xs" style="color:var(--red-600);" onclick="deleteDoc(${i})"><span data-icon="trash" data-icon-size="12"></span></button>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -281,15 +281,15 @@ function previewDoc(i) {
     `</div>`;
 
   if (!body.includes('<img') && !body.includes('<pre') && !body.includes('<iframe')) {
-    body = `<div style="text-align:center;padding:26px 0 14px;"><div style="font-size:40px;">📄</div>` +
+    body = `<div style="text-align:center;padding:26px 0 14px;color:var(--gray-500);">${icon('document', 40)}</div>` +
       `<p style="font-size:13px;color:var(--gray-500);margin-top:8px;">Preview is not available for this file type.<br>Use Download to open the document.</p></div>` + body;
   }
 
   openModal({
-    title: '📄 ' + escapeHtml(doc.name),
+    title: icon('document', 14) + ' ' + escapeHtml(doc.name),
     large: !!isPdf,
     body,
-    footer: `<button class="btn btn-primary btn-sm" onclick="downloadDoc(${i})">⬇ Download</button>` +
+    footer: `<button class="btn btn-primary btn-sm" onclick="downloadDoc(${i})">${icon('download', 13)} Download</button>` +
             `<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>`,
   });
 }

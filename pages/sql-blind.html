@@ -20,14 +20,14 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>🔍 Patient Verification</h1>
+          <h1><span data-icon="searchDoc" data-icon-size="18"></span> Patient Verification</h1>
           <p>Verify patient existence in the system.</p>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🔍</div>
+              <div class="card-icon card-icon-teal" data-icon="searchDoc" data-icon-size="18"></div>
               <h2>Patient Verification Endpoint</h2>
             </div>
             <div class="card-body">
@@ -50,7 +50,7 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">👥</div>
+              <div class="card-icon card-icon-blue" data-icon="people" data-icon-size="18"></div>
               <h2>Known Patients</h2>
             </div>
             <div class="card-body">
@@ -171,7 +171,7 @@
       const badge = document.getElementById('boolBadge');
       const msg = document.getElementById('boolMsg');
       badge.className = 'bool-indicator ' + (exists ? 'bool-true' : 'bool-false');
-      badge.textContent = exists ? '✅ Patient EXISTS (TRUE)' : '❌ Patient NOT FOUND (FALSE)';
+      badge.textContent = exists ? 'Patient EXISTS (TRUE)' : 'Patient NOT FOUND (FALSE)';
       msg.textContent = `HTTP 200 — { "exists": ${exists} }`;
     }
   </script>

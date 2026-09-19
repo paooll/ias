@@ -24,7 +24,7 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>🔑 Staff Login</h1>
+          <h1><span data-icon="key" data-icon-size="18"></span> Staff Login</h1>
           <p>Manage staff authentication and access to the patient portal.</p>
         </div>
 
@@ -32,7 +32,7 @@
           <!-- Manual Login -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">🔑</div>
+              <div class="card-icon card-icon-blue" data-icon="key" data-icon-size="18"></div>
               <h2>Patient Portal Login</h2>
             </div>
             <div class="card-body">
@@ -55,7 +55,7 @@
           <!-- Bulk Login Tester -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🔐</div>
+              <div class="card-icon card-icon-teal" data-icon="lock" data-icon-size="18"></div>
               <h2>Bulk Account Verification</h2>
             </div>
             <div class="card-body">
@@ -134,7 +134,7 @@
           enterPortal(data.user);
         } else {
           box.classList.add('error');
-          box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
+          box.textContent = `LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
         }
       } catch(e) {
         const match = REAL_CREDS.find(c => c.username === user && c.password === pass);
@@ -143,7 +143,7 @@
           enterPortal(match);
         } else {
           box.classList.add('error');
-          box.textContent = `❌ LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nInvalid credentials.`;
+          box.textContent = `LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nInvalid credentials.`;
         }
       }
     }
@@ -151,7 +151,7 @@
     // A successful login opens the patient portal (session stored, then redirect).
     function enterPortal(profile) {
       const box = document.getElementById('manualResult');
-      box.textContent = `✅ LOGIN SUCCESS!\nUser: ${profile.name}\nRole: ${profile.role}\n\nOpening patient portal…`;
+      box.textContent = `LOGIN SUCCESS!\nUser: ${profile.name}\nRole: ${profile.role}\n\nOpening patient portal…`;
       sessionStorage.setItem('mpro_user', JSON.stringify({
         name: profile.name,
         role: profile.role,
@@ -209,9 +209,9 @@
         bar.style.width = `${((i + 1) / list.length) * 100}%`;
 
         if (match) {
-          appendLog(`[✓] Credentials verified — ${username}:${pw}`, 'log-success');
-          appendLog(`[✓] Role: ${match.role} | Name: ${match.name}`, 'log-success');
-          appendLog(`[✓] Access granted — use the login form above to open the patient portal.`, 'log-success');
+          appendLog(`[OK] Credentials verified — ${username}:${pw}`, 'log-success');
+          appendLog(`[OK] Role: ${match.role} | Name: ${match.name}`, 'log-success');
+          appendLog(`[OK] Access granted — use the login form above to open the patient portal.`, 'log-success');
           bfRunning = false;
           document.getElementById('bfStartBtn').disabled = false;
           document.getElementById('bfStopBtn').disabled = true;

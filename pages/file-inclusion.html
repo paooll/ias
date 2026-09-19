@@ -15,14 +15,14 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>📁 Lab Reports</h1>
+          <h1><span data-icon="folder" data-icon-size="18"></span> Lab Reports</h1>
           <p>View laboratory test results and diagnostic reports.</p>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🗂️</div>
+              <div class="card-icon card-icon-teal" data-icon="folderGrid" data-icon-size="18"></div>
               <h2>Report File Viewer</h2>
             </div>
             <div class="card-body">
@@ -37,7 +37,7 @@
                 <span style="color:#64748b;">Request: </span>
                 <span id="apiPreview" style="color:#fbbf24;">GET /api/file?path=reports/lab-report.txt</span>
               </div>
-              <button class="btn btn-primary" onclick="loadFile()">📂 Load Report</button>
+              <button class="btn btn-primary" onclick="loadFile()"><span data-icon="folder" data-icon-size="14"></span> Load Report</button>
 
               <div class="response-box" id="fileOutput" style="margin-top:14px;max-height:300px;overflow-y:auto;"></div>
             </div>
@@ -45,16 +45,16 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">📋</div>
+              <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
               <h2>Available Reports</h2>
             </div>
             <div class="card-body">
               <div style="display:flex;flex-direction:column;gap:7px;">
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/lab-report.txt')">📄 Lab Report — Juan Dela Cruz (P-002)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/blood-work-p001.txt')">🩸 Blood Work — Maria Santos (P-001)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/xray-chest-p003.txt')">🫁 Chest X-Ray — Ana Reyes (P-003)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/mri-brain-p004.txt')">🧠 Brain MRI — Pedro Bautista (P-004)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/ecg-p005.txt')">❤️ ECG Report — Rosario Garcia (P-005)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/lab-report.txt')"><span data-icon="document" data-icon-size="13"></span> Lab Report — Juan Dela Cruz (P-002)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/blood-work-p001.txt')"><span data-icon="drop" data-icon-size="13"></span> Blood Work — Maria Santos (P-001)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/xray-chest-p003.txt')"><span data-icon="lungs" data-icon-size="13"></span> Chest X-Ray — Ana Reyes (P-003)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/mri-brain-p004.txt')"><span data-icon="brain" data-icon-size="13"></span> Brain MRI — Pedro Bautista (P-004)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/ecg-p005.txt')"><span data-icon="heart" data-icon-size="13"></span> ECG Report — Rosario Garcia (P-005)</button>
               </div>
 
               <div class="divider" style="margin:14px 0;"></div>
@@ -68,7 +68,7 @@
         <!-- Laboratory Results (Firestore) -->
         <div class="card" style="margin-top:20px;">
           <div class="card-header">
-            <div class="card-icon card-icon-teal">🧪</div>
+            <div class="card-icon card-icon-teal" data-icon="flask" data-icon-size="18"></div>
             <h2>Recent Laboratory Results</h2>
           </div>
           <div class="card-body">
@@ -173,7 +173,7 @@
       const r = lastReports[idx];
       if (!r) return;
       openModal({
-        title: '🧪 Laboratory Report',
+        title: icon('flask', 14) + ' Laboratory Report',
         subtitle: escapeHtml(r.reportId || 'Report'),
         body: reportModalHTML(r),
         footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
@@ -191,7 +191,7 @@
             `<td>${escapeHtml(r.patientName)}<div style="font-size:11px;color:var(--gray-500);">${escapeHtml(r.patientId)}</div></td>` +
             `<td>${escapeHtml(r.test)}</td><td>${escapeHtml(r.date || '')}</td>` +
             `<td>${statusChip(r.status)}</td>` +
-            `<td><button class="btn-link" onclick="viewReport(${i})">View report →</button></td></tr>`
+            `<td><button class="btn-link" onclick="viewReport(${i})">View report »</button></td></tr>`
           ).join('')
         : '<tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">No reports on file.</td></tr>';
       if (note) note.textContent = list.length && list !== FALLBACK_REPORTS

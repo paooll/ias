@@ -21,7 +21,7 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>💳 Billing Portal</h1>
+          <h1><span data-icon="creditcard" data-icon-size="18"></span> Billing Portal</h1>
           <p>Look up and review patient billing invoices by invoice number.</p>
         </div>
 
@@ -29,7 +29,7 @@
           <!-- Invoice Lookup -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">💳</div>
+              <div class="card-icon card-icon-teal" data-icon="creditcard" data-icon-size="18"></div>
               <h2>Invoice Lookup</h2>
             </div>
             <div class="card-body">
@@ -41,7 +41,7 @@
                 <label class="form-label">Invoice Number</label>
                 <input type="text" class="form-control mono" id="invId" placeholder="e.g. INV-2024-0912" value="INV-2024-0912">
               </div>
-              <button class="btn btn-primary" onclick="lookupInvoice()">🔍 Look Up Invoice</button>
+              <button class="btn btn-primary" onclick="lookupInvoice()"><span data-icon="search" data-icon-size="14"></span> Look Up Invoice</button>
               <div id="invoiceResult" class="response-box"></div>
             </div>
           </div>
@@ -49,7 +49,7 @@
           <!-- Help panel -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">🧾</div>
+              <div class="card-icon card-icon-blue" data-icon="receipt" data-icon-size="18"></div>
               <h2>Billing Guidelines</h2>
             </div>
             <div class="card-body">
@@ -100,11 +100,11 @@ e.g. INV-2024-0912</div>
           box.style.whiteSpace = 'pre-wrap';
         } else {
           box.classList.add('error');
-          box.textContent = '❌ ' + data.message;
+          box.textContent = data.message;
         }
       } catch (e) {
         box.classList.add('error');
-        box.textContent = '❌ Lookup failed: ' + e.message;
+        box.textContent = 'Lookup failed: ' + e.message;
       }
     }
   </script>

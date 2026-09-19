@@ -38,19 +38,19 @@
         <!-- Stats Row -->
         <div class="grid-3 mb-4" style="margin-bottom:20px;">
           <div class="card stat-card">
-            <div class="stat-icon">🩺</div>
+            <div class="stat-icon" data-icon="stethoscope" data-icon-size="24"></div>
             <div class="stat-val" id="statPatients">50</div>
             <div class="stat-label">Total Patients</div>
             <div class="stat-sub" id="statPatientsSub">38 admitted · 12 outpatient</div>
           </div>
           <div class="card stat-card">
-            <div class="stat-icon">🛏️</div>
+            <div class="stat-icon" data-icon="bed" data-icon-size="24"></div>
             <div class="stat-val" id="statBed">76%</div>
             <div class="stat-label">Bed Occupancy</div>
             <div class="stat-sub" id="statBedSub">38 of 50 beds in use</div>
           </div>
           <div class="card stat-card">
-            <div class="stat-icon">📋</div>
+            <div class="stat-icon" data-icon="flask" data-icon-size="24"></div>
             <div class="stat-val" id="statLabs">5</div>
             <div class="stat-label">Pending Lab Results</div>
             <div class="stat-sub" id="statLabsSub">awaiting results</div>
@@ -61,29 +61,29 @@
           <!-- Quick Actions -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">⚡</div>
+              <div class="card-icon card-icon-blue" data-icon="bolt" data-icon-size="18"></div>
               <h2>Quick Actions</h2>
             </div>
             <div class="card-body">
               <div style="display:flex;flex-direction:column;gap:10px;">
                 <a href="pages/sql-injection.html" class="quick-link">
-                  <span class="ql-icon">📋</span>
+                  <span class="ql-icon" data-icon="clipboard" data-icon-size="20"></span>
                   <div><div class="ql-label">Patient Records</div><div class="ql-desc">Search and manage patient information</div></div>
                 </a>
                 <a href="pages/xss-reflected.html" class="quick-link">
-                  <span class="ql-icon">🔎</span>
+                  <span class="ql-icon" data-icon="search" data-icon-size="20"></span>
                   <div><div class="ql-label">Patient Search</div><div class="ql-desc">Find patients by name or ID</div></div>
                 </a>
                 <a href="pages/xss-stored.html" class="quick-link">
-                  <span class="ql-icon">📝</span>
+                  <span class="ql-icon" data-icon="note" data-icon-size="20"></span>
                   <div><div class="ql-label">Patient Notes</div><div class="ql-desc">Add and view clinical observations</div></div>
                 </a>
                 <a href="pages/file-inclusion.html" class="quick-link">
-                  <span class="ql-icon">📁</span>
+                  <span class="ql-icon" data-icon="folder" data-icon-size="20"></span>
                   <div><div class="ql-label">Lab Reports</div><div class="ql-desc">View laboratory test results</div></div>
                 </a>
                 <a href="pages/shell-upload.html" class="quick-link">
-                  <span class="ql-icon">📤</span>
+                  <span class="ql-icon" data-icon="trayUp" data-icon-size="20"></span>
                   <div><div class="ql-label">Documents</div><div class="ql-desc">Upload and manage hospital documents</div></div>
                 </a>
               </div>
@@ -93,7 +93,7 @@
           <!-- Recent Activity -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🕐</div>
+              <div class="card-icon card-icon-teal" data-icon="clock" data-icon-size="18"></div>
               <h2>Recent Activity</h2>
             </div>
             <div class="card-body" id="activityFeed">
@@ -161,7 +161,7 @@
         <div class="grid-2" style="margin-top:20px;">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-orange">🏥</div>
+              <div class="card-icon card-icon-orange" data-icon="building" data-icon-size="18"></div>
               <h2>Department Overview</h2>
             </div>
             <div class="card-body" id="deptOverview"></div>
@@ -170,7 +170,7 @@
           <!-- Today's Schedule -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">📅</div>
+              <div class="card-icon card-icon-blue" data-icon="calendar" data-icon-size="18"></div>
               <h2>Today's Schedule</h2>
             </div>
             <div class="card-body">

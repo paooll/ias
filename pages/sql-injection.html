@@ -15,14 +15,14 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>📋 Patient Records</h1>
+          <h1><span data-icon="clipboard" data-icon-size="18"></span> Patient Records</h1>
           <p>Search and retrieve patient information by ID.</p>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🗃️</div>
+              <div class="card-icon card-icon-teal" data-icon="db" data-icon-size="18"></div>
               <h2>Patient Record Lookup</h2>
             </div>
             <div class="card-body">
@@ -51,7 +51,7 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">👥</div>
+              <div class="card-icon card-icon-blue" data-icon="people" data-icon-size="18"></div>
               <h2>Quick Select Patient</h2>
             </div>
             <div class="card-body">
@@ -210,7 +210,7 @@
       // Users-table rows (UNION result) have no patient fields — show a generic view.
       if (!rec.name) {
         openModal({
-          title: '🗄️ Record',
+          title: icon('db', 14) + ' Record',
           subtitle: escapeHtml(String(rec.username || rec.id || '')),
           body: Object.keys(rec).map(k =>
             kv(k.replace(/_/g, ' '), `<span style="font-family:monospace;">${escapeHtml(rec[k])}</span>`)
@@ -247,7 +247,7 @@
       body.innerHTML = results.map((r, i) =>
         `<tr>${cols.map(c => `<td style="font-size:12px;">${r[c] ?? ''}</td>`).join('')}` +
         (isPatientSet
-          ? `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details →</button></td>`
+          ? `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details »</button></td>`
           : '') +
         '</tr>'
       ).join('');

@@ -32,17 +32,17 @@
 
         <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
           <div>
-            <h1>🛏 Bed Management</h1>
+            <h1><span data-icon="bed" data-icon-size="18"></span> Bed Management</h1>
             <p>Ward occupancy, patient bed assignments, and patient records.</p>
           </div>
-          <button class="btn btn-primary" onclick="openAddModal()">➕ Admit Patient</button>
+          <button class="btn btn-primary" onclick="openAddModal()"><span data-icon="plus" data-icon-size="14"></span> Admit Patient</button>
         </div>
 
         <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
           <!-- Bed board -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">🛏</div>
+              <div class="card-icon card-icon-teal" data-icon="bed" data-icon-size="18"></div>
               <h2>Ward Bed Board</h2>
             </div>
             <div class="card-body">
@@ -198,13 +198,13 @@ ICU      — Intensive Care</div>
 
     function openAddModal() {
       openModal({
-        title: '➕ Admit New Patient',
+        title: icon('plus', 14) + ' Admit New Patient',
         subtitle: 'The record will be saved to the hospital database.',
         large: true,
         body: patientFormHTML(null),
         footer: `
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="submitAdd()">💾 Admit Patient</button>`,
+          <button class="btn btn-primary btn-sm" onclick="submitAdd()">${icon('save', 13)} Admit Patient</button>`,
       });
     }
 
@@ -226,15 +226,15 @@ ICU      — Intensive Care</div>
       const p = bedCache.find(x => (x.patientId || x.id) === patientId);
       if (!p) return;
       openModal({
-        title: '✏️ Edit Patient',
+        title: icon('pencil', 14) + ' Edit Patient',
         subtitle: `${p.name || 'Patient'} — ${p.patientId || p.id}`,
         large: true,
         body: patientFormHTML(p),
         footer: `
-          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.docId || p.id}')">🗑 Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.docId || p.id}')">${icon('trash', 12)} Delete</button>
           <span style="flex:1"></span>
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="submitEdit()">💾 Save Changes</button>`,
+          <button class="btn btn-primary btn-sm" onclick="submitEdit()">${icon('save', 13)} Save Changes</button>`,
       });
     }
 
@@ -257,7 +257,7 @@ ICU      — Intensive Care</div>
       const p = bedCache.find(x => (x.docId || x.id) === patientId);
       if (!p) return;
       openModal({
-        title: '🗑 Discharge & Delete Record',
+        title: icon('trash', 14) + ' Discharge & Delete Record',
         subtitle: 'This action cannot be undone.',
         body: `<p style="font-size:13px;color:var(--gray-700);">
           Are you sure you want to permanently delete the record for
@@ -291,10 +291,10 @@ ICU      — Intensive Care</div>
             <span class="bed-id">${p.name || 'Unknown'}</span>
             <span class="badge ${badgeCls}">${(p.status || 'admitted').toUpperCase()}</span>
           </div>
-          <div class="bed-meta">🆔 ${p.patientId || p.id} · 🩸 ${p.bloodType || '—'}</div>
-          <div class="bed-meta">🏥 ${p.ward || 'Unassigned'} · Room ${p.room || '—'}</div>
-          <div class="bed-meta">👩‍⚕️ ${p.physician || '—'}</div>
-          <div class="bed-meta">🩺 ${p.diagnosis || 'No diagnosis on record'}</div>
+          <div class="bed-meta">${icon('idCard', 12)} ${p.patientId || p.id} · ${icon('drop', 12)} ${p.bloodType || '—'}</div>
+          <div class="bed-meta">${icon('building', 12)} ${p.ward || 'Unassigned'} · Room ${p.room || '—'}</div>
+          <div class="bed-meta">${icon('user', 12)} ${p.physician || '—'}</div>
+          <div class="bed-meta">${icon('stethoscope', 12)} ${p.diagnosis || 'No diagnosis on record'}</div>
           <div class="bed-actions">
             <button class="btn btn-primary btn-xs" onclick="openEditModal('${p.patientId || p.id}')">Edit</button>
             <button class="btn btn-outline btn-xs" onclick="quickMove('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
@@ -308,7 +308,7 @@ ICU      — Intensive Care</div>
       const p = bedCache.find(x => (x.patientId || x.id) === patientId);
       if (!p) return;
       openModal({
-        title: '🚚 Move Patient',
+        title: icon('move', 14) + ' Move Patient',
         subtitle: `${p.name || 'Patient'} — currently ${p.ward || 'Unassigned'}${p.room ? ' · Room ' + p.room : ''}`,
         body: `
           <div class="modal-form">
@@ -325,7 +325,7 @@ ICU      — Intensive Care</div>
           </div>`,
         footer: `
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.docId || p.id}')">🚚 Move</button>`,
+          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.docId || p.id}')">${icon('move', 13)} Move</button>`,
       });
     }
 

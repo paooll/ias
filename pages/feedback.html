@@ -21,14 +21,14 @@
       <div class="page-content">
 
         <div class="page-header">
-          <h1>⭐ Patient Feedback</h1>
+          <h1><span data-icon="star" data-icon-size="18"></span> Patient Feedback</h1>
           <p>Record and review patient satisfaction surveys.</p>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">⭐</div>
+              <div class="card-icon card-icon-teal" data-icon="star" data-icon-size="18"></div>
               <h2>Submit Feedback</h2>
             </div>
             <div class="card-body">
@@ -43,18 +43,18 @@
               <div class="form-group">
                 <label class="form-label">Satisfaction Rating</label>
                 <div class="rating-opts" id="ratingOpts">
-                  <label><input type="radio" name="rating" value="1"> 1 ★</label>
-                  <label><input type="radio" name="rating" value="2"> 2 ★</label>
-                  <label><input type="radio" name="rating" value="3" checked> 3 ★</label>
-                  <label><input type="radio" name="rating" value="4"> 4 ★</label>
-                  <label><input type="radio" name="rating" value="5"> 5 ★</label>
+                  <label><input type="radio" name="rating" value="1"> 1 / 5</label>
+                  <label><input type="radio" name="rating" value="2"> 2 / 5</label>
+                  <label><input type="radio" name="rating" value="3" checked> 3 / 5</label>
+                  <label><input type="radio" name="rating" value="4"> 4 / 5</label>
+                  <label><input type="radio" name="rating" value="5"> 5 / 5</label>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Comments</label>
                 <textarea class="form-control" id="fbComments" rows="4" placeholder="Patient remarks about their stay..."></textarea>
               </div>
-              <button class="btn btn-primary" onclick="submitFeedback()">💾 Submit Feedback</button>
+              <button class="btn btn-primary" onclick="submitFeedback()"><span data-icon="save" data-icon-size="14"></span> Submit Feedback</button>
               <pre class="response-box feedback-result" id="fbResult"></pre>
               <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="fbSourceHint">
                 Feedback is saved to the hospital database and shared with all staff.
@@ -64,7 +64,7 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">📊</div>
+              <div class="card-icon card-icon-blue" data-icon="signal" data-icon-size="18"></div>
               <h2>Recent Feedback</h2>
             </div>
             <div class="card-body">
@@ -116,7 +116,7 @@
             report = data.report || '';
           } catch (e) { /* report generation is best-effort */ }
           box.classList.add('show');
-          box.textContent = '✅ Feedback saved to the database (reference ' + savedId + ')\n\n' +
+          box.textContent = 'Feedback saved to the database (reference ' + savedId + ')\n\n' +
             (report || 'Report generation unavailable.');
           document.getElementById('fbComments').value = '';
           return;
@@ -147,14 +147,16 @@
     }
 
     function feedbackCard(f) {
-      const stars = '★'.repeat(parseInt(f.rating, 10) || 0) + '☆'.repeat(5 - (parseInt(f.rating, 10) || 0));
+      const n = parseInt(f.rating, 10) || 0;
+      const stars = Array.from({length: 5}, (_, i) => icon('star', 13)).map((s, i) =>
+        `<span style="opacity:${i < n ? 1 : 0.25};display:inline-flex;">${s}</span>`).join('');
       return `
         <div class="note-item" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:10px;">
           <div style="font-size:11px;color:var(--gray-500);display:flex;justify-content:space-between;margin-bottom:4px;">
             <span><strong style="color:var(--blue-600);">${f.patientId}</strong> · ${f.reviewer || 'Anonymous'}</span>
             <span>${f.createdAt ? window.mproDb.timeAgo(f.createdAt) : ''}</span>
           </div>
-          <div style="color:var(--yellow-500);font-size:13px;letter-spacing:1px;">${stars}</div>
+          <div style="opacity:.9;font-size:13px;">${stars}</div>
           <div style="font-size:13px;color:var(--gray-900);margin-top:4px;">${f.comments || '<em>No comments</em>'}</div>
         </div>`;
     }
