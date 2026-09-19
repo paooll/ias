@@ -143,36 +143,6 @@ html[data-theme='dark'] {
   --yellow-500: #eab308;
   --yellow-100: rgba(234, 179, 8, .18);
 }
-  --navy-800: #142236;
-  --navy-700: #1c3050;
-  --blue-600: #1a56db;
-  --blue-500: #3b82f6;
-  --blue-100: #dbeafe;
-  --teal-600: #0d9488;
-  --teal-500: #14b8a6;
-  --teal-100: #ccfbf1;
-  --red-600: #dc2626;
-  --red-500: #ef4444;
-  --red-100: #fee2e2;
-  --orange-500: #f97316;
-  --orange-100: #ffedd5;
-  --yellow-500: #eab308;
-  --yellow-100: #fef9c3;
-  --gray-50: #f8fafc;
-  --gray-100: #f1f5f9;
-  --gray-200: #e2e8f0;
-  --gray-300: #cbd5e1;
-  --gray-500: #64748b;
-  --gray-700: #334155;
-  --gray-900: #0f172a;
-  --white: #ffffff;
-  --sidebar-w: 268px;
-  --header-h: 64px;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.12), 0 8px 32px rgba(0,0,0,.08);
-}
 
 body {
   font-family: 'Quicksand', sans-serif;
