@@ -103,6 +103,26 @@ ICU      — Intensive Care</div>
       return ctx;
     }
 
+    // ---------- Toast notifications (success / error popups) ----------
+    function showToast(message, type) {
+      type = type || 'success';
+      let host = document.getElementById('toastHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toastHost';
+        host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:10000;display:flex;flex-direction:column;gap:10px;max-width:340px;';
+        document.body.appendChild(host);
+      }
+      const colors = { success: ['#0d9488', '#ccfbf1', '#134e4a'], error: ['#dc2626', '#fee2e2', '#7f1d1d'], info: ['#2563eb', '#dbeafe', '#1e3a8a'] };
+      const [accent, bg, text] = colors[type] || colors.success;
+      const t = document.createElement('div');
+      t.style.cssText = `background:${bg};color:${text};border:1px solid ${accent}44;border-left:4px solid ${accent};border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.15);opacity:0;transform:translateY(8px);transition:all .25s ease;`; 
+      t.textContent = message;
+      host.appendChild(t);
+      requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 300); }, 3500);
+    }
+
     // ---------- Patient form modal (add / edit) ----------
     function patientFormHTML(p) {
       p = p || {};
@@ -219,8 +239,9 @@ ICU      — Intensive Care</div>
         await window.mproDb.addPatient(data);
         closeModal();
         loadBeds();
+        showToast(`Patient "${data.name}" admitted successfully and saved to the database.`);
       } catch (e) {
-        alert('Failed to admit patient: ' + e.message);
+        showToast('Failed to admit patient: ' + e.message, 'error');
       }
     }
 
@@ -246,12 +267,14 @@ ICU      — Intensive Care</div>
       if (!data.name) { alert('Patient name is required.'); return; }
       const ctx = await db();
       if (!ctx) { alert('Hospital database not connected — please sign in first.'); return; }
+      if (!id) { showToast('Cannot save: missing patient record ID. Please refresh and try again.', 'error'); return; }
       try {
         await window.mproDb.updatePatient(id, data);
         closeModal();
         loadBeds();
+        showToast(`Changes for "${data.name}" saved to the database successfully.`);
       } catch (e) {
-        alert('Failed to update patient: ' + e.message);
+        showToast('Failed to update patient: ' + e.message, 'error');
       }
     }
 
@@ -266,7 +289,7 @@ ICU      — Intensive Care</div>
           <strong>${p.name || 'this patient'}</strong> (${p.patientId || p.id}) from the hospital database?</p>`,
         footer: `
           <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-          <button class="btn btn-danger btn-sm" onclick="doDelete('${p.id}')">Yes, Delete</button>`,
+          <button class="btn btn-danger btn-sm" onclick="doDelete('${p.docId || p.patientId || p.id}')">Yes, Delete</button>`,
       });
     }
 
@@ -277,8 +300,9 @@ ICU      — Intensive Care</div>
         await window.mproDb.deletePatient(patientId);
         closeModal();
         loadBeds();
+        showToast('Patient record deleted from the database.');
       } catch (e) {
-        alert('Failed to delete patient: ' + e.message);
+        showToast('Failed to delete patient: ' + e.message, 'error');
       }
     }
 
@@ -340,8 +364,9 @@ ICU      — Intensive Care</div>
         await window.mproDb.updatePatient(id, { ward, room });
         closeModal();
         loadBeds();
+        showToast(`Patient moved to ${ward}${room ? ' · Room ' + room : ''} — saved to the database.`);
       } catch (e) {
-        alert('Move failed: ' + e.message);
+        showToast('Move failed: ' + e.message, 'error');
       }
     }
 
