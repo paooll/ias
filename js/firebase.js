@@ -200,6 +200,16 @@
       return snap.docs.map(patientToRecord);
     },
 
+    /** Live patient list — re-renders automatically when the database changes. */
+    async watchPatients(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('patients').onSnapshot(
+        (snap) => callback(snap.docs.map(patientToRecord)),
+        (error) => console.warn('Live patients subscription failed:', error.message)
+      );
+    },
+
     /** Case-insensitive search over patient name / id / department. */
     async searchPatients(term) {
       const all = await api.getPatients();

@@ -8,7 +8,12 @@
   <title>Bed Management – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+    .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; align-content:start; }
+    .bed-scroll { max-height: 70vh; overflow-y: auto; padding-right: 6px; }
+    .bed-scroll::-webkit-scrollbar { width: 8px; }
+    .bed-scroll::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 8px; }
+    .bed-scroll::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+    @media (prefers-color-scheme: dark) { .bed-scroll::-webkit-scrollbar-thumb { background: var(--gray-600); } }
     .bed-card { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:10px; padding:14px; }
     .bed-card .bed-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .bed-card .bed-id { font-weight:700; font-size:13px; color:var(--gray-900); }
@@ -52,9 +57,12 @@
                 Admit, move, update, or discharge patients. Changes are saved to the
                 hospital database immediately and reflected on the dashboard.
               </p>
-              <div class="bed-grid" id="bedGrid">
-                <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
+              <div class="bed-scroll">
+                <div class="bed-grid" id="bedGrid">
+                  <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
+                </div>
               </div>
+              <p id="bedCount" style="font-size:12px;color:var(--gray-500);margin-top:10px;"></p>
             </div>
           </div>
 
@@ -376,14 +384,34 @@ ICU      — Intensive Care</div>
         const patients = await window.mproDb.getPatients();
         if (patients) {
           bedCache = patients;
-          grid.innerHTML = patients.slice(0, 12).map(bedCard).join('') ||
-            '<p style="font-size:13px;color:var(--gray-500);">No patients on record. Click <strong>Admit Patient</strong> to add one.</p>';
-          return;
+          renderBeds(patients);
         }
       } catch (e) { /* fall through */ }
-      grid.innerHTML = '<p style="font-size:13px;color:var(--gray-500);">Hospital database not connected. Sign in with a staff account to manage beds.</p>';
+      if (!bedCache.length) {
+        grid.innerHTML = '<p style="font-size:13px;color:var(--gray-500);">Hospital database not connected. Sign in with a staff account to manage beds.</p>';
+      }
+
+      // Live updates: re-render cards + summary whenever the patients collection changes.
+      if (window.mproDb.watchPatients && !unsubscribePatients) {
+        unsubscribePatients = await window.mproDb.watchPatients((patients) => {
+          if (!patients) return;
+          bedCache = patients;
+          renderBeds(patients);
+        });
+      }
     }
 
+    function renderBeds(patients) {
+      const grid = document.getElementById('bedGrid');
+      grid.innerHTML = patients.map(bedCard).join('') ||
+        '<p style="font-size:13px;color:var(--gray-500);">No patients on record. Click <strong>Admit Patient</strong> to add one.</p>';
+      const counts = {};
+      patients.forEach(p => { const s = (p.status || 'admitted').toLowerCase(); counts[s] = (counts[s] || 0) + 1; });
+      const summary = Object.entries(counts).map(([s, n]) => `${n} ${s}`).join(' · ');
+      document.getElementById('bedCount').textContent = `Showing all ${patients.length} patients — ${summary}`;
+    }
+
+    let unsubscribePatients = null;
     loadBeds();
   </script>
 </body>
