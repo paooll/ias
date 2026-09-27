@@ -882,3 +882,70 @@ body.modal-open { overflow: hidden; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
+/* ============================================================================
+   SITE-WIDE BENTO-GLASS BEAUTIFY LAYER (dashboard-matching polish)
+   Applies the dashboard's treatment to every page: gradient page-header
+   hero, card hover lift, entrance animations, table/badge polish.
+   Font, colors, icons, and light/dark themes are untouched.
+   ========================================================================== */
+
+/* Page header → hero strip (matches .dash-hero on the dashboard) */
+.page-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  background: linear-gradient(120deg, rgba(20,184,166,.15), rgba(37,99,235,.11) 55%, rgba(249,115,22,.09));
+  border: 1px solid rgba(255,255,255,.45);
+  box-shadow: 0 8px 32px rgba(13,148,136,.11), inset 0 1px 0 rgba(255,255,255,.5);
+}
+html[data-theme='dark'] .page-header {
+  border-color: rgba(255,255,255,.10);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.page-header::after {
+  content: '';
+  position: absolute; right: -60px; top: -60px; width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,184,166,.20), transparent 70%);
+  pointer-events: none;
+}
+.page-header h1 { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.page-header p  { position: relative; z-index: 1; }
+
+/* Card hover lift (springy, same easing as dashboard bento cards) */
+.card { transition: transform .22s cubic-bezier(.34,1.4,.64,1), box-shadow .22s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(13,148,136,.12); }
+
+/* Staggered entrance for page content cards */
+@keyframes mpro-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.page-content > * { animation: mpro-rise .35s ease both; }
+.page-content > *:nth-child(2) { animation-delay: .05s; }
+.page-content > *:nth-child(3) { animation-delay: .10s; }
+.page-content > *:nth-child(4) { animation-delay: .15s; }
+
+/* Table polish: tinted rows + smooth hover */
+.data-table tbody tr { transition: background .15s ease; }
+.data-table tbody tr:hover { background: rgba(20,184,166,.06); }
+
+/* Badge glass chip upgrade */
+.badge {
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+  letter-spacing: .3px;
+}
+
+/* Primary buttons get a subtle gradient sheen (matches dashboard CTAs) */
+.btn-primary {
+  background-image: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,0) 45%);
+  box-shadow: 0 4px 14px rgba(13,148,136,.22);
+}
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(13,148,136,.3); }
+.btn-danger { box-shadow: 0 4px 14px rgba(220,38,38,.2); }
+
+/* Icon tiles in card headers keep their tint but gain glass depth */
+.card-icon { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 3px 10px rgba(0,0,0,.06); }
+
+/* Page-header buttons stay above the glow */
+.page-header .btn { position: relative; z-index: 1; }
+

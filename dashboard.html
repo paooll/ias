@@ -8,20 +8,111 @@
   <title>Dashboard – MediCare Pro</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
-    .activity-item { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--gray-100); }
-    .activity-item:last-child { border-bottom:none; }
-    .activity-dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
-    .activity-text { font-size:13px; color:var(--gray-700); }
-    .activity-time { font-size:11px; color:var(--gray-500); margin-top:2px; }
-    .dept-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--gray-100); }
-    .dept-row:last-child { border-bottom:none; }
-    .dept-bar-bg { width:120px; height:6px; background:var(--gray-200); border-radius:99px; overflow:hidden; }
-    .dept-bar-fill { height:100%; border-radius:99px; }
-    .quick-link { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-sm); text-decoration:none; color:var(--gray-700); transition:all .18s; }
-    .quick-link:hover { background:var(--blue-100); border-color:var(--blue-500); color:var(--blue-600); }
-    .quick-link .ql-icon { font-size:20px; width:24px; text-align:center; }
-    .quick-link .ql-label { font-size:13px; font-weight:600; }
-    .quick-link .ql-desc { font-size:11px; color:var(--gray-500); }
+    /* === Dashboard redesign: Bento-glass layout (per ui-ux-pro-max) === */
+
+    /* Hero greeting strip */
+    .dash-hero {
+      position: relative; overflow: hidden; border-radius: var(--radius-lg);
+      padding: 22px 26px; margin-bottom: 22px;
+      background: linear-gradient(120deg, rgba(20,184,166,.16), rgba(37,99,235,.12) 55%, rgba(249,115,22,.10));
+      border: 1px solid rgba(255,255,255,.45);
+      box-shadow: 0 8px 32px rgba(13,148,136,.12), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+    html[data-theme='dark'] .dash-hero { border-color: rgba(255,255,255,.10); box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
+    .dash-hero::after { content:''; position:absolute; right:-60px; top:-60px; width:220px; height:220px; border-radius:50%;
+      background: radial-gradient(circle, rgba(20,184,166,.22), transparent 70%); pointer-events:none; }
+    .dash-hero h2 { font-size: 20px; font-weight: 700; color: var(--gray-900); margin: 0 0 3px; }
+    .dash-hero p { font-size: 13px; color: var(--gray-600); margin: 0; }
+    .hero-chip {
+      display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.4px;
+      text-transform:uppercase; padding: 4px 12px; border-radius: 99px; margin-bottom: 8px;
+      background: rgba(20,184,166,.14); color: var(--teal-600); border: 1px solid rgba(20,184,166,.3);
+    }
+
+    /* Bento stat cards — varied visual weight, hover lift (1.02 per skill checklist) */
+    .bento-stats { display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+    @media (max-width: 900px) { .bento-stats { grid-template-columns: 1fr; } }
+    .bento-stat {
+      position: relative; overflow: hidden; cursor: default;
+      transition: transform .22s cubic-bezier(.34,1.4,.64,1), box-shadow .22s ease;
+    }
+    .bento-stat:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 14px 36px rgba(13,148,136,.16); }
+    .bento-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:3px 3px 0 0; }
+    .bento-stat.stat-teal::before  { background: linear-gradient(90deg, var(--teal-400), var(--teal-600)); }
+    .bento-stat.stat-blue::before  { background: linear-gradient(90deg, var(--blue-400), var(--blue-600)); }
+    .bento-stat.stat-orange::before{ background: linear-gradient(90deg, #fb923c, #ea580c); }
+    .bento-stat .stat-icon {
+      width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+      margin-bottom: 12px; flex-shrink: 0;
+    }
+    .stat-teal .stat-icon   { background: rgba(20,184,166,.13); border: 1px solid rgba(20,184,166,.28); }
+    .stat-blue .stat-icon   { background: rgba(37,99,235,.12);  border: 1px solid rgba(37,99,235,.26); }
+    .stat-orange .stat-icon { background: rgba(249,115,22,.12); border: 1px solid rgba(249,115,22,.26); }
+    .bento-stat .stat-val { font-size: 34px; font-weight: 700; line-height: 1.05; letter-spacing: -1px; color: var(--gray-900); }
+    .bento-stat .stat-label { font-size: 12.5px; font-weight: 600; color: var(--gray-500); margin-top: 3px; letter-spacing: .3px; }
+    .bento-stat .stat-sub {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; color: var(--gray-600); margin-top: 10px;
+      padding: 3px 10px; border-radius: 99px; background: var(--gray-100);
+    }
+
+    /* Bento grid for main panels */
+    .bento-main { display:grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    @media (max-width: 900px) { .bento-main { grid-template-columns: 1fr; } }
+    .bento-card { transition: transform .22s cubic-bezier(.34,1.4,.64,1), box-shadow .22s ease; }
+    .bento-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(13,148,136,.12); }
+    .bento-card .card-header { padding: 16px 20px 12px; }
+    .bento-card .card-body { padding: 6px 20px 18px; }
+
+    /* Quick actions: 2-col glass tiles */
+    .qa-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .qa-grid { grid-template-columns: 1fr; } }
+    .quick-link {
+      display:flex; align-items:center; gap:12px; padding: 12px 14px;
+      background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 14px;
+      text-decoration:none; color: var(--gray-700);
+      transition: transform .18s cubic-bezier(.34,1.4,.64,1), background .18s, border-color .18s, box-shadow .18s;
+    }
+    .quick-link:hover { transform: translateY(-2px) scale(1.02); background: rgba(20,184,166,.08); border-color: rgba(20,184,166,.45); color: var(--teal-600); box-shadow: 0 6px 18px rgba(20,184,166,.14); }
+    .quick-link .ql-icon {
+      width: 36px; height: 36px; border-radius: 11px; display:grid; place-items:center; flex-shrink:0;
+      background: rgba(37,99,235,.10); border: 1px solid rgba(37,99,235,.2);
+    }
+    .quick-link .ql-label { font-size: 12.5px; font-weight: 700; }
+    .quick-link .ql-desc { font-size: 10.5px; color: var(--gray-500); margin-top: 1px; }
+
+    /* Activity: glass timeline with connecting rail */
+    .activity-feed { position: relative; padding-left: 4px; }
+    .activity-item { display:flex; gap:14px; padding: 10px 0; position: relative; }
+    .activity-item:not(:last-child)::before {
+      content:''; position:absolute; left: 11px; top: 28px; bottom: -10px; width: 2px;
+      background: linear-gradient(var(--gray-200), transparent);
+    }
+    .activity-dot {
+      width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+      box-shadow: 0 0 0 4px var(--gray-100);
+    }
+    .activity-text { font-size: 13px; color: var(--gray-700); font-weight: 500; line-height: 1.45; }
+    .activity-time { font-size: 11px; color: var(--gray-500); margin-top: 3px; }
+
+    /* Department rows: animated glass bars */
+    .dept-row { display:flex; align-items:center; justify-content:space-between; padding: 9px 0; gap: 12px; }
+    .dept-name { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+    .dept-count { font-size: 11px; color: var(--gray-500); margin-top: 1px; }
+    .dept-bar-bg { flex: 1; max-width: 130px; height: 7px; background: var(--gray-100); border-radius: 99px; overflow: hidden; border: 1px solid var(--gray-200); }
+    .dept-bar-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(.22,1,.36,1); }
+    .dept-pct { font-size: 11px; font-weight: 700; color: var(--gray-500); width: 36px; text-align: right; }
+
+    /* Schedule: time pills on a rail */
+    .sched-item { display:flex; gap: 14px; padding: 10px 0; align-items: flex-start; }
+    .sched-time {
+      font-size: 11px; font-weight: 700; color: var(--blue-600); white-space: nowrap;
+      background: rgba(37,99,235,.10); border: 1px solid rgba(37,99,235,.22);
+      padding: 4px 10px; border-radius: 99px; margin-top: 1px; flex-shrink: 0;
+    }
+    .sched-text { font-size: 13px; color: var(--gray-700); font-weight: 500; }
+    .sched-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
     .stat-sub { font-size:11px; color:var(--gray-500); font-weight:500; margin-top:2px; }
   </style>
 </head>
@@ -37,29 +128,36 @@
       <div id="topnavMount"></div>
 
       <div class="page-content">
-        <!-- Stats Row -->
-        <div class="grid-3 mb-4" style="margin-bottom:20px;">
-          <div class="card stat-card">
-            <div class="stat-icon" data-icon="stethoscope" data-icon-size="24"></div>
+        <!-- Hero greeting -->
+        <div class="dash-hero">
+          <div class="hero-chip" data-icon="calendar" data-icon-size="12"><span id="heroDate"></span></div>
+          <h2 id="heroGreeting">Welcome back, Administrator</h2>
+          <p>Here's what's happening across the hospital today — live from the ward database.</p>
+        </div>
+
+        <!-- Stats row (bento) -->
+        <div class="bento-stats">
+          <div class="card stat-card bento-stat stat-teal">
+            <div class="stat-icon" data-icon="stethoscope" data-icon-size="22"></div>
             <div class="stat-val" id="statPatients">50</div>
             <div class="stat-label">Total Patients</div>
             <div class="stat-sub" id="statPatientsSub">38 admitted · 12 outpatient</div>
           </div>
-          <div class="card stat-card">
-            <div class="stat-icon" data-icon="bed" data-icon-size="24"></div>
+          <div class="card stat-card bento-stat stat-blue">
+            <div class="stat-icon" data-icon="bed" data-icon-size="22"></div>
             <div class="stat-val" id="statBed">76%</div>
             <div class="stat-label">Bed Occupancy</div>
             <div class="stat-sub" id="statBedSub">38 of 50 beds in use</div>
           </div>
-          <div class="card stat-card">
-            <div class="stat-icon" data-icon="flask" data-icon-size="24"></div>
+          <div class="card stat-card bento-stat stat-orange">
+            <div class="stat-icon" data-icon="flask" data-icon-size="22"></div>
             <div class="stat-val" id="statLabs">5</div>
             <div class="stat-label">Pending Lab Results</div>
             <div class="stat-sub" id="statLabsSub">awaiting results</div>
           </div>
         </div>
 
-        <div class="grid-2">
+        <div class="bento-main">
           <!-- Quick Actions -->
           <div class="card">
             <div class="card-header">
@@ -67,26 +165,30 @@
               <h2>Quick Actions</h2>
             </div>
             <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="qa-grid">
                 <a href="pages/sql-injection.html" class="quick-link">
-                  <span class="ql-icon" data-icon="clipboard" data-icon-size="20"></span>
+                  <span class="ql-icon" data-icon="clipboard" data-icon-size="18"></span>
                   <div><div class="ql-label">Patient Records</div><div class="ql-desc">Search and manage patient information</div></div>
                 </a>
                 <a href="pages/xss-reflected.html" class="quick-link">
-                  <span class="ql-icon" data-icon="search" data-icon-size="20"></span>
+                  <span class="ql-icon" data-icon="search" data-icon-size="18"></span>
                   <div><div class="ql-label">Patient Search</div><div class="ql-desc">Find patients by name or ID</div></div>
                 </a>
                 <a href="pages/xss-stored.html" class="quick-link">
-                  <span class="ql-icon" data-icon="note" data-icon-size="20"></span>
+                  <span class="ql-icon" data-icon="note" data-icon-size="18"></span>
                   <div><div class="ql-label">Patient Notes</div><div class="ql-desc">Add and view clinical observations</div></div>
                 </a>
                 <a href="pages/file-inclusion.html" class="quick-link">
-                  <span class="ql-icon" data-icon="folder" data-icon-size="20"></span>
+                  <span class="ql-icon" data-icon="folder" data-icon-size="18"></span>
                   <div><div class="ql-label">Lab Reports</div><div class="ql-desc">View laboratory test results</div></div>
                 </a>
                 <a href="pages/shell-upload.html" class="quick-link">
-                  <span class="ql-icon" data-icon="trayUp" data-icon-size="20"></span>
+                  <span class="ql-icon" data-icon="trayUp" data-icon-size="18"></span>
                   <div><div class="ql-label">Documents</div><div class="ql-desc">Upload and manage hospital documents</div></div>
+                </a>
+                <a href="pages/bed-management.html" class="quick-link">
+                  <span class="ql-icon" data-icon="bed" data-icon-size="18"></span>
+                  <div><div class="ql-label">Bed Management</div><div class="ql-desc">Ward occupancy and bed assignments</div></div>
                 </a>
               </div>
             </div>
@@ -98,7 +200,7 @@
               <div class="card-icon card-icon-teal" data-icon="clock" data-icon-size="18"></div>
               <h2>Recent Activity</h2>
             </div>
-            <div class="card-body" id="activityFeed">
+            <div class="card-body activity-feed" id="activityFeed">
               <div class="activity-item">
                 <div class="activity-dot" style="background:var(--teal-500);"></div>
                 <div>
@@ -176,33 +278,21 @@
               <h2>Today's Schedule</h2>
             </div>
             <div class="card-body">
-              <div class="activity-item">
-                <div class="activity-dot" style="background:var(--blue-500);"></div>
-                <div>
-                  <div class="activity-text"><strong>8:00 AM</strong> — Morning rounds, Cardiology Ward</div>
-                  <div class="activity-time">Dr. Santos, Nurse Reyes</div>
-                </div>
+              <div class="sched-item">
+                <span class="sched-time">8:00 AM</span>
+                <div><div class="sched-text">Morning rounds, Cardiology Ward</div><div class="sched-sub">Dr. Santos, Nurse Reyes</div></div>
               </div>
-              <div class="activity-item">
-                <div class="activity-dot" style="background:var(--teal-500);"></div>
-                <div>
-                  <div class="activity-text"><strong>10:30 AM</strong> — Lab results review meeting</div>
-                  <div class="activity-time">All department heads</div>
-                </div>
+              <div class="sched-item">
+                <span class="sched-time">10:30 AM</span>
+                <div><div class="sched-text">Lab results review meeting</div><div class="sched-sub">All department heads</div></div>
               </div>
-              <div class="activity-item">
-                <div class="activity-dot" style="background:var(--orange-500);"></div>
-                <div>
-                  <div class="activity-text"><strong>1:00 PM</strong> — Patient discharge processing</div>
-                  <div class="activity-time">Ana Reyes (P-003)</div>
-                </div>
+              <div class="sched-item">
+                <span class="sched-time">1:00 PM</span>
+                <div><div class="sched-text">Patient discharge processing</div><div class="sched-sub">Ana Reyes (P-003)</div></div>
               </div>
-              <div class="activity-item">
-                <div class="activity-dot" style="background:var(--red-500);"></div>
-                <div>
-                  <div class="activity-text"><strong>3:30 PM</strong> — Staff shift change briefing</div>
-                  <div class="activity-time">All departments</div>
-                </div>
+              <div class="sched-item">
+                <span class="sched-time">3:30 PM</span>
+                <div><div class="sched-text">Staff shift change briefing</div><div class="sched-sub">All departments</div></div>
               </div>
             </div>
           </div>
@@ -255,17 +345,31 @@
         const pct = d.total ? Math.round((d.admitted / d.total) * 100) : 0;
         return `
           <div class="dept-row">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--gray-700);">${esc(d.name)}</div>
-              <div style="font-size:11px;color:var(--gray-500);margin-top:1px;">${d.admitted} admitted · ${d.total} patients</div>
+            <div style="min-width:150px;">
+              <div class="dept-name">${esc(d.name)}</div>
+              <div class="dept-count">${d.admitted} admitted · ${d.total} patients</div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div class="dept-bar-bg"><div class="dept-bar-fill" style="width:${pct}%;background:${DEPT_PALETTE[i % DEPT_PALETTE.length]};"></div></div>
-              <span style="font-size:11px;color:var(--gray-500);width:34px;text-align:right;">${pct}%</span>
+            <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;">
+              <div class="dept-bar-bg"><div class="dept-bar-fill" data-w="${pct}" style="width:0;background:linear-gradient(90deg, var(--teal-400), var(--blue-500));"></div></div>
+              <span class="dept-pct">${pct}%</span>
             </div>
           </div>`;
       }).join('');
+      // Animate bars in after paint
+      requestAnimationFrame(() => {
+        wrap.querySelectorAll('.dept-bar-fill').forEach(b => { b.style.width = (b.dataset.w || 0) + '%'; });
+      });
     }
+
+    // ---- Hero greeting: time-of-day + today's date ----
+    (function initHero() {
+      const now = new Date();
+      const h = now.getHours();
+      const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+      const name = (userData && userData.name) ? userData.name.split(' ')[0] : 'Administrator';
+      document.getElementById('heroGreeting').textContent = `${greet}, ${name}`;
+      document.getElementById('heroDate').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    })();
 
     renderDeptOverview(FALLBACK_DEPTS);
 
