@@ -26,6 +26,7 @@ const routes = {
   billing: require('./api/billing'),
   'xss-stored': require('./api/xss-stored'),
   feedback: require('./api/feedback'),
+  chat: require('./api/chat'),
 };
 
 app.disable('x-powered-by');
