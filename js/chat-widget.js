@@ -25,7 +25,7 @@
     });
   }
 
-  var history = []; // [{role:'user'|'model', text}] — trimmed server-side too
+  var history = null; // assigned below from persisted state — sent to /api/chat for context
 
   /* ---- Styles (scoped, injected once) ---- */
   var css = [
@@ -121,14 +121,44 @@
     var m = el('div', 'mpro-msg ' + cls, esc(text));
     body.appendChild(m);
     body.scrollTop = body.scrollHeight;
+    state.msgs.push({ cls: cls, text: text });
     return m;
   }
 
-  var greeted = false;
+  var STORE_KEY = 'mpro_chat_state';
+  var state = { msgs: [], history: [] }; // persisted across pages via sessionStorage
+  try {
+    var saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+    if (saved && Array.isArray(saved.msgs)) state = saved;
+  } catch (e) { /* corrupted state — start fresh */ }
+  history = Array.isArray(state.history) ? state.history : [];
+
+  function persist() {
+    try {
+      // Keep the stored transcript bounded just like the API history.
+      if (state.msgs.length > 40) state.msgs = state.msgs.slice(-40);
+      if (state.history.length > 10) state.history = state.history.slice(-10);
+      sessionStorage.setItem(STORE_KEY, JSON.stringify(state));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  function restore() {
+    if (!state.msgs.length) return false;
+    // Re-render saved messages into the DOM without re-saving them (render-only).
+    state.msgs.forEach(function (m) {
+      var e2 = el('div', 'mpro-msg ' + m.cls, esc(m.text));
+      body.appendChild(e2);
+    });
+    body.scrollTop = body.scrollHeight;
+    return true;
+  }
+
+  var greeted = state.msgs.length > 0; // no re-greeting when history exists
   function greet() {
     if (greeted) return;
     greeted = true;
     addMsg('bot', "Hi, I'm Medi — the MediCare Pro AI assistant. Ask me about patients, beds, wards, lab reports, or how to use any feature of this platform.");
+    persist();
   }
 
   function setBusy(busy) {
@@ -156,7 +186,7 @@
           addMsg('bot', res.d.reply);
           history.push({ role: 'user', text: text });
           history.push({ role: 'model', text: res.d.reply });
-          if (history.length > 10) history = history.slice(-10);
+          persist();
         } else {
           addMsg('bot', (res.d && res.d.error) || 'Sorry — something went wrong. Please try again.');
         }
@@ -164,6 +194,7 @@
       .catch(function () {
         think.remove();
         addMsg('bot', "I couldn't reach the server. Check your connection and try again.");
+        persist();
       })
       .then(function () { setBusy(false); input.focus(); });
   }
@@ -184,6 +215,7 @@
   function mount() {
     document.body.appendChild(panel);
     document.body.appendChild(fab);
+    restore(); // show the conversation from previous pages
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
