@@ -76,6 +76,7 @@ html[data-theme='dark'] body::before {
   --sidebar-w: 268px;
   --header-h: 64px;
   --radius: 16px;
+  --radius-lg: 20px;
   --radius-sm: 10px;
   --shadow: 0 1px 3px rgba(15,23,42,.08), 0 4px 16px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.5);
   --shadow-md: 0 12px 40px rgba(15,23,42,.16), inset 0 1px 0 rgba(255,255,255,.5);
@@ -129,6 +130,10 @@ html[data-theme='dark'] {
 }
 
 :root {
+  --blue-400: #60a5fa;
+  --teal-400: #2dd4bf;
+  --orange-400: #fb923c;
+  --red-400: #f87171;
   --blue-600: #1a56db;
   --blue-500: #3b82f6;
   --blue-100: rgba(26, 86, 219, .14);

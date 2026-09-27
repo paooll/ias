@@ -66,13 +66,19 @@ const MPRO_ICONS = {
 };
 
 // Mount icons declared statically in HTML: <span data-icon="name" data-icon-size="18"></span>
+// A MutationObserver keeps mounting icons that appear later (sidebar/topnav rendered
+// by page scripts, modals, dynamically-rendered cards, etc.) so icons never go missing.
 function mountIcons(root) {
   (root || document).querySelectorAll('[data-icon]').forEach((el) => {
+    if (el.dataset.iconMounted === '1') return;
+    el.dataset.iconMounted = '1';
     el.innerHTML = icon(el.dataset.icon, el.dataset.iconSize || '1em');
   });
 }
+window.mproMountIcons = mountIcons;
 if (document.readyState !== 'loading') mountIcons();
 else document.addEventListener('DOMContentLoaded', mountIcons);
+new MutationObserver(() => mountIcons()).observe(document.documentElement, { childList: true, subtree: true });
 
 function icon(name, size) {
   const s = size || 16;
