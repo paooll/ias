@@ -72,7 +72,11 @@ function mountIcons(root) {
   (root || document).querySelectorAll('[data-icon]').forEach((el) => {
     if (el.dataset.iconMounted === '1') return;
     el.dataset.iconMounted = '1';
-    el.innerHTML = icon(el.dataset.icon, el.dataset.iconSize || '1em');
+    // Insert the icon without wiping the element's existing children
+    // (some data-icon elements contain live content, e.g. the dashboard's
+    // hero-date span — replacing innerHTML would clobber it and crash page
+    // scripts that reference those children).
+    el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon, el.dataset.iconSize || '1em'));
   });
 }
 window.mproMountIcons = mountIcons;
