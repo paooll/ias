@@ -5,6 +5,25 @@ Demo hospital platform with **Firebase Firestore** as its cloud database and
 security-learning labs (SQL injection, XSS, brute force, LFI, RCE, CSRF,
 shell upload) — those keep their simulated, vulnerable behavior on purpose.
 
+## For AI agents working on this repo
+
+**When making any UI change, first read
+[.claude/skills/PROJECT-DESIGN-RULES.md](.claude/skills/PROJECT-DESIGN-RULES.md).**
+The app has an established design system — liquid-glass surfaces, Quicksand
+font, local monochrome Icons8 icons (`assets/icons/` via `js/app.js`), and
+light/dark themes in `css/styles.css`. New UI must match it.
+
+For new pages or redesigns, the bundled **ui-ux-pro-max** skill is available
+for design research:
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/src/ui-ux-pro-max/scripts/search.py "<query>" --domain style
+# domains: product | style | typography | color | landing | chart | ux | icons
+```
+
+Map its recommendations onto the existing design tokens — do not introduce
+new fonts, icon sets, or a different visual language.
+
 ## What uses Firestore
 
 | Collection     | Contents                                  | Used by                                        |
