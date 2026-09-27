@@ -159,6 +159,7 @@ function renderSidebar(active) {
       items: [
         { href: base + 'file-inclusion.html', icon: 'folder', label: 'Lab Reports', key: 'file-inclusion.html' },
         { href: base + 'command-execution.html', icon: 'desktop', label: 'System Diagnostics', key: 'command-execution.html' },
+        { href: base + 'locations.html', icon: 'building', label: 'Locations & Directions', key: 'locations.html' },
         { href: base + 'shell-upload.html', icon: 'trayUp', label: 'Documents', key: 'documents' },
       ]
     }

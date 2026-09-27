@@ -27,6 +27,7 @@ const routes = {
   'xss-stored': require('./api/xss-stored'),
   feedback: require('./api/feedback'),
   chat: require('./api/chat'),
+  'drug-info': require('./api/drug-info'),
 };
 
 app.disable('x-powered-by');
