@@ -141,8 +141,10 @@
   };
 
   function timeAgo(date) {
-    if (!date) return '';
-    const diff = Math.max(0, Date.now() - new Date(date).getTime());
+    if (!date) return 'just now';
+    const t = new Date(date).getTime();
+    if (isNaN(t)) return 'just now';
+    const diff = Math.max(0, Date.now() - t);
     const min = Math.floor(diff / 60000);
     if (min < 1) return 'just now';
     if (min < 60) return `${min} minute${min === 1 ? '' : 's'} ago`;
@@ -309,10 +311,21 @@
           }),
         });
       };
+      // Each collection is watched independently: if one subscription fails
+      // (e.g. permission denied), the dashboard still updates from the others
+      // instead of silently going stale.
+      const watch = (ref, onSnap, label) => ref.onSnapshot(
+        (snap) => { onSnap(snap); publish(); },
+        (error) => {
+          console.warn(`Dashboard live subscription failed (${label}):`, error.message);
+          if (label === 'lab_reports') { labs = { docs: [] }; publish(); }
+          if (label === 'activity') { activity = { docs: [] }; publish(); }
+        }
+      );
       const unsubs = [
-        ctx.db.collection('patients').onSnapshot((snap) => { patients = snap; publish(); }),
-        ctx.db.collection('lab_reports').onSnapshot((snap) => { labs = snap; publish(); }),
-        ctx.db.collection('activity').orderBy('createdAt', 'desc').limit(6).onSnapshot((snap) => { activity = snap; publish(); }),
+        watch(ctx.db.collection('patients'), (snap) => { patients = snap; }, 'patients'),
+        watch(ctx.db.collection('lab_reports'), (snap) => { labs = snap; }, 'lab_reports'),
+        watch(ctx.db.collection('activity').orderBy('createdAt', 'desc').limit(6), (snap) => { activity = snap; }, 'activity'),
       ];
       return () => unsubs.forEach((unsubscribe) => unsubscribe());
     },

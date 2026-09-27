@@ -380,9 +380,11 @@
         if (!ctx || !ctx.configured || !ctx.auth.currentUser) return;
 
         const renderDashboard = (data) => {
-        if (!data) return;
+        if (!data || !Array.isArray(data.patients)) return;
 
-        const { patients, pendingLabs, activity } = data;
+        const { patients } = data;
+        const pendingLabs = data.pendingLabs || 0;
+        const activity = data.activity || [];
 
         // Stats
         const isAdmitted = (s) => String(s || '').toLowerCase() === 'admitted';
@@ -423,7 +425,13 @@
 
         // Keep statistics, recent activity, and department totals in sync
         // with Firestore changes made by any signed-in staff member.
-        await window.mproDb.watchDashboard(renderDashboard);
+        // Wrap the watch callback so an exception during a render pass is
+        // logged instead of silently breaking the live-update pipeline.
+        try {
+          await window.mproDb.watchDashboard(renderDashboard);
+        } catch (watchErr) {
+          console.warn('Dashboard live updates could not start:', watchErr.message);
+        }
       } catch (e) {
         console.warn('Dashboard Firestore load skipped (fallback shown):', e.message);
       }
