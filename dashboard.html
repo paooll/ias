@@ -102,6 +102,18 @@
     .dept-bar-bg { flex: 1; max-width: 130px; height: 7px; background: var(--gray-100); border-radius: 99px; overflow: hidden; border: 1px solid var(--gray-200); }
     .dept-bar-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(.22,1,.36,1); }
     .dept-pct { font-size: 11px; font-weight: 700; color: var(--gray-500); width: 36px; text-align: right; }
+    .dept-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .dept-tile { min-width:0; padding:14px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:14px; }
+    .dept-tile:first-child { grid-column:1 / -1; background:linear-gradient(120deg,rgba(20,184,166,.12),rgba(37,99,235,.08)); }
+    .dept-tile-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .dept-tile .dept-count { margin-top:5px; }
+    .dept-tile .dept-bar-bg { max-width:none; width:100%; margin-top:12px; }
+    .dept-pager { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
+    .dept-pager-controls { display:flex; gap:6px; }
+    .dept-page-btn { border:1px solid var(--gray-200); background:var(--gray-50); color:var(--gray-700); border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .dept-page-btn:hover:not(:disabled) { border-color:var(--blue-500); color:var(--blue-600); }
+    .dept-page-btn:disabled { opacity:.45; cursor:default; }
+    @media (max-width:480px) { .dept-grid { grid-template-columns:1fr; } }
 
     /* Schedule: time pills on a rail */
     .sched-item { display:flex; gap: 14px; padding: 10px 0; align-items: flex-start; }
@@ -262,17 +274,20 @@
         </div>
 
         <!-- Department Overview -->
-        <div class="grid-2" style="margin-top:20px;">
-          <div class="card">
+        <div class="bento-main" style="margin-top:20px;">
+          <div class="card bento-card">
             <div class="card-header">
               <div class="card-icon card-icon-orange" data-icon="building" data-icon-size="18"></div>
               <h2>Department Overview</h2>
             </div>
-            <div class="card-body" id="deptOverview"></div>
+            <div class="card-body">
+              <div class="dept-grid" id="deptOverview"></div>
+              <nav class="dept-pager" id="deptPager" aria-label="Department pages"></nav>
+            </div>
           </div>
 
           <!-- Today's Schedule -->
-          <div class="card">
+          <div class="card bento-card">
             <div class="card-header">
               <div class="card-icon card-icon-blue" data-icon="calendar" data-icon-size="18"></div>
               <h2>Today's Schedule</h2>
@@ -339,28 +354,48 @@
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-    function renderDeptOverview(depts) {
+    const DEPTS_PER_PAGE = 5;
+    let currentDeptPage = 1;
+    let currentDepts = FALLBACK_DEPTS;
+
+    function renderDeptOverview(depts = currentDepts) {
       const wrap = document.getElementById('deptOverview');
       if (!wrap) return;
-      wrap.innerHTML = depts.map((d, i) => {
+      currentDepts = depts;
+      const pageCount = Math.max(1, Math.ceil(depts.length / DEPTS_PER_PAGE));
+      currentDeptPage = Math.min(currentDeptPage, pageCount);
+      const start = (currentDeptPage - 1) * DEPTS_PER_PAGE;
+      wrap.innerHTML = depts.slice(start, start + DEPTS_PER_PAGE).map((d) => {
         const pct = d.total ? Math.round((d.admitted / d.total) * 100) : 0;
         return `
-          <div class="dept-row">
-            <div style="min-width:150px;">
+          <div class="dept-tile">
+            <div class="dept-tile-head"><div>
               <div class="dept-name">${esc(d.name)}</div>
               <div class="dept-count">${d.admitted} admitted · ${d.total} patients</div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;">
-              <div class="dept-bar-bg"><div class="dept-bar-fill" data-w="${pct}" style="width:0;background:linear-gradient(90deg, var(--teal-400), var(--blue-500));"></div></div>
               <span class="dept-pct">${pct}%</span>
             </div>
+            <div class="dept-bar-bg"><div class="dept-bar-fill" data-w="${pct}" style="width:0;background:linear-gradient(90deg, var(--teal-400), var(--blue-500));"></div></div>
           </div>`;
       }).join('');
+      const pager = document.getElementById('deptPager');
+      pager.innerHTML = `<span class="dept-count">${depts.length ? start + 1 : 0}–${Math.min(start + DEPTS_PER_PAGE, depts.length)} of ${depts.length} departments</span>
+        <div class="dept-pager-controls">
+          <button class="dept-page-btn" type="button" data-page="${currentDeptPage - 1}" ${currentDeptPage === 1 ? 'disabled' : ''} aria-label="Previous departments">Previous</button>
+          <button class="dept-page-btn" type="button" data-page="${currentDeptPage + 1}" ${currentDeptPage === pageCount ? 'disabled' : ''} aria-label="Next departments">Next</button>
+        </div>`;
       // Animate bars in after paint
       requestAnimationFrame(() => {
         wrap.querySelectorAll('.dept-bar-fill').forEach(b => { b.style.width = (b.dataset.w || 0) + '%'; });
       });
     }
+
+    document.getElementById('deptPager').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-page]');
+      if (!button || button.disabled) return;
+      currentDeptPage = Number(button.dataset.page);
+      renderDeptOverview();
+    });
 
     // ---- Hero greeting: time-of-day + today's date ----
     (function initHero() {

@@ -8,7 +8,20 @@
   <title>MediCare Pro – Hospital Management System</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
-    .login-page { font-family: 'Quicksand', sans-serif; }
+    .login-page { font-family: 'Quicksand', sans-serif; display:grid; grid-template-columns:minmax(0,7fr) minmax(360px,3fr); }
+    .login-left { width:auto; padding:clamp(32px,5vw,88px); background:linear-gradient(135deg,#143b68 0%,#126779 55%,#0d9488 100%); border-right:0; }
+    .login-left::before { background:radial-gradient(circle at 82% 20%,rgba(255,255,255,.16),transparent 45%); }
+    .login-left .login-brand-text span:first-child, .login-left .login-tagline h2 { color:#fff; }
+    .login-left .login-brand-text span:last-child, .login-left .login-tagline p, .login-left .login-feature { color:#e2f4f6; }
+    .login-left .login-feature::before { background:rgba(255,255,255,.18); color:#fff; }
+    .login-tagline { max-width:650px; }
+    .login-tagline h2 { font-size:clamp(36px,4vw,64px); line-height:1.1; }
+    .login-tagline p { max-width:580px; }
+    .login-right { min-width:0; padding:32px clamp(18px,2vw,36px); background:var(--glass-bg-strong); }
+    .login-box { max-width:440px; padding:0; background:none; border:0; box-shadow:none; backdrop-filter:none; }
+    .login-box .card { background:var(--glass-bg-strong); border:1px solid var(--line-1); box-shadow:var(--shadow-md); }
+    .login-brand-icon { width:52px; height:52px; background:#fff; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.18); }
+    .login-brand-icon svg { width:32px; height:32px; }
     .ecg-bg {
       position: absolute;
       bottom: 60px;
@@ -16,7 +29,7 @@
       opacity: .12;
     }
     .login-box .card {
-      padding: 36px;
+      padding: clamp(24px,2.3vw,36px);
       border-radius: 16px;
     }
     .input-icon-wrap { position: relative; }
@@ -30,6 +43,18 @@
     .btn-google:hover { background:var(--blue-100); border-color:var(--blue-500); color:var(--blue-600); }
     .demo-creds { margin-top: 14px; padding: 10px 12px; background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 8px; font-size: 11px; color: var(--gray-500); line-height: 1.7; }
     .demo-creds code { background: var(--gray-100); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
+    .login-box .form-control { min-height:44px; background:var(--input-bg); border-color:var(--gray-300); }
+    .login-box .form-label { color:var(--text-1); font-size:13px; }
+    .login-box .subtitle { color:var(--text-2); }
+    .login-box .btn { min-height:44px; }
+    @media (max-width:900px) {
+      .login-page { grid-template-columns:1fr; }
+      .login-left { min-height:auto; padding:32px 24px; }
+      .login-brand { margin-bottom:18px; }
+      .login-tagline h2 { font-size:30px; }
+      .login-features, .ecg-bg { display:none; }
+      .login-right { padding:28px 18px; }
+    }
   </style>
 </head>
 <body>
@@ -38,7 +63,11 @@
   <div class="login-page">
     <div class="login-left">
       <div class="login-brand">
-        <div class="login-brand-icon" data-icon="cross" data-icon-size="28"></div>
+        <div class="login-brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 5h6v8h8v6h-8v8h-6v-8H5v-6h8V5Z" fill="#0d9488"/>
+          </svg>
+        </div>
         <div class="login-brand-text">
           <span>MediCare Pro</span>
           <span>Hospital Management System v3.2</span>
@@ -78,26 +107,28 @@
             <span>Authentication successful. Redirecting to dashboard…</span>
           </div>
 
+          <form id="loginForm" onsubmit="event.preventDefault(); doLogin();">
           <div class="form-group">
-            <label class="form-label">Username</label>
+            <label class="form-label" for="username">Username</label>
             <div class="input-icon-wrap">
-              <input type="text" class="form-control" id="username" placeholder="Enter username" autocomplete="off">
+              <input type="text" class="form-control" id="username" placeholder="Enter username" autocomplete="username" required>
             </div>
           </div>
 
           <div class="form-group">
             <div class="flex justify-between items-center mb-4" style="margin-bottom:6px;">
-              <label class="form-label" style="margin-bottom:0;">Password</label>
+              <label class="form-label" for="password" style="margin-bottom:0;">Password</label>
               <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
             </div>
             <div class="input-icon-wrap">
-              <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="off">
+              <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="current-password" required>
             </div>
           </div>
 
-          <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()" style="justify-content:center;margin-top:4px;">
+          <button class="btn btn-primary w-full" id="loginBtn" type="submit" style="justify-content:center;margin-top:4px;">
             Sign In to MediCare Pro
           </button>
+          </form>
 
           <div class="login-divider"><span>or</span></div>
 
@@ -228,10 +259,6 @@
         }
       }
     }
-
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !forgotOpen) doLogin();
-    });
 
     /* ── Google Single Sign-On ─────────────────────────────────────────── */
     async function doGoogleLogin() {
