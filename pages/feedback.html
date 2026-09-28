@@ -107,7 +107,7 @@
         if (savedId) {
           document.getElementById('fbSourceHint').textContent =
             'Saved to the hospital database (Firestore) and visible to all staff below.';
-          // Also ask the server to render the summary report (template engine).
+          // Also ask the server for a plain-text summary report.
           let report = '';
           try {
             const res = await fetch('/api/feedback', {
@@ -149,6 +149,12 @@
       }
     }
 
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
     function feedbackCard(f) {
       const n = parseInt(f.rating, 10) || 0;
       const stars = Array.from({length: 5}, (_, i) => icon('star', 13)).map((s, i) =>
@@ -156,11 +162,11 @@
       return `
         <div class="note-item" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:10px;">
           <div style="font-size:11px;color:var(--gray-500);display:flex;justify-content:space-between;margin-bottom:4px;">
-            <span><strong style="color:var(--blue-600);">${f.patientId}</strong> · ${f.reviewer || 'Anonymous'}</span>
-            <span>${f.createdAt ? window.mproDb.timeAgo(f.createdAt) : ''}</span>
+            <span><strong style="color:var(--blue-600);">${escapeHtml(f.patientId)}</strong> · ${escapeHtml(f.reviewer || 'Anonymous')}</span>
+            <span>${escapeHtml(f.createdAt ? window.mproDb.timeAgo(f.createdAt) : '')}</span>
           </div>
           <div style="opacity:.9;font-size:13px;">${stars}</div>
-          <div style="font-size:13px;color:var(--gray-900);margin-top:4px;">${f.comments || '<em>No comments</em>'}</div>
+          <div style="font-size:13px;color:var(--gray-900);margin-top:4px;">${f.comments ? escapeHtml(f.comments) : '<em>No comments</em>'}</div>
         </div>`;
     }
 

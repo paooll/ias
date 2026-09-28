@@ -10,30 +10,8 @@
 
 const REVIEWS = {};
 
-function esc(s) {
+function asText(s) {
   return String(s == null ? '' : s);
-}
-
-/*
- * ⚠ VULNERABLE (SSTI lab) — do NOT copy this pattern.
- * Evaluates ${...} expressions from the merged template+context using
- * `new Function`, exactly like a naively-implemented template engine.
- * A safe implementation would escape user text or use a sandboxed renderer
- * with no expression evaluation of user-supplied strings.
- */
-function renderTemplate(template, context) {
-  const scope = Object.assign({}, context);
-  const keys = Object.keys(scope);
-  const values = keys.map((k) => scope[k]);
-  // Replace ${...} tokens with evaluated expressions (user input included).
-  return template.replace(/\$\{([^}]*)\}/g, (match, expr) => {
-    try {
-      const evalFn = new Function(...keys, `return (${expr});`);
-      return esc(evalFn(...values));
-    } catch (e) {
-      return `[template error: ${e.message}]`;
-    }
-  });
 }
 
 module.exports = async function handler(req, res) {
@@ -54,13 +32,13 @@ module.exports = async function handler(req, res) {
       try { data = JSON.parse(body); } catch (e) { data = {}; }
     }
 
-    const patientId = esc(data.patientId || 'P-001').trim();
+    const patientId = asText(data.patientId || 'P-001').trim();
     if (!REVIEWS[patientId]) REVIEWS[patientId] = [];
 
     const review = {
-      rating: esc(data.rating || '5'),
-      reviewer: esc(data.reviewer || 'Anonymous Staff'),
-      comments: esc(data.comments || ''),
+      rating: asText(data.rating || '5'),
+      reviewer: asText(data.reviewer || 'Anonymous Staff'),
+      comments: asText(data.comments || ''),
       // Extra fields the client may send (department flags, follow-up prefs…)
       extra: data,
       submittedAt: new Date().toISOString(),
@@ -68,27 +46,16 @@ module.exports = async function handler(req, res) {
     review.id = 'FB-' + String(1000 + Object.keys(REVIEWS).length).padStart(5, '0');
     REVIEWS[patientId].push(review);
 
-    // "Report generated" — build and render the report template.
-    // ⚠ VULNERABLE (SSTI lab): user input is concatenated INTO the template
-    //    string before rendering, so ${...} expressions typed by the user
-    //    are evaluated by the template engine instead of shown as text.
-    const template = [
+    // Build the report as plain text. Feedback is data, never template code.
+    const report = [
       '=== Patient Feedback Report ===',
       `Patient: ${patientId}`,
       `Rating: ${review.rating}/5`,
       `Reviewer: ${review.reviewer}`,
-      'Comments: ' + review.comments,          // ← raw input enters the template
+      `Comments: ${review.comments}`,
       `Reference: ${review.id}`,
       `Generated: ${review.submittedAt}`,
     ].join('\n');
-
-    const report = renderTemplate(template, {
-      patientId: patientId,
-      rating: review.rating,
-      reviewer: review.reviewer,
-      reference: review.id,
-      submittedAt: review.submittedAt,
-    });
 
     return res.status(201).json({
       ok: true,
@@ -100,7 +67,7 @@ module.exports = async function handler(req, res) {
 
   // ---- Look up reviews for a patient --------------------------------------
   if (req.method === 'GET') {
-    const pid = esc(req.query.patientId || '').trim();
+    const pid = asText(req.query.patientId || '').trim();
     const list = REVIEWS[pid] || [];
     return res.status(200).json({ ok: true, patientId: pid, count: list.length, reviews: list });
   }
