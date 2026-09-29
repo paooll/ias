@@ -9,25 +9,45 @@
   <link rel="stylesheet" href="css/styles.css">
   <style>
     .login-page { font-family: 'Quicksand', sans-serif; display:grid; grid-template-columns:minmax(0,7fr) minmax(360px,3fr); }
-    .login-left { width:auto; padding:clamp(32px,5vw,88px); background:linear-gradient(135deg,#143b68 0%,#126779 55%,#0d9488 100%); border-right:0; }
-    .login-left::before { background:radial-gradient(circle at 82% 20%,rgba(255,255,255,.16),transparent 45%); }
+    .login-left { width:auto; padding:clamp(32px,5vw,88px); background:linear-gradient(150deg,#0f2f56 0%,#10586e 45%,#0d9488 100%); border-right:0; position:relative; overflow:hidden; }
+    .login-left::before { background:radial-gradient(circle at 82% 18%,rgba(255,255,255,.18),transparent 45%),radial-gradient(circle at 10% 90%,rgba(20,184,166,.25),transparent 55%); }
     .login-left .login-brand-text span:first-child, .login-left .login-tagline h2 { color:#fff; }
-    .login-left .login-brand-text span:last-child, .login-left .login-tagline p, .login-left .login-feature { color:#e2f4f6; }
-    .login-left .login-feature::before { background:rgba(255,255,255,.18); color:#fff; }
+    .login-left .login-brand-text span:last-child, .login-left .login-tagline p, .login-left .login-feature { color:#dff3f6; }
+    .login-left .login-feature::before { content:none; }
+    /* Feature rows get the monochrome icon set instead of plain checkmarks */
+    .login-feature { font-weight:500; letter-spacing:.1px; }
+    .login-feature .lf-icon { width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.25); flex-shrink:0; }
+    .login-feature .lf-icon .mpro-icon { filter: brightness(0) invert(1); }
     .login-tagline { max-width:650px; }
-    .login-tagline h2 { font-size:clamp(36px,4vw,64px); line-height:1.1; }
-    .login-tagline p { max-width:580px; }
+    .login-tagline h2 { font-size:clamp(36px,4vw,60px); line-height:1.08; letter-spacing:-.025em; }
+    .login-tagline p { max-width:560px; font-size:15px; }
     .login-right { min-width:0; padding:32px clamp(18px,2vw,36px); background:var(--glass-bg-strong); }
     .login-box { max-width:440px; padding:0; background:none; border:0; box-shadow:none; backdrop-filter:none; }
     .login-box .card { background:var(--glass-bg-strong); border:1px solid var(--line-1); box-shadow:var(--shadow-md); }
     .login-brand-icon { width:52px; height:52px; background:#fff; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.18); }
     .login-brand-icon svg { width:32px; height:32px; }
-    .ecg-bg {
-      position: absolute;
-      bottom: 60px;
-      left: 0; right: 0;
-      opacity: .12;
+    /* Hero: animated ECG, layered brand glow, feature hover */
+    .ecg-bg { position:absolute; bottom:60px; left:0; right:0; opacity:.14; }
+    .ecg-bg polyline { stroke-dasharray:1600; stroke-dashoffset:1600; animation:ecgLogin 6s linear infinite; }
+    @keyframes ecgLogin { to { stroke-dashoffset:0; } }
+    .login-brand-icon { position:relative; }
+    .login-brand-icon::after { content:''; position:absolute; inset:-6px; border-radius:20px; background:radial-gradient(circle,rgba(45,212,191,.35),transparent 70%); z-index:-1; }
+    .login-feature { transition:transform .2s cubic-bezier(.34,1.4,.64,1),background .2s; padding:6px 8px; margin-left:-8px; border-radius:10px; }
+    .login-feature:hover { transform:translateX(4px); background:rgba(255,255,255,.08); }
+    .login-feature .lf-icon { transition:transform .2s cubic-bezier(.34,1.4,.64,1); }
+    .login-feature:hover .lf-icon { transform:scale(1.12); }
+
+    /* Sign-in card: entrance + refined inputs (emil-design-eng) */
+    @media (prefers-reduced-motion: no-preference) {
+      .login-box .card { animation:loginCardIn .45s cubic-bezier(.34,1.3,.5,1) both; animation-delay:.08s; }
     }
+    @keyframes loginCardIn { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
+    .login-box h3 { font-size:24px; letter-spacing:-.02em; }
+    .login-box .card { transition:box-shadow .25s ease; }
+    .login-box .card:focus-within { box-shadow:var(--shadow-md),0 0 0 4px rgba(20,184,166,.10); }
+    .login-box .form-control { transition:border-color .18s,box-shadow .18s,background .18s; }
+    .login-box .form-control:focus { border-color:var(--teal-500); box-shadow:0 0 0 3px rgba(20,184,166,.14); }
+    .login-box .btn-primary { letter-spacing:.2px; }
     .login-box .card {
       padding: clamp(24px,2.3vw,36px);
       border-radius: 16px;
@@ -80,10 +100,10 @@
       </div>
 
       <div class="login-features">
-        <div class="login-feature">Real-time Patient Record Management</div>
-        <div class="login-feature">HIPAA-Compliant Data Storage</div>
-        <div class="login-feature">Advanced Diagnostic Reporting</div>
-        <div class="login-feature">Multi-Department Integration</div>
+        <div class="login-feature"><span class="lf-icon" data-icon="clipboard" data-icon-size="15"></span> Real-time Patient Record Management</div>
+        <div class="login-feature"><span class="lf-icon" data-icon="lock" data-icon-size="15"></span> HIPAA-Compliant Data Storage</div>
+        <div class="login-feature"><span class="lf-icon" data-icon="flask" data-icon-size="15"></span> Advanced Diagnostic Reporting</div>
+        <div class="login-feature"><span class="lf-icon" data-icon="people" data-icon-size="15"></span> Multi-Department Integration</div>
       </div>
 
       <!-- ECG SVG background -->
@@ -160,17 +180,43 @@
     </div>
   </div>
 
-  <button class="theme-toggle theme-toggle-float" onclick="toggleTheme()" aria-label="Toggle dark mode" data-icon="moon" data-icon-size="16"></button>
+  <button class="theme-toggle theme-toggle-float" id="themeToggleBtn" aria-label="Toggle dark mode"></button>
 
-  <!-- Theme bootstrap (runs before app.js paint) -->
+  <!-- Theme bootstrap + toggle (self-contained: login page does not load js/app.js,
+       so toggleTheme/applyTheme/icons from app.js are unavailable here) -->
   <script>
     (function () {
       var t = 'light';
       try { t = localStorage.getItem('mpro_theme') || 'light'; } catch (e) {}
       document.documentElement.setAttribute('data-theme', t);
+
+      var ICONS = {
+        moon: 'assets/icons/moon.png',
+        sun: 'assets/icons/sun.png'
+      };
+      function renderBtn() {
+        var b = document.getElementById('themeToggleBtn');
+        if (!b) return;
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        b.innerHTML = '<img class="mpro-icon" src="' + (dark ? ICONS.sun : ICONS.moon) +
+          '" width="16" height="16" alt="" aria-hidden="true" draggable="false">';
+        // The monochrome icon is black — invert it on dark surfaces (matches
+        // the [data-theme=dark] .mpro-icon rule that app.js pages get).
+        b.querySelector('img').style.filter = dark ? 'brightness(0) invert(1)' : 'brightness(0) saturate(100%)';
+        b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+
       window.addEventListener('DOMContentLoaded', function () {
-        var b = document.querySelector('.theme-toggle-float');
-        if (b && typeof applyTheme === 'function') applyTheme(t);
+        var b = document.getElementById('themeToggleBtn');
+        if (b) {
+          renderBtn();
+          b.addEventListener('click', function () {
+            var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem('mpro_theme', next); } catch (e) {}
+            document.documentElement.setAttribute('data-theme', next);
+            renderBtn();
+          });
+        }
       });
     })();
   </script>
@@ -375,6 +421,6 @@
       forgotOpen = false;
     }
   </script>
-  <script src="js/chat-widget.js"></script>
+  <!-- No chat widget on the login screen -->
 </body>
 </html>

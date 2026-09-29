@@ -155,7 +155,23 @@ body {
   color: var(--text-1);
   line-height: 1.6;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+/* Focus visibility (craft-floor: never hide the keyboard cursor) */
+:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.btn:focus-visible, .form-control:focus-visible, .nav-item:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Fluid display type for page titles */
+h1, h2, h3 { letter-spacing: -0.02em; text-wrap: balance; }
+p { text-wrap: pretty; }
 
 /* ── THEME TOGGLE ── */
 .theme-toggle {
@@ -215,6 +231,11 @@ body, .card, .topnav, .sidebar, .modal, .form-control, .data-table th, .data-tab
   align-items: center;
   gap: 12px;
 }
+
+/* Nav micro-interaction: icon nudges toward the label on hover */
+.nav-item .nav-icon { transition: transform .22s cubic-bezier(.34,1.4,.64,1); }
+.nav-item:hover .nav-icon { transform: translateX(2px) scale(1.08); }
+.nav-item:active { transform: scale(.985); }
 
 /* ── Icons8 monochrome icons (local, assets/icons) ───────────────────── */
 /* Black PNGs tinted to follow the text color; inverted to white in dark
@@ -457,9 +478,12 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all .18s;
+  transition: transform .18s cubic-bezier(.34,1.4,.64,1), box-shadow .18s ease, background .18s, filter .18s;
   text-decoration: none;
 }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(.97); }
+.btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .btn-primary { background: linear-gradient(135deg, var(--blue-600), var(--blue-500)); color: white; box-shadow: 0 4px 14px rgba(26, 86, 219, .35), inset 0 1px 0 rgba(255,255,255,.35); }
 .btn-primary:hover { background: linear-gradient(135deg, #1648c0, #2569e8); }
 .btn-danger { background: linear-gradient(135deg, var(--red-600), var(--red-500)); color: white; box-shadow: 0 4px 14px rgba(220, 38, 38, .3), inset 0 1px 0 rgba(255,255,255,.3); }
@@ -724,12 +748,16 @@ body.modal-open { overflow: hidden; }
 .chip {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 3px 10px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .2px;
 }
+/* Status dots inside chips — shape, not color alone (a11y) */
+.chip::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.chip:has(.mpro-icon)::before { display: none; }
 .chip-teal { background: var(--chipbg-teal); color: var(--teal-600); }
 .chip-orange { background: var(--chipbg-orange); color: #c2410c; }
 .chip-red { background: var(--chipbg-red); color: var(--red-600); }
@@ -920,14 +948,18 @@ html[data-theme='dark'] .page-header {
 
 /* Card hover lift (springy, same easing as dashboard bento cards) */
 .card { transition: transform .22s cubic-bezier(.34,1.4,.64,1), box-shadow .22s ease; }
-.card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(13,148,136,.12); }
+@media (hover: hover) {
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(13,148,136,.12); }
+}
 
-/* Staggered entrance for page content cards */
+/* Staggered entrance for page content cards (skip on reduced-motion) */
 @keyframes mpro-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.page-content > * { animation: mpro-rise .35s ease both; }
-.page-content > *:nth-child(2) { animation-delay: .05s; }
-.page-content > *:nth-child(3) { animation-delay: .10s; }
-.page-content > *:nth-child(4) { animation-delay: .15s; }
+@media (prefers-reduced-motion: no-preference) {
+  .page-content > * { animation: mpro-rise .35s ease both; }
+  .page-content > *:nth-child(2) { animation-delay: .05s; }
+  .page-content > *:nth-child(3) { animation-delay: .10s; }
+  .page-content > *:nth-child(4) { animation-delay: .15s; }
+}
 
 /* Table polish: tinted rows + smooth hover */
 .data-table tbody tr { transition: background .15s ease; }
@@ -960,4 +992,63 @@ html[data-theme='dark'] .page-header {
 
 /* Page-header buttons stay above the glow */
 .page-header .btn { position: relative; z-index: 1; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MOBILE CRAFT PASS (per impeccable/emil-design skills)
+   Touch ergonomics + small-screen hierarchy. Runs last so it can
+   override both the base layer and the beautify layer.
+   ════════════════════════════════════════════════════════════════════════ */
+
+@media (hover: none) {
+  /* No hover on touch — make pressed state carry the feedback instead */
+  .btn:active { filter: brightness(.92); transform: scale(.97); }
+  .nav-item:active { background: var(--glass-bg-strong); }
+  .card:active { transform: none; }
+}
+
+@media (max-width: 900px) {
+  .page-header { padding: 16px 18px; }
+  .page-header h1 { font-size: 20px; }
+}
+
+@media (max-width: 640px) {
+  /* Comfortable touch targets (Emil: never make users aim twice) */
+  .btn { min-height: 44px; }
+  .btn-sm, .btn-xs { min-height: 38px; }
+  .nav-item { padding: 12px 14px; font-size: 13.5px; }
+  .theme-toggle { width: 42px; height: 42px; }
+  .modal-x { width: 40px; height: 40px; }
+  .tab-btn { padding: 12px 14px; }
+  .btn-link { padding: 8px 6px; }
+
+  /* Desktop-only table chrome hides on phones */
+  .topnav-ecg, .status-dot { display: none; }
+
+  /* Keep dense rows readable; strip vertical padding bloat */
+  .data-table th, .data-table td { padding: 9px 10px; }
+
+  /* Hero and stat hierarchy compress gracefully */
+  .dash-hero { padding: 18px 16px; }
+  .dash-hero h2 { font-size: 18px; }
+  .bento-stat .stat-val { font-size: 28px; }
+
+  /* Inputs: 16px prevents iOS zoom-on-focus (kept from base) + taller */
+  .form-control { min-height: 44px; }
+
+  /* Backdrop blur is expensive on low-end phones — lighten it */
+  .card, .sidebar, .topnav, .modal {
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+  }
+
+  /* Chat FAB clears the thumb zone but not the content */
+  .mpro-chat-fab { bottom: 18px; right: 14px; }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .bento-stats { grid-template-columns: 1fr; }
+  .stat-val { font-size: 24px; }
+  .page-content { padding: 14px 10px; }
+}
 
