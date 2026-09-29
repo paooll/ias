@@ -68,6 +68,25 @@ const MPRO_ICONS = {
 // Mount icons declared statically in HTML: <span data-icon="name" data-icon-size="18"></span>
 // A MutationObserver keeps mounting icons that appear later (sidebar/topnav rendered
 // by page scripts, modals, dynamically-rendered cards, etc.) so icons never go missing.
+/* ── Mobile table→card support ────────────────────────────────────────────
+   On phones, tables become glass cards (CSS in styles.css). Each <td> gets
+   data-label="<column name>" so the card shows field labels. Re-runs via the
+   shared MutationObserver below so dynamically-rendered tables are covered. */
+function labelTableCells() {
+  document.querySelectorAll('table.data-table').forEach((table) => {
+    if (table.dataset.labeled === '1') return;
+    const ths = table.querySelectorAll('thead th');
+    if (!ths.length) return;
+    table.querySelectorAll('tbody td').forEach((td, idx) => {
+      const th = ths[idx % ths.length];
+      if (!th || td.dataset.label !== undefined) return;
+      const t = (th.textContent || '').trim();
+      td.dataset.label = t;
+    });
+    table.dataset.labeled = '1';
+  });
+}
+
 function mountIcons(root) {
   (root || document).querySelectorAll('[data-icon]').forEach((el) => {
     if (el.dataset.iconMounted === '1') return;
@@ -80,9 +99,9 @@ function mountIcons(root) {
   });
 }
 window.mproMountIcons = mountIcons;
-if (document.readyState !== 'loading') mountIcons();
-else document.addEventListener('DOMContentLoaded', mountIcons);
-new MutationObserver(() => mountIcons()).observe(document.documentElement, { childList: true, subtree: true });
+if (document.readyState !== 'loading') { mountIcons(); labelTableCells(); }
+else document.addEventListener('DOMContentLoaded', () => { mountIcons(); labelTableCells(); });
+new MutationObserver(() => { mountIcons(); labelTableCells(); }).observe(document.documentElement, { childList: true, subtree: true });
 
 function icon(name, size) {
   const s = size || 16;

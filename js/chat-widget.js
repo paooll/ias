@@ -41,7 +41,7 @@
     'background:rgba(255,255,255,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);',
     'box-shadow:0 24px 60px rgba(15,23,42,.25),inset 0 1px 0 rgba(255,255,255,.6);',
     'font-family:Quicksand,sans-serif;animation:mproChatIn .25s cubic-bezier(.34,1.4,.64,1);}',
-    'html[data-theme=dark] .mpro-chat-panel{background:rgba(15,23,42,.85);border-color:rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);}',
+    'html[data-theme=dark] .mpro-chat-panel{background:rgba(13,21,38,.9);border-color:rgba(140,190,255,.16);box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(160,200,255,.12);}',
     '@keyframes mproChatIn{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}',
     '.mpro-chat-panel.open{display:flex;}',
     '.mpro-chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;',
@@ -81,6 +81,14 @@
     '.mpro-chat-input button img{filter:brightness(0) invert(1);width:16px;height:16px;}',
     '.mpro-chat-err{align-self:center;font-size:11px;font-weight:700;color:#dc2626;background:rgba(220,38,38,.1);',
     'border:1px solid rgba(220,38,38,.3);border-radius:99px;padding:4px 12px;}',
+    /* Subtle upgrade: typing dots + warm greeting bubble (emil-design-eng) */
+    '.mpro-typing{display:inline-flex;gap:4px;padding:4px 2px;}',
+    '.mpro-typing span{width:6px;height:6px;border-radius:50%;background:#64748b;opacity:.5;animation:mproTyping 1.2s ease infinite;}',
+    'html[data-theme=dark] .mpro-typing span{background:#a8b4c8;}',
+    '.mpro-typing span:nth-child(2){animation-delay:.15s;}',
+    '.mpro-typing span:nth-child(3){animation-delay:.3s;}',
+    '@keyframes mproTyping{0%,60%,100%{opacity:.4;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}',
+    '@media (prefers-reduced-motion: reduce){.mpro-typing span{animation:none;}}',
   ].join('');
 
   var style = document.createElement('style');
@@ -160,7 +168,7 @@
   function greet() {
     if (greeted) return;
     greeted = true;
-    addMsg('bot', "Hi, I'm Medi — the MediCare Pro AI assistant. Ask me about patients, beds, wards, lab reports, or how to use any feature of this platform.");
+    addMsg('bot', "Hi, I'm Medi 👋 Your hospital co-pilot — ask me about patients, beds, wards, lab results, or how anything in this platform works.");
     persist();
   }
 
@@ -174,7 +182,8 @@
     if (!text || sendBtn.disabled) return;
     input.value = '';
     addMsg('user', text);
-    var think = addMsg('bot thinking', 'Medi is thinking…');
+    var think = addMsg('bot thinking', '');
+    think.innerHTML = '<span class="mpro-typing"><span></span><span></span><span></span></span>';
     setBusy(true);
 
     fetch('/api/chat', {
