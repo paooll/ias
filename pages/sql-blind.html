@@ -8,9 +8,43 @@
   <title>Patient Verification – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    .bool-indicator { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px; }
-    .bool-true { background:var(--teal-100);color:var(--teal-600); }
-    .bool-false { background:var(--red-100);color:var(--red-600); }
+    .page-content { width:100%; max-width:1240px; margin:0 auto; padding:28px clamp(20px,3vw,36px) 44px; }
+    .verification-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:stretch; }
+    .verification-grid .card { display:flex; flex-direction:column; min-width:0; background:#fff; border:1px solid #dce5f2; box-shadow:0 8px 26px rgba(24,52,93,.07); }
+    html[data-theme="dark"] .verification-grid .card { background:#192841; border-color:#354962; }
+    .verification-grid .card-header { padding:16px 20px; }
+    .verification-grid .card-body { display:flex; flex:1; flex-direction:column; padding:20px; }
+    .verification-intro { margin-bottom:18px; color:var(--text-2); font-size:13px; line-height:1.5; }
+    .verification-form { display:flex; align-items:end; gap:12px; }
+    .verification-form .form-group { flex:0 1 190px; margin:0; }
+    .verification-form .form-control { min-height:42px; background:#f7faff; border:1px solid #cbd8ea; }
+    html[data-theme="dark"] .verification-form .form-control { background:#101c30; border-color:#4a6280; }
+    .verification-form .btn { min-height:42px; min-width:150px; justify-content:center; }
+    .verification-result { display:flex; align-items:center; gap:14px; min-height:94px; margin-top:22px; padding:17px; border:1px solid var(--line-1); border-radius:14px; background:var(--gray-50); }
+    .verification-result-icon { display:grid; place-items:center; width:42px; height:42px; flex:none; border-radius:12px; background:var(--blue-100); }
+    .verification-result-icon .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .verification-result.bool-true { background:var(--teal-100); border-color:rgba(20,184,166,.25); }
+    .verification-result.bool-true .verification-result-icon { background:rgba(20,184,166,.17); }
+    .verification-result.bool-true .verification-result-icon .mpro-icon { filter:invert(51%) sepia(87%) saturate(642%) hue-rotate(122deg) brightness(85%); }
+    .verification-result.bool-false { background:var(--red-100); border-color:rgba(220,38,38,.24); }
+    .verification-result.bool-false .verification-result-icon { background:rgba(220,38,38,.15); }
+    .verification-result.bool-false .verification-result-icon .mpro-icon { filter:invert(37%) sepia(90%) saturate(2558%) hue-rotate(337deg) brightness(94%); }
+    .verification-status { display:block; color:var(--text-1); font-size:14px; font-weight:700; }
+    .verification-detail { display:block; margin-top:3px; color:var(--text-2); font-size:11px; }
+    .known-patients { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .known-patient { display:flex; align-items:center; gap:10px; min-width:0; min-height:56px; padding:10px 12px; border:1px solid #dce5f2; border-radius:11px; background:#f7faff; color:var(--text-1); text-align:left; font:inherit; cursor:pointer; transition:border-color .18s,background .18s,transform .18s; }
+    html[data-theme="dark"] .known-patient { background:#223550; border-color:#3b5170; }
+    .known-patient:hover { border-color:var(--blue-500); background:var(--blue-100); transform:translateY(-1px); }
+    .known-patient:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    .known-patient:last-child { grid-column:span 2; }
+    .known-patient-icon { display:grid; place-items:center; width:32px; height:32px; flex:none; border-radius:9px; background:var(--blue-100); }
+    .known-patient-icon .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .known-patient-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+    .known-patient-id { display:block; margin-top:2px; color:var(--text-2); font-size:10.5px; }
+    .verification-note { margin-top:auto; padding-top:14px; color:var(--text-3); font-size:11px; line-height:1.5; }
+    @media(max-width:900px) { .verification-grid { grid-template-columns:1fr; } }
+    @media(max-width:520px) { .verification-form { flex-direction:column; align-items:stretch; } .verification-form .form-group { flex:auto; } .known-patients { grid-template-columns:1fr; } .known-patient:last-child { grid-column:auto; } }
+    @media(prefers-reduced-motion:reduce) { .known-patient { transition:none; } .known-patient:hover { transform:none; } }
   </style>
 </head>
 <body>
@@ -26,47 +60,43 @@
           <p>Verify patient existence in the system.</p>
         </div>
 
-        <div class="grid-2">
+        <div class="verification-grid">
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal" data-icon="searchDoc" data-icon-size="18"></div>
-              <h2>Patient Verification Endpoint</h2>
+              <div class="card-icon card-icon-teal" data-icon="idCard" data-icon-size="19"></div>
+              <h2>Verify Patient ID</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
-                Check whether a patient ID exists in the system. The endpoint returns TRUE (found) or FALSE (not found).
-              </p>
-              <div class="form-group">
-                <label class="form-label">Patient ID</label>
-                <input type="text" class="form-control mono" id="blindInput" placeholder="e.g. 1" value="1">
+              <p class="verification-intro">Enter an ID to check whether the patient exists in the system.</p>
+              <div class="verification-form">
+                <div class="form-group">
+                  <label class="form-label" for="blindInput">Patient ID</label>
+                  <input type="text" class="form-control mono" id="blindInput" placeholder="e.g. 1" value="1" onkeydown="if(event.key==='Enter')doBlindQuery()">
+                </div>
+                <button class="btn btn-primary" onclick="doBlindQuery()"><span data-icon="search" data-icon-size="16"></span> Check Patient</button>
               </div>
-              <button class="btn btn-primary" onclick="doBlindQuery()">Check Patient</button>
-
-              <div style="margin-top:20px;text-align:center;" id="boolResult" class="hidden">
-                <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Server Response:</div>
-                <div class="bool-indicator" id="boolBadge">—</div>
-                <div style="font-size:11px;color:var(--gray-500);margin-top:8px;" id="boolMsg"></div>
+              <div class="verification-result" id="boolResult" role="status" aria-live="polite">
+                <span class="verification-result-icon" id="boolIcon" data-icon="idCard" data-icon-size="20" aria-hidden="true"></span>
+                <span><span class="verification-status" id="boolBadge">Ready to verify</span><span class="verification-detail" id="boolMsg">Enter a patient ID, then select Check Patient.</span></span>
               </div>
             </div>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue" data-icon="people" data-icon-size="18"></div>
+              <div class="card-icon card-icon-blue" data-icon="people" data-icon-size="19"></div>
               <h2>Known Patients</h2>
             </div>
             <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:7px;">
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('1')">Patient 1 — Maria Santos</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('2')">Patient 2 — Juan Dela Cruz</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('3')">Patient 3 — Ana Reyes</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('4')">Patient 4 — Pedro Bautista</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setBlind('5')">Patient 5 — Rosario Garcia</button>
+              <p class="verification-intro">Select a patient to verify their ID.</p>
+              <div class="known-patients">
+                <button class="known-patient" type="button" onclick="setBlind('1')"><span class="known-patient-icon" data-icon="person" data-icon-size="17"></span><span><span class="known-patient-name">Maria Santos</span><span class="known-patient-id">Patient ID 1</span></span></button>
+                <button class="known-patient" type="button" onclick="setBlind('2')"><span class="known-patient-icon" data-icon="person" data-icon-size="17"></span><span><span class="known-patient-name">Juan Dela Cruz</span><span class="known-patient-id">Patient ID 2</span></span></button>
+                <button class="known-patient" type="button" onclick="setBlind('3')"><span class="known-patient-icon" data-icon="person" data-icon-size="17"></span><span><span class="known-patient-name">Ana Reyes</span><span class="known-patient-id">Patient ID 3</span></span></button>
+                <button class="known-patient" type="button" onclick="setBlind('4')"><span class="known-patient-icon" data-icon="person" data-icon-size="17"></span><span><span class="known-patient-name">Pedro Bautista</span><span class="known-patient-id">Patient ID 4</span></span></button>
+                <button class="known-patient" type="button" onclick="setBlind('5')"><span class="known-patient-icon" data-icon="person" data-icon-size="17"></span><span><span class="known-patient-name">Rosario Garcia</span><span class="known-patient-id">Patient ID 5</span></span></button>
               </div>
-              <div class="divider" style="margin:16px 0;"></div>
-              <p style="font-size:12px;color:var(--gray-500);" id="dirNote">
-                This endpoint checks if a patient exists and returns a simple TRUE or FALSE response. Used for quick verification during admissions and transfers.
-              </p>
+              <p class="verification-note" id="dirNote">Verification returns a simple found or not found response for admissions and transfers.</p>
             </div>
           </div>
         </div>
@@ -93,6 +123,7 @@
 
     function setBlind(p) {
       document.getElementById('blindInput').value = p;
+      doBlindQuery();
     }
 
     function evaluateBlind(input) {
@@ -150,7 +181,11 @@
     async function doBlindQuery() {
       const input = document.getElementById('blindInput').value.trim();
       const result = document.getElementById('boolResult');
-      result.classList.remove('hidden');
+      if (!input) { document.getElementById('blindInput').focus(); return; }
+      result.className = 'verification-result';
+      document.getElementById('boolIcon').innerHTML = icon('searchDoc', 20);
+      document.getElementById('boolBadge').textContent = 'Checking patient ID…';
+      document.getElementById('boolMsg').textContent = 'Verifying against the patient directory.';
 
       // Plain numeric / P-### lookups are answered by the live directory when loaded.
       const num = /^\d+$/.test(input) ? parseInt(input, 10)
@@ -171,11 +206,13 @@
     }
 
     function renderBool(exists, input) {
+      const result = document.getElementById('boolResult');
       const badge = document.getElementById('boolBadge');
       const msg = document.getElementById('boolMsg');
-      badge.className = 'bool-indicator ' + (exists ? 'bool-true' : 'bool-false');
-      badge.textContent = exists ? 'Patient EXISTS (TRUE)' : 'Patient NOT FOUND (FALSE)';
-      msg.textContent = `HTTP 200 — { "exists": ${exists} }`;
+      result.className = 'verification-result ' + (exists ? 'bool-true' : 'bool-false');
+      document.getElementById('boolIcon').innerHTML = icon(exists ? 'checkCircle' : 'xCircle', 20);
+      badge.textContent = exists ? 'Patient found' : 'Patient not found';
+      msg.textContent = `Patient ID ${input} · { "exists": ${Boolean(exists)} }`;
     }
   </script>
 </body>

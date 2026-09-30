@@ -7,6 +7,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab Reports – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .page-content { width:100%; max-width:1320px; margin:0 auto; padding:28px clamp(20px,3vw,36px) 44px; }
+    .lab-layout { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:18px; align-items:start; }
+    .lab-layout > .card { min-width:0; }
+    .lab-column-stack { display:grid; gap:18px; }
+    .lab-layout .card-header,.available-reports-card .card-header { padding:17px 20px; }
+    .lab-layout .card-body,.available-reports-card .card-body { padding:20px; }
+    .lab-intro { margin-bottom:16px; color:var(--text-2); font-size:13px; line-height:1.5; }
+    .lab-file-field { margin-bottom:12px; }
+    .lab-file-field .form-label { margin-bottom:7px; }
+    .lab-file-field .form-control { min-height:42px; }
+    .request-preview { display:flex; align-items:center; gap:10px; min-width:0; padding:11px 13px; border:1px solid var(--line-1); border-radius:10px; background:var(--code-bg); color:#cbd5e1; font:11px 'Courier New',monospace; }
+    .request-preview-label { flex:none; color:#94a3b8; }
+    .request-preview code { overflow:auto; white-space:nowrap; color:#fbbf24; font:inherit; }
+    .lab-load-btn { min-height:42px; margin-top:14px; }
+    .report-viewer-hint { display:flex; align-items:center; gap:10px; min-height:56px; margin-top:14px; padding:11px 13px; border:1px dashed var(--line-1); border-radius:10px; background:var(--gray-50); color:var(--text-2); font-size:11px; }
+    .report-viewer-hint[hidden] { display:none; }
+    .report-viewer-hint .mpro-icon { flex:none; }
+    #fileOutput { margin-top:14px; max-height:320px; overflow:auto; }
+    .report-choices { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:9px; }
+    .report-choice { display:flex; grid-column:span 2; align-items:center; gap:10px; min-width:0; min-height:60px; padding:10px 12px; border:1px solid var(--line-1); border-radius:11px; background:var(--gray-50); color:var(--text-1); text-align:left; font:inherit; cursor:pointer; transition:border-color .18s,background .18s,transform .18s; }
+    .report-choice:hover { border-color:var(--blue-500); background:var(--blue-100); transform:translateY(-1px); }
+    .report-choice[aria-pressed="true"] { border-color:var(--blue-500); background:var(--blue-100); }
+    .report-choice:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    .report-choice:nth-last-child(-n+2) { grid-column:span 3; }
+    .report-choice-icon { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:10px; background:var(--teal-100); }
+    .report-choice-icon .mpro-icon { filter:invert(50%) sepia(85%) saturate(720%) hue-rotate(126deg) brightness(84%); }
+    .report-choice-main { min-width:0; }
+    .report-choice-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+    .report-choice-patient { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px; color:var(--text-2); font-size:10.5px; }
+    .report-note { margin-top:14px; padding-top:12px; border-top:1px solid var(--line-2); color:var(--text-2); font-size:11px; line-height:1.5; }
+    .available-reports-card { margin-top:18px; }
+    .lab-results-list { display:grid; gap:7px; }
+    .lab-result-item { display:flex; align-items:center; gap:11px; min-width:0; padding:9px 11px; border:1px solid var(--line-1); border-radius:11px; background:var(--gray-50); }
+    .lab-result-icon { display:grid; place-items:center; width:34px; height:34px; flex:none; border-radius:9px; background:var(--teal-100); }
+    .lab-result-icon .mpro-icon { filter:invert(50%) sepia(85%) saturate(720%) hue-rotate(126deg) brightness(84%); }
+    .lab-result-info { flex:1; min-width:0; }
+    .lab-result-test { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-1); font-size:12px; font-weight:700; }
+    .lab-result-meta { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; color:var(--text-2); font-size:10.5px; }
+    .lab-result-action { flex:none; white-space:nowrap; }
+    .lab-result-action .mpro-icon { margin-left:3px; }
+    .lab-results-note { margin-top:12px; color:var(--text-3); font-size:11px; }
+    .lab-results-pager { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:11px; border-top:1px solid var(--line-2); }
+    .lab-results-pager[hidden] { display:none; }
+    .lab-page-buttons { display:flex; gap:5px; }
+    .lab-page-btn { display:grid; place-items:center; min-width:28px; height:28px; padding:0 7px; border:1px solid var(--line-1); border-radius:8px; background:var(--gray-50); color:var(--text-1); font:600 11px 'Quicksand',sans-serif; cursor:pointer; }
+    .lab-page-btn[aria-current="page"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+    .lab-page-btn:disabled { opacity:.45; cursor:default; }
+    .lab-page-btn:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    @media(max-width:950px) { .lab-layout { grid-template-columns:1fr; } }
+    @media(max-width:720px) { .report-choices { grid-template-columns:repeat(2,minmax(0,1fr)); } .report-choice { grid-column:span 1; } .report-choice:last-child { grid-column:span 2; } }
+    @media(max-width:560px) { .report-choices { grid-template-columns:1fr; } .report-choice,.report-choice:last-child { grid-column:auto; } .lab-result-action { font-size:11px; } .lab-results-pager { flex-wrap:wrap; } }
+    @media(prefers-reduced-motion:reduce) { .report-choice { transition:none; } .report-choice:hover { transform:none; } }
+  </style>
 </head>
 <body>
   
@@ -21,70 +75,62 @@
           <p>View laboratory test results and diagnostic reports.</p>
         </div>
 
-        <div class="grid-2">
-          <div class="card">
+        <div class="lab-layout">
+          <div class="lab-column-stack">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon card-icon-teal" data-icon="folderGrid" data-icon-size="18"></div>
+                <h2>Report File Viewer</h2>
+              </div>
+              <div class="card-body">
+                <p class="lab-intro">Enter a report file path or select a report from the list.</p>
+                <div class="form-group lab-file-field">
+                  <label class="form-label" for="filePath">Report File Path</label>
+                  <input type="text" class="form-control mono" id="filePath" value="reports/lab-report.txt" placeholder="e.g. reports/lab-report.txt" onkeydown="if(event.key==='Enter')loadFile()">
+                </div>
+                <div class="request-preview"><span class="request-preview-label">Request</span><code id="apiPreview">GET /api/file?path=reports/lab-report.txt</code></div>
+                <button class="btn btn-primary lab-load-btn" onclick="loadFile()"><span data-icon="folder" data-icon-size="16"></span> Load Report</button>
+                <div class="report-viewer-hint" id="fileHint"><span data-icon="document" data-icon-size="17" aria-hidden="true"></span><span>The selected report will appear here after loading.</span></div>
+                <div class="response-box" id="fileOutput"></div>
+              </div>
+            </div>
+
+            <div class="card available-reports-card">
+              <div class="card-header">
+                <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
+                <h2>Available Reports</h2>
+              </div>
+              <div class="card-body">
+                <div class="report-choices">
+                  <button class="report-choice" type="button" data-report-path="reports/lab-report.txt" aria-pressed="true" onclick="setFile('reports/lab-report.txt')"><span class="report-choice-icon" data-icon="document" data-icon-size="18" aria-hidden="true"></span><span class="report-choice-main"><span class="report-choice-name">Lab Report</span><span class="report-choice-patient">Juan Dela Cruz · P-002</span></span></button>
+                  <button class="report-choice" type="button" data-report-path="reports/blood-work-p001.txt" aria-pressed="false" onclick="setFile('reports/blood-work-p001.txt')"><span class="report-choice-icon" data-icon="drop" data-icon-size="18" aria-hidden="true"></span><span class="report-choice-main"><span class="report-choice-name">Blood Work</span><span class="report-choice-patient">Maria Santos · P-001</span></span></button>
+                  <button class="report-choice" type="button" data-report-path="reports/xray-chest-p003.txt" aria-pressed="false" onclick="setFile('reports/xray-chest-p003.txt')"><span class="report-choice-icon" data-icon="lungs" data-icon-size="18" aria-hidden="true"></span><span class="report-choice-main"><span class="report-choice-name">Chest X-Ray</span><span class="report-choice-patient">Ana Reyes · P-003</span></span></button>
+                  <button class="report-choice" type="button" data-report-path="reports/mri-brain-p004.txt" aria-pressed="false" onclick="setFile('reports/mri-brain-p004.txt')"><span class="report-choice-icon" data-icon="brain" data-icon-size="18" aria-hidden="true"></span><span class="report-choice-main"><span class="report-choice-name">Brain MRI</span><span class="report-choice-patient">Pedro Bautista · P-004</span></span></button>
+                  <button class="report-choice" type="button" data-report-path="reports/ecg-p005.txt" aria-pressed="false" onclick="setFile('reports/ecg-p005.txt')"><span class="report-choice-icon" data-icon="heart" data-icon-size="18" aria-hidden="true"></span><span class="report-choice-main"><span class="report-choice-name">ECG Report</span><span class="report-choice-patient">Rosario Garcia · P-005</span></span></button>
+                </div>
+                <p class="report-note">Select a report to fill the path, then choose Load Report to view it.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card lab-results-card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal" data-icon="folderGrid" data-icon-size="18"></div>
-              <h2>Report File Viewer</h2>
+              <div class="card-icon card-icon-teal" data-icon="flask" data-icon-size="18"></div>
+              <h2>Recent Laboratory Results</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
-                Enter a report file path to view its contents.
-              </p>
-              <div class="form-group">
-                <label class="form-label">Report File Path</label>
-                <input type="text" class="form-control mono" id="filePath" value="reports/lab-report.txt" placeholder="e.g. reports/lab-report.txt">
+              <div class="lab-table-wrap">
+                <table class="data-table lab-table">
+                  <thead><tr><th>Report ID</th><th>Patient</th><th>Test</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody id="labResultsBody">
+                    <tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">Loading results…</td></tr>
+                  </tbody>
+                </table>
               </div>
-              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
-                <span style="color:#64748b;">Request: </span>
-                <span id="apiPreview" style="color:#fbbf24;">GET /api/file?path=reports/lab-report.txt</span>
-              </div>
-              <button class="btn btn-primary" onclick="loadFile()"><span data-icon="folder" data-icon-size="14"></span> Load Report</button>
-
-              <div class="response-box" id="fileOutput" style="margin-top:14px;max-height:300px;overflow-y:auto;"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
-              <h2>Available Reports</h2>
-            </div>
-            <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:7px;">
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/lab-report.txt')"><span data-icon="document" data-icon-size="13"></span> Lab Report — Juan Dela Cruz (P-002)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/blood-work-p001.txt')"><span data-icon="drop" data-icon-size="13"></span> Blood Work — Maria Santos (P-001)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/xray-chest-p003.txt')"><span data-icon="lungs" data-icon-size="13"></span> Chest X-Ray — Ana Reyes (P-003)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/mri-brain-p004.txt')"><span data-icon="brain" data-icon-size="13"></span> Brain MRI — Pedro Bautista (P-004)</button>
-                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/ecg-p005.txt')"><span data-icon="heart" data-icon-size="13"></span> ECG Report — Rosario Garcia (P-005)</button>
-              </div>
-
-              <div class="divider" style="margin:14px 0;"></div>
-              <p style="font-size:12px;color:var(--gray-500);">
-                Reports are stored in the hospital reports directory. Select one above or enter its file path to load it.
+              <p class="lab-results-note" id="labResultsNote">
+                Latest diagnostic results from the laboratory and imaging departments.
               </p>
             </div>
-          </div>
-        </div>
-
-        <!-- Laboratory Results (Firestore) -->
-        <div class="card" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-teal" data-icon="flask" data-icon-size="18"></div>
-            <h2>Recent Laboratory Results</h2>
-          </div>
-          <div class="card-body">
-            <div style="overflow-x:auto;">
-              <table class="data-table">
-                <thead><tr><th>Report ID</th><th>Patient</th><th>Test</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="labResultsBody">
-                  <tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">Loading results…</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="labResultsNote">
-              Latest diagnostic results from the laboratory and imaging departments.
-            </p>
           </div>
         </div>
 
@@ -102,13 +148,21 @@
     document.getElementById('sidebarMount').outerHTML = renderSidebar('file-inclusion.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Lab Reports', 'View laboratory test results and diagnostic reports');
 
+    function updateReportSelection(path) {
+      document.querySelectorAll('.report-choice').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.reportPath === path));
+      });
+    }
     document.getElementById('filePath').addEventListener('input', () => {
-      document.getElementById('apiPreview').textContent = `GET /api/file?path=${document.getElementById('filePath').value}`;
+      const path = document.getElementById('filePath').value;
+      document.getElementById('apiPreview').textContent = `GET /api/file?path=${path}`;
+      updateReportSelection(path);
     });
 
     function setFile(p) {
       document.getElementById('filePath').value = p;
       document.getElementById('apiPreview').textContent = `GET /api/file?path=${p}`;
+      updateReportSelection(p);
     }
 
     const SIMULATED_FILES = {
@@ -126,6 +180,7 @@
     async function loadFile() {
       const filePath = document.getElementById('filePath').value.trim();
       const out = document.getElementById('fileOutput');
+      document.getElementById('fileHint').hidden = true;
       out.classList.add('show');
       out.classList.remove('error');
 
@@ -194,7 +249,7 @@
             `<td>${escapeHtml(r.patientName)}<div style="font-size:11px;color:var(--gray-500);">${escapeHtml(r.patientId)}</div></td>` +
             `<td>${escapeHtml(r.test)}</td><td>${escapeHtml(r.date || '')}</td>` +
             `<td>${statusChip(r.status)}</td>` +
-            `<td><button class="btn-link" onclick="viewReport(${i})">View report »</button></td></tr>`
+            `<td><button class="btn-link" type="button" onclick="viewReport(${i})">View report ${icon('arrowRight', 12)}</button></td></tr>`
           ).join('')
         : '<tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">No reports on file.</td></tr>';
       if (note) note.textContent = list.length && list !== FALLBACK_REPORTS

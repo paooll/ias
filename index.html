@@ -9,45 +9,25 @@
   <link rel="stylesheet" href="css/styles.css">
   <style>
     .login-page { font-family: 'Quicksand', sans-serif; display:grid; grid-template-columns:minmax(0,7fr) minmax(360px,3fr); }
-    .login-left { width:auto; padding:clamp(32px,5vw,88px); background:linear-gradient(150deg,#0f2f56 0%,#10586e 45%,#0d9488 100%); border-right:0; position:relative; overflow:hidden; }
-    .login-left::before { background:radial-gradient(circle at 82% 18%,rgba(255,255,255,.18),transparent 45%),radial-gradient(circle at 10% 90%,rgba(20,184,166,.25),transparent 55%); }
+    .login-left { width:auto; padding:clamp(32px,5vw,88px); background:linear-gradient(135deg,#143b68 0%,#126779 55%,#0d9488 100%); border-right:0; }
+    .login-left::before { background:radial-gradient(circle at 82% 20%,rgba(255,255,255,.16),transparent 45%); }
     .login-left .login-brand-text span:first-child, .login-left .login-tagline h2 { color:#fff; }
-    .login-left .login-brand-text span:last-child, .login-left .login-tagline p, .login-left .login-feature { color:#dff3f6; }
-    .login-left .login-feature::before { content:none; }
-    /* Feature rows get the monochrome icon set instead of plain checkmarks */
-    .login-feature { font-weight:500; letter-spacing:.1px; }
-    .login-feature .lf-icon { width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.25); flex-shrink:0; }
-    .login-feature .lf-icon .mpro-icon { filter: brightness(0) invert(1); }
+    .login-left .login-brand-text span:last-child, .login-left .login-tagline p, .login-left .login-feature { color:#e2f4f6; }
+    .login-left .login-feature::before { background:rgba(255,255,255,.18); color:#fff; }
     .login-tagline { max-width:650px; }
-    .login-tagline h2 { font-size:clamp(36px,4vw,60px); line-height:1.08; letter-spacing:-.025em; }
-    .login-tagline p { max-width:560px; font-size:15px; }
+    .login-tagline h2 { font-size:clamp(36px,4vw,64px); line-height:1.1; }
+    .login-tagline p { max-width:580px; }
     .login-right { min-width:0; padding:32px clamp(18px,2vw,36px); background:var(--glass-bg-strong); }
     .login-box { max-width:440px; padding:0; background:none; border:0; box-shadow:none; backdrop-filter:none; }
     .login-box .card { background:var(--glass-bg-strong); border:1px solid var(--line-1); box-shadow:var(--shadow-md); }
     .login-brand-icon { width:52px; height:52px; background:#fff; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.18); }
     .login-brand-icon svg { width:32px; height:32px; }
-    /* Hero: animated ECG, layered brand glow, feature hover */
-    .ecg-bg { position:absolute; bottom:60px; left:0; right:0; opacity:.14; }
-    .ecg-bg polyline { stroke-dasharray:1600; stroke-dashoffset:1600; animation:ecgLogin 6s linear infinite; }
-    @keyframes ecgLogin { to { stroke-dashoffset:0; } }
-    .login-brand-icon { position:relative; }
-    .login-brand-icon::after { content:''; position:absolute; inset:-6px; border-radius:20px; background:radial-gradient(circle,rgba(45,212,191,.35),transparent 70%); z-index:-1; }
-    .login-feature { transition:transform .2s cubic-bezier(.34,1.4,.64,1),background .2s; padding:6px 8px; margin-left:-8px; border-radius:10px; }
-    .login-feature:hover { transform:translateX(4px); background:rgba(255,255,255,.08); }
-    .login-feature .lf-icon { transition:transform .2s cubic-bezier(.34,1.4,.64,1); }
-    .login-feature:hover .lf-icon { transform:scale(1.12); }
-
-    /* Sign-in card: entrance + refined inputs (emil-design-eng) */
-    @media (prefers-reduced-motion: no-preference) {
-      .login-box .card { animation:loginCardIn .45s cubic-bezier(.34,1.3,.5,1) both; animation-delay:.08s; }
+    .ecg-bg {
+      position: absolute;
+      bottom: 60px;
+      left: 0; right: 0;
+      opacity: .12;
     }
-    @keyframes loginCardIn { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
-    .login-box h3 { font-size:24px; letter-spacing:-.02em; }
-    .login-box .card { transition:box-shadow .25s ease; }
-    .login-box .card:focus-within { box-shadow:var(--shadow-md),0 0 0 4px rgba(20,184,166,.10); }
-    .login-box .form-control { transition:border-color .18s,box-shadow .18s,background .18s; }
-    .login-box .form-control:focus { border-color:var(--teal-500); box-shadow:0 0 0 3px rgba(20,184,166,.14); }
-    .login-box .btn-primary { letter-spacing:.2px; }
     .login-box .card {
       padding: clamp(24px,2.3vw,36px);
       border-radius: 16px;
@@ -75,6 +55,141 @@
       .login-features, .ecg-bg { display:none; }
       .login-right { padding:28px 18px; }
     }
+    /* Landing page */
+    .login-page { display:grid; min-height:100vh; grid-template-columns:minmax(0, 62.5%) minmax(0, 37.5%); font-family:Arial, Helvetica, sans-serif; }
+    .login-left { position:relative; display:flex; flex-direction:column; justify-content:center; overflow:hidden; padding:clamp(48px,5vw,90px); background:radial-gradient(circle at 94% 5%,#1ad5e7 0,transparent 40%), radial-gradient(circle at 77% 64%,#05b7e2 0,transparent 46%),linear-gradient(122deg,#1954b7 0%,#057bd1 48%,#02bfdb 100%); }
+    .login-left::before { inset:0; background:linear-gradient(35deg,transparent 35%,rgba(0,58,154,.12) 75%); pointer-events:none; }
+    .login-left > :not(.hero-orbit):not(.hero-plus):not(.hero-dots):not(.ecg-bg) { position:relative; z-index:2; }
+    .login-brand { margin-bottom:38px; gap:17px; }
+    .login-brand-icon { width:72px; height:72px; border-radius:17px; box-shadow:0 12px 30px rgba(0,61,138,.18); }
+    .login-brand-icon svg { width:49px; height:49px; }
+    .login-brand-text span:first-child { font-size:28px; letter-spacing:-1px; color:#fff; }
+    .login-brand-text span:last-child { font-size:15px; font-weight:600; color:#fff; }
+    .login-tagline { max-width:760px; }
+    .login-tagline h2 { font-size:clamp(50px,5vw,88px); line-height:.99; letter-spacing:-3px; margin-bottom:18px; color:#fff; }
+    .login-tagline p { font-size:clamp(17px,1.45vw,24px); line-height:1.4; max-width:670px; color:#c5ebff; }
+    .login-features { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; max-width:760px; margin-top:48px; }
+    .login-feature { display:flex; flex-direction:column; align-items:center; gap:11px; text-align:center; color:#fff; font-size:15px; font-weight:600; line-height:1.4; }
+    .login-feature::before { display:none; }
+    .feature-icon { display:flex; width:74px; height:74px; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.25); border-radius:17px; background:rgba(255,255,255,.12); box-shadow:inset 0 1px 2px rgba(255,255,255,.16); }
+    .feature-icon .mpro-icon { filter:brightness(0) invert(1); }
+    .ecg-bg { bottom:0; width:100%; height:170px; opacity:.72; z-index:1; }
+    .hero-orbit { position:absolute; border:3px solid rgba(105,228,255,.18); border-radius:50%; pointer-events:none; }
+    .hero-orbit-one { width:960px; height:960px; top:-720px; right:-690px; }
+    .hero-orbit-two { width:420px; height:420px; bottom:-225px; right:-175px; background:rgba(75,228,255,.08); }
+    .hero-plus { position:absolute; width:90px; height:90px; opacity:.23; z-index:1; }
+    .hero-plus::before,.hero-plus::after { content:''; position:absolute; background:#9bf7ff; border-radius:4px; }
+    .hero-plus::before { width:100%; height:33%; top:33%; left:0; }
+    .hero-plus::after { width:33%; height:100%; top:0; left:33%; }
+    .hero-plus-one { top:9%; right:20%; transform:scale(1.25); }
+    .hero-plus-two { top:37%; right:5%; }
+    .hero-plus-three { top:26%; right:13%; transform:scale(.45); }
+    .hero-dots { position:absolute; width:120px; height:115px; background-image:radial-gradient(circle,rgba(142,244,255,.42) 2px,transparent 2.5px); background-size:21px 21px; z-index:1; }
+    .hero-dots-one { top:10%; right:0; }
+    .hero-dots-two { bottom:3%; right:6%; }
+    .login-right { display:flex; align-items:center; justify-content:center; padding:45px clamp(34px,5.7vw,100px); background:#fff; }
+    .login-right { position:relative; overflow:hidden; }
+    .login-box { width:100%; max-width:500px; }
+    .login-box .card { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; backdrop-filter:none; }
+    .login-box .eyebrow { margin:0 0 3px; color:#5273a8; font-size:18px; font-weight:600; letter-spacing:.3px; }
+    .login-box h3 { margin:0 0 7px; color:#071a45; font-size:clamp(36px,3vw,50px); line-height:1.12; font-weight:800; letter-spacing:-2px; }
+    .login-box h3 span { color:#0867f3; }
+    .login-box .subtitle { margin:0 0 29px; color:#5979af; font-size:19px; line-height:1.4; }
+    .login-box .form-group { margin-bottom:25px; }
+    .login-box .form-label { display:block; margin-bottom:6px; color:#091c49; font-size:16px; font-weight:700; }
+    .input-icon-wrap { position:relative; }
+    .login-box .form-control { width:100%; min-height:61px; padding:0 52px 0 70px; border:1px solid #c5d7f6; border-radius:15px; background:#f4f8ff; color:#112753; font:inherit; font-size:16px; box-shadow:none; }
+    .login-box .form-control::placeholder { color:#7d98c4; }
+    .login-box .form-control:focus { border-color:#247bff; outline:3px solid rgba(36,123,255,.15); }
+    .field-icon { position:absolute; top:1px; bottom:1px; left:1px; width:58px; display:flex; align-items:center; justify-content:center; border-radius:14px 0 0 14px; background:#fff; color:#0867f3; }
+    .field-icon .mpro-icon { filter:invert(31%) sepia(96%) saturate(4891%) hue-rotate(211deg) brightness(100%); }
+    .password-toggle { position:absolute; top:50%; right:15px; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:0; background:none; padding:0; color:#708ab6; cursor:pointer; }
+    .password-toggle:hover,.password-toggle:focus-visible { color:#0867f3; }
+    .password-toggle svg { display:block; width:23px; height:23px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .password-toggle .eye-hidden { display:none; }
+    .password-toggle[aria-pressed="true"] .eye-open { display:none; }
+    .password-toggle[aria-pressed="true"] .eye-hidden { display:block; }
+    .forgot { display:block; width:max-content; margin:9px 0 0 auto; color:#0667ee; font-size:15px; font-weight:700; }
+    .login-box .btn { min-height:61px; font-family:inherit; font-size:17px; font-weight:700; border-radius:14px; }
+    .login-box #loginBtn { margin-top:0 !important; background:linear-gradient(105deg,#2675f9,#02c5d8); border:0; box-shadow:0 10px 20px rgba(24,110,219,.14); gap:13px; }
+    .login-box #loginBtn:hover { filter:brightness(1.05); }
+    .login-box #loginBtn.is-authenticating { background-size:200% 100%; animation:signing-shimmer 1.2s linear infinite; }
+    .login-box #loginBtn.is-authenticating:hover,.login-box #loginBtn.is-success:hover { transform:none; filter:none; }
+    .login-box #loginBtn.is-success { background:linear-gradient(105deg,#06b6a7,#00d9c3); box-shadow:0 10px 22px rgba(0,177,153,.22); }
+    .button-ecg { width:70px; height:24px; overflow:visible; }
+    .button-ecg path { fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:110; stroke-dashoffset:110; animation:ecg-trace .85s linear infinite; }
+    .button-check { width:22px; height:22px; fill:#fff; flex:none; }
+    .login-box.login-error { animation:login-shake .42s ease both; }
+    .login-box.login-error #username { border-color:#ef5264; background:#fff7f8; }
+    .login-alert { display:flex; align-items:center; gap:6px; margin:-11px 0 16px; padding:0; border:0; background:none; color:#e2263f; box-shadow:none; font-size:12px; font-weight:600; }
+    .login-alert .mpro-icon { filter:invert(26%) sepia(97%) saturate(3290%) hue-rotate(336deg) brightness(91%); }
+    .login-box #loginSuccess:not(.hidden) { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .login-transition { position:fixed; inset:0; z-index:500; display:grid; place-items:center; padding:24px; background:rgba(241,249,255,.44); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .4s ease,visibility .4s ease; }
+    .login-transition-card { display:flex; flex-direction:column; align-items:center; text-align:center; padding:34px 28px; transform:translateY(22px) scale(.94); opacity:0; transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease; }
+    .login-transition-mark { display:grid; place-items:center; width:84px; height:84px; margin-bottom:22px; border:2px solid #00cde5; border-radius:50%; background:rgba(255,255,255,.82); box-shadow:0 12px 34px rgba(0,173,218,.12); color:#04aee1; }
+    .login-transition-mark svg { width:50px; height:50px; fill:none; stroke:currentColor; stroke-width:2.3; stroke-linecap:round; stroke-linejoin:round; }
+    .login-transition-mark svg path { stroke-dasharray:95; stroke-dashoffset:95; animation:ecg-trace 1.1s .3s linear infinite; }
+    .login-transition-card p { margin:0; color:#0b2150; font-size:17px; font-weight:600; }
+    .login-page.login-redirecting .login-transition { opacity:1; visibility:visible; pointer-events:auto; }
+    .login-page.login-redirecting .login-transition-card { opacity:1; transform:translateY(0) scale(1); }
+    .login-divider { gap:18px; margin:19px 0; color:#5874a5; font-size:16px; }
+    .login-divider::before,.login-divider::after { background:#d7e4f6; }
+    .btn-google { background:#fff; border:1px solid #d1dff4; color:#10234b; box-shadow:0 5px 13px rgba(34,70,131,.08); }
+    .btn-google svg { width:26px; height:26px; }
+    .demo-creds { display:flex; gap:20px; margin-top:31px; padding:21px 28px; border:0; border-radius:20px; background:#eaf2ff; color:#122852; font-size:15px; line-height:1.45; }
+    .demo-icon { font-size:29px; line-height:1.2; }
+    .demo-creds strong { color:#0b2150; font-size:16px; }
+    .demo-creds p { margin:4px 0 5px; color:#6580ae; }
+    .demo-creds p span { margin:0 8px; }
+    .demo-link { padding:0; border:0; background:none; color:#0768f0; font:inherit; font-weight:700; cursor:pointer; }
+    .demo-dialog { width:min(430px,calc(100vw - 32px)); max-height:calc(100vh - 32px); margin:auto; padding:30px; border:1px solid #d8e5f8; border-radius:20px; background:#fff; color:#10234b; box-shadow:0 24px 70px rgba(13,39,85,.24); font-family:Arial,Helvetica,sans-serif; }
+    .demo-dialog::backdrop { background:rgba(7,26,69,.5); }
+    .demo-dialog-header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:7px; }
+    .demo-dialog h2 { margin:0; color:#0b2150; font-size:24px; }
+    .demo-dialog-close { display:grid; place-items:center; width:32px; height:32px; padding:0; border:0; border-radius:8px; background:#edf4ff; color:#5273a8; font-size:24px; line-height:1; cursor:pointer; }
+    .demo-dialog-close:hover { background:#dbeaff; color:#0867f3; }
+    .demo-dialog-intro { margin:0 0 20px; color:#647fa9; font-size:14px; }
+    .demo-account { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 0; border-top:1px solid #e3ecfa; }
+    .demo-account strong { color:#10234b; font-size:15px; }
+    .demo-account code { color:#315b99; font-size:13px; white-space:nowrap; }
+    [data-theme="dark"] .demo-dialog { background:#1b2b48; border-color:#395078; color:#f3f7ff; }
+    [data-theme="dark"] .demo-dialog h2,[data-theme="dark"] .demo-account strong { color:#f3f7ff; }
+    [data-theme="dark"] .demo-account { border-color:#395078; }
+    .theme-toggle-float { top:15px; right:15px; width:32px; height:32px; opacity:.55; }
+    [data-theme="dark"] .login-right { background:#101c33; }
+    [data-theme="dark"] .login-box h3,[data-theme="dark"] .login-box .form-label { color:#f3f7ff; }
+    [data-theme="dark"] .login-box .card { background:transparent; }
+    [data-theme="dark"] .login-box .form-control { background:#1b2b48; color:#fff; border-color:#395078; }
+    [data-theme="dark"] .field-icon { background:#243858; }
+    [data-theme="dark"] .btn-google { background:#1b2b48; color:#f3f7ff; }
+    [data-theme="dark"] .demo-creds { background:#1b2b48; }
+    [data-theme="dark"] .demo-creds strong { color:#f3f7ff; }
+    @keyframes landing-rise { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes login-shake { 0%,100% { transform:translateX(0); } 20%,60% { transform:translateX(-7px); } 40%,80% { transform:translateX(7px); } }
+    @keyframes ecg-trace { 0% { stroke-dashoffset:110; opacity:.35; } 45%,75% { stroke-dashoffset:0; opacity:1; } 100% { stroke-dashoffset:-110; opacity:.35; } }
+    @keyframes signing-shimmer { from { background-position:100% 0; } to { background-position:-100% 0; } }
+    @keyframes landing-float { 0%,100% { translate:0 0; } 50% { translate:0 -10px; } }
+    @keyframes dialog-in { from { opacity:0; transform:translateY(14px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes backdrop-in { from { background:rgba(7,26,69,0); } to { background:rgba(7,26,69,.5); } }
+    .login-brand { animation:landing-rise .65s ease-out both; }
+    .login-tagline { animation:landing-rise .7s .12s ease-out both; }
+    .login-features { animation:landing-rise .7s .24s ease-out both; }
+    .login-box { animation:landing-rise .7s .16s ease-out both; }
+    .hero-orbit-two,.hero-dots-two { animation:landing-float 8s ease-in-out infinite; }
+    .feature-icon,.demo-creds,.login-box #loginBtn,.btn-google,.demo-dialog-close { transition:transform .22s ease,box-shadow .22s ease,background-color .22s ease,filter .22s ease; }
+    .login-feature:hover .feature-icon { transform:translateY(-5px); box-shadow:0 10px 22px rgba(0,60,150,.18),inset 0 1px 2px rgba(255,255,255,.2); }
+    .login-box #loginBtn:hover,.btn-google:hover { transform:translateY(-2px); }
+    .login-box #loginBtn:active,.btn-google:active { transform:translateY(0); }
+    .demo-creds:hover { transform:translateY(-2px); box-shadow:0 9px 22px rgba(34,70,131,.09); }
+    .demo-link:hover { text-decoration:underline; }
+    .demo-dialog[open] { animation:dialog-in .28s cubic-bezier(.2,.8,.2,1) both; }
+    .demo-dialog[open]::backdrop { animation:backdrop-in .28s ease-out both; }
+    .demo-dialog.is-closing { opacity:0; transform:translateY(10px) scale(.98); transition:opacity .2s ease,transform .2s ease; animation:none; }
+    .demo-dialog.is-closing::backdrop { background:rgba(7,26,69,0); transition:background .2s ease; animation:none; }
+    @media (prefers-reduced-motion:reduce) { .login-brand,.login-tagline,.login-features,.login-box,.login-box.login-error,.login-box #loginBtn.is-authenticating,.button-ecg path,.login-transition-mark svg path,.hero-orbit-two,.hero-dots-two,.demo-dialog[open],.demo-dialog[open]::backdrop { animation:none; } .button-ecg path,.login-transition-mark svg path { stroke-dashoffset:0; } .login-transition,.login-transition-card,.feature-icon,.demo-creds,.login-box #loginBtn,.btn-google,.demo-dialog-close,.demo-dialog.is-closing,.demo-dialog.is-closing::backdrop { transition:none; } }
+    @media(max-width:1100px) { .login-page { grid-template-columns:minmax(0,55%) minmax(0,45%); } .login-left { padding:45px; } .login-tagline h2 { font-size:clamp(44px,5vw,68px); } .login-features { gap:8px; } .login-feature { font-size:12px; } .feature-icon { width:60px; height:60px; } .login-right { padding:35px; } }
+    @media(max-width:760px) { .login-page { grid-template-columns:1fr; } .login-left { min-height:430px; padding:38px 28px 55px; } .login-brand { margin-bottom:25px; } .login-brand-icon { width:56px; height:56px; } .login-brand-icon svg { width:37px; height:37px; } .login-brand-text span:first-child { font-size:22px; } .login-brand-text span:last-child { font-size:11px; } .login-tagline h2 { font-size:clamp(40px,10vw,64px); letter-spacing:-2px; } .login-tagline p { font-size:16px; } .login-features { display:none; } .ecg-bg { display:block; height:100px; } .login-right { padding:44px 24px 55px; } .login-box { max-width:500px; } }
+    @media(max-width:420px) { .login-left { min-height:390px; } .login-box h3 { font-size:37px; } .login-box .subtitle { font-size:16px; } .demo-creds { padding:18px; gap:12px; } }
   </style>
 </head>
 <body>
@@ -82,10 +197,17 @@
 
   <div class="login-page">
     <div class="login-left">
+      <div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>
+      <div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>
+      <div class="hero-plus hero-plus-one" aria-hidden="true"></div>
+      <div class="hero-plus hero-plus-two" aria-hidden="true"></div>
+      <div class="hero-plus hero-plus-three" aria-hidden="true"></div>
+      <div class="hero-dots hero-dots-one" aria-hidden="true"></div>
+      <div class="hero-dots hero-dots-two" aria-hidden="true"></div>
       <div class="login-brand">
         <div class="login-brand-icon" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13 5h6v8h8v6h-8v8h-6v-8H5v-6h8V5Z" fill="#0d9488"/>
+            <path d="M13 5h6v8h8v6h-8v8h-6v-8H5v-6h8V5Z" fill="#08bde6"/>
           </svg>
         </div>
         <div class="login-brand-text">
@@ -100,10 +222,10 @@
       </div>
 
       <div class="login-features">
-        <div class="login-feature"><span class="lf-icon" data-icon="clipboard" data-icon-size="15"></span> Real-time Patient Record Management</div>
-        <div class="login-feature"><span class="lf-icon" data-icon="lock" data-icon-size="15"></span> HIPAA-Compliant Data Storage</div>
-        <div class="login-feature"><span class="lf-icon" data-icon="flask" data-icon-size="15"></span> Advanced Diagnostic Reporting</div>
-        <div class="login-feature"><span class="lf-icon" data-icon="people" data-icon-size="15"></span> Multi-Department Integration</div>
+        <div class="login-feature"><span class="feature-icon" data-icon="people" data-icon-size="30"></span><span>Real-time<br>Patient Records</span></div>
+        <div class="login-feature"><span class="feature-icon" data-icon="shield" data-icon-size="30"></span><span>HIPAA-Compliant<br>Data Storage</span></div>
+        <div class="login-feature"><span class="feature-icon" data-icon="document" data-icon-size="30"></span><span>Advanced<br>Diagnostic Reporting</span></div>
+        <div class="login-feature"><span class="feature-icon" data-icon="building" data-icon-size="30"></span><span>Multi-Department<br>Integration</span></div>
       </div>
 
       <!-- ECG SVG background -->
@@ -114,15 +236,13 @@
     </div>
 
     <div class="login-right">
+      <div class="login-transition" role="status" aria-live="polite" aria-hidden="true"><div class="login-transition-card"><span class="login-transition-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M2 24h10l3-8 4 16 4-24 4 32 4-16h15"/></svg></span><p>Redirecting to dashboard...</p></div></div>
       <div class="login-box">
         <div class="card">
-          <h3>Welcome back</h3>
-          <p class="subtitle">Sign in to your MediCare Pro account to continue.</p>
+          <p class="eyebrow">WELCOME TO</p>
+          <h3>MediCare <span>Pro</span></h3>
+          <p class="subtitle">Sign in to continue to your account</p>
 
-          <div id="loginAlert" class="alert alert-danger hidden">
-            <span data-icon="warning" data-icon-size="14"></span>
-            <span id="loginAlertMsg">Invalid credentials. Please try again.</span>
-          </div>
           <div id="loginSuccess" class="alert alert-success hidden">
             <span>Authentication successful. Redirecting to dashboard…</span>
           </div>
@@ -131,22 +251,27 @@
           <div class="form-group">
             <label class="form-label" for="username">Username</label>
             <div class="input-icon-wrap">
-              <input type="text" class="form-control" id="username" placeholder="Enter username" autocomplete="username" required>
+              <span class="field-icon" data-icon="user" data-icon-size="23" aria-hidden="true"></span>
+              <input type="text" class="form-control" id="username" placeholder="Enter your username or email" autocomplete="username" required>
             </div>
           </div>
 
           <div class="form-group">
             <div class="flex justify-between items-center mb-4" style="margin-bottom:6px;">
               <label class="form-label" for="password" style="margin-bottom:0;">Password</label>
-              <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
             </div>
             <div class="input-icon-wrap">
-              <input type="password" class="form-control" id="password" placeholder="Enter password" autocomplete="current-password" required>
+              <span class="field-icon" data-icon="lock" data-icon-size="22" aria-hidden="true"></span>
+              <input type="password" class="form-control" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false" onclick="togglePasswordVisibility(this)"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-hidden" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6.5 0 10 6 10 6a16.5 16.5 0 0 1-3.4 3.8M6.2 6.9A16.6 16.6 0 0 0 2 12s3.5 6 10 6c1.1 0 2.2-.2 3.1-.5"/><path d="M10 10a3 3 0 0 0 4 4"/></svg></button>
             </div>
+            <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
           </div>
 
+          <div id="loginAlert" class="login-alert hidden" role="alert"><span data-icon="warning" data-icon-size="14"></span><span id="loginAlertMsg">Invalid credentials. Please try again.</span></div>
+
           <button class="btn btn-primary w-full" id="loginBtn" type="submit" style="justify-content:center;margin-top:4px;">
-            Sign In to MediCare Pro
+            Sign In to MediCare Pro <span aria-hidden="true">→</span>
           </button>
           </form>
 
@@ -163,8 +288,8 @@
           </button>
 
           <div class="demo-creds">
-            <strong>Demo accounts</strong><br>
-            <code>doctor / password1</code> · <code>nurse / nurse123</code>
+            <span class="demo-icon" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 13.5 18 6l16 7.5L18 21 2 13.5Z" fill="#0867F3"/><path d="M8 18v7c2.6 2.2 6 3.3 10 3.3s7.4-1.1 10-3.3v-7l-10 4.7L8 18Z" fill="#0867F3"/><path d="M33 14v12" stroke="#0867F3" stroke-width="2" stroke-linecap="round"/><circle cx="33" cy="28" r="2" fill="#0867F3"/></svg></span>
+            <div><strong>Demo Access</strong><p>Administrator <span>•</span> Doctor <span>•</span> Nurse</p><button type="button" class="demo-link" onclick="showDemoCredentials()" aria-haspopup="dialog" aria-controls="demoDialog">View demo credentials →</button></div>
           </div>
 
           <div id="forgotBox" class="hidden" style="margin-top:14px;padding:12px;border:1px solid var(--blue-100);background:var(--gray-50);border-radius:10px;font-size:12px;color:var(--gray-700);line-height:1.7;">
@@ -180,43 +305,25 @@
     </div>
   </div>
 
-  <button class="theme-toggle theme-toggle-float" id="themeToggleBtn" aria-label="Toggle dark mode"></button>
+  <dialog id="demoDialog" class="demo-dialog" aria-labelledby="demoDialogTitle" aria-describedby="demoDialogIntro" onclick="if (event.target === this) closeDemoCredentials()" oncancel="event.preventDefault(); closeDemoCredentials()">
+    <div class="demo-dialog-header"><h2 id="demoDialogTitle">Demo credentials</h2><button type="button" class="demo-dialog-close" onclick="closeDemoCredentials()" aria-label="Close demo credentials">×</button></div>
+    <p id="demoDialogIntro" class="demo-dialog-intro">Choose an account to explore MediCare Pro.</p>
+    <div class="demo-account"><strong>Administrator</strong><code>admin / admin123</code></div>
+    <div class="demo-account"><strong>Doctor</strong><code>doctor / password1</code></div>
+    <div class="demo-account"><strong>Nurse</strong><code>nurse / nurse123</code></div>
+  </dialog>
 
-  <!-- Theme bootstrap + toggle (self-contained: login page does not load js/app.js,
-       so toggleTheme/applyTheme/icons from app.js are unavailable here) -->
+  <button class="theme-toggle theme-toggle-float" onclick="toggleTheme()" aria-label="Toggle dark mode" data-icon="moon" data-icon-size="16"></button>
+
+  <!-- Theme bootstrap (runs before app.js paint) -->
   <script>
     (function () {
       var t = 'light';
       try { t = localStorage.getItem('mpro_theme') || 'light'; } catch (e) {}
       document.documentElement.setAttribute('data-theme', t);
-
-      var ICONS = {
-        moon: 'assets/icons/moon.png',
-        sun: 'assets/icons/sun.png'
-      };
-      function renderBtn() {
-        var b = document.getElementById('themeToggleBtn');
-        if (!b) return;
-        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        b.innerHTML = '<img class="mpro-icon" src="' + (dark ? ICONS.sun : ICONS.moon) +
-          '" width="16" height="16" alt="" aria-hidden="true" draggable="false">';
-        // The monochrome icon is black — invert it on dark surfaces (matches
-        // the [data-theme=dark] .mpro-icon rule that app.js pages get).
-        b.querySelector('img').style.filter = dark ? 'brightness(0) invert(1)' : 'brightness(0) saturate(100%)';
-        b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-      }
-
       window.addEventListener('DOMContentLoaded', function () {
-        var b = document.getElementById('themeToggleBtn');
-        if (b) {
-          renderBtn();
-          b.addEventListener('click', function () {
-            var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            try { localStorage.setItem('mpro_theme', next); } catch (e) {}
-            document.documentElement.setAttribute('data-theme', next);
-            renderBtn();
-          });
-        }
+        var b = document.querySelector('.theme-toggle-float');
+        if (b && typeof applyTheme === 'function') applyTheme(t);
       });
     })();
   </script>
@@ -225,6 +332,38 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="js/firebase.js"></script>
   <script>
+    const loginButtonIdle = 'Sign In to MediCare Pro <span aria-hidden="true">→</span>';
+    const loginButtonLoading = '<svg class="button-ecg" viewBox="0 0 70 24" aria-hidden="true"><path d="M1 12h19l3-3 3 6 4-12 4 18 4-9h31"/></svg><span>Verifying credentials...</span>';
+    const loginButtonSuccess = '<svg class="button-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="m7 12 3 3 7-7" fill="none" stroke="#00b9a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Access granted!</span>';
+    const reducedLoginMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const waitForLoginAnimation = (started) => new Promise((resolve) => setTimeout(resolve, reducedLoginMotion() ? 0 : Math.max(0, 850 - (performance.now() - started))));
+    function showLoginError(message) {
+      const box = document.querySelector('.login-box');
+      const button = document.getElementById('loginBtn');
+      document.getElementById('loginAlertMsg').textContent = message;
+      document.getElementById('loginAlert').classList.remove('hidden');
+      button.innerHTML = loginButtonIdle;
+      button.disabled = false;
+      button.classList.remove('is-authenticating', 'is-success');
+      box.classList.remove('login-error');
+      void box.offsetWidth;
+      box.classList.add('login-error');
+    }
+    function finishLogin() {
+      const button = document.getElementById('loginBtn');
+      const transition = document.querySelector('.login-transition');
+      const page = document.querySelector('.login-page');
+      if (button.classList.contains('is-success') || page.classList.contains('login-redirecting')) return;
+      button.innerHTML = loginButtonSuccess;
+      button.disabled = true;
+      button.classList.remove('is-authenticating');
+      button.classList.add('is-success');
+      setTimeout(() => {
+        transition.setAttribute('aria-hidden', 'false');
+        page.classList.add('login-redirecting');
+      }, reducedLoginMotion() ? 0 : 850);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, reducedLoginMotion() ? 500 : 2300);
+    }
     async function doLogin() {
       const btn = document.getElementById('loginBtn');
       const username = document.getElementById('username').value.trim();
@@ -234,15 +373,17 @@
 
       alert.classList.add('hidden');
       success.classList.add('hidden');
+      document.querySelector('.login-box').classList.remove('login-error');
 
       if (!username || !password) {
-        document.getElementById('loginAlertMsg').textContent = 'Please enter username and password.';
-        alert.classList.remove('hidden');
+        showLoginError('Please enter username and password.');
         return;
       }
 
-      btn.innerHTML = '<div class="spinner"></div> Signing in…';
+      btn.innerHTML = loginButtonLoading;
       btn.disabled = true;
+      btn.classList.add('is-authenticating');
+      const started = performance.now();
 
       try {
         const res = await fetch('/api/login', {
@@ -251,6 +392,7 @@
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
+        await waitForLoginAnimation(started);
 
         if (data.success) {
           sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
@@ -278,14 +420,12 @@
           }
 
           success.classList.remove('hidden');
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+          finishLogin();
         } else {
-          document.getElementById('loginAlertMsg').textContent = data.message || 'Invalid credentials.';
-          alert.classList.remove('hidden');
-          btn.innerHTML = 'Sign In to MediCare Pro';
-          btn.disabled = false;
+          showLoginError(data.message || 'Incorrect username or password. Please try again.');
         }
       } catch (e) {
+        await waitForLoginAnimation(started);
         // Fallback: simulate locally if API unavailable
         const creds = [
           { username: 'admin', password: 'admin123', role: 'Administrator', name: 'Dr. Admin' },
@@ -296,12 +436,9 @@
         if (match) {
           sessionStorage.setItem('mpro_user', JSON.stringify(match));
           success.classList.remove('hidden');
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+          finishLogin();
         } else {
-          document.getElementById('loginAlertMsg').textContent = 'Invalid credentials. Try again.';
-          alert.classList.remove('hidden');
-          btn.innerHTML = 'Sign In to MediCare Pro';
-          btn.disabled = false;
+          showLoginError('Incorrect username or password. Please try again.');
         }
       }
     }
@@ -328,7 +465,7 @@
         const user = await window.mproGoogleSignIn();
         if (!user) return; // redirected to Google — the page will reload
         document.getElementById('loginSuccess').classList.remove('hidden');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+        finishLogin();
       } catch (e) {
         let msg = e && e.message ? e.message : 'Google sign-in failed. Please try again.';
         if (e && e.code === 'auth/popup-closed-by-user') msg = 'Google sign-in was cancelled.';
@@ -352,7 +489,7 @@
         const user = await window.mproCompleteGoogleRedirect();
         if (user) {
           document.getElementById('loginSuccess').classList.remove('hidden');
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+          finishLogin();
         }
       } catch (e) { /* no pending redirect */ }
     })();
@@ -420,7 +557,34 @@
       document.getElementById('forgotBox').classList.add('hidden');
       forgotOpen = false;
     }
+    function togglePasswordVisibility(button) {
+      const input = document.getElementById('password');
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      button.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+      button.setAttribute('aria-pressed', String(visible));
+    }
+    function showDemoCredentials() {
+      const dialog = document.getElementById('demoDialog');
+      dialog.classList.remove('is-closing');
+      dialog.showModal();
+      dialog.addEventListener('close', () => document.querySelector('.demo-link').focus(), { once: true });
+    }
+    function closeDemoCredentials() {
+      const dialog = document.getElementById('demoDialog');
+      if (!dialog.open || dialog.classList.contains('is-closing')) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        dialog.close();
+        return;
+      }
+      dialog.classList.add('is-closing');
+      setTimeout(() => {
+        dialog.close();
+        dialog.classList.remove('is-closing');
+      }, 200);
+    }
   </script>
-  <!-- No chat widget on the login screen -->
+  <script src="js/app.js"></script>
+  <script src="js/chat-widget.js"></script>
 </body>
 </html>

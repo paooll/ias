@@ -7,6 +7,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile Settings – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .page-content { width:100%; max-width:1240px; margin:0 auto; padding:28px clamp(20px,3vw,36px) 44px; }
+    .profile-layout { display:grid; grid-template-columns:minmax(0,1.12fr) minmax(300px,.88fr); gap:18px; align-items:start; }
+    .profile-layout .card { min-width:0; }
+    .profile-layout .card-header { padding:17px 20px; }
+    .profile-layout .card-body { padding:20px; }
+    .profile-intro { margin-bottom:18px; color:var(--text-2); font-size:13px; line-height:1.5; }
+    .profile-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+    .profile-form .form-group { min-width:0; margin:0; }
+    .profile-form .form-group:last-child { grid-column:1 / -1; }
+    .profile-form .form-label { color:var(--text-2); margin-bottom:7px; }
+    .profile-input { position:relative; }
+    .profile-input-icon { position:absolute; top:50%; left:13px; width:18px; height:18px; display:grid; place-items:center; transform:translateY(-50%); opacity:.7; }
+    .profile-input .form-control { min-height:44px; padding-left:42px; }
+    .profile-input select.form-control { appearance:auto; }
+    .profile-actions { display:flex; align-items:center; gap:14px; margin-top:19px; }
+    .profile-actions .btn { min-height:42px; }
+    .profile-source { margin-top:11px; color:var(--text-3); font-size:11px; }
+    .account-summary { display:flex; align-items:center; gap:14px; padding:16px; border:1px solid var(--line-1); border-radius:14px; background:var(--gray-50); }
+    .account-avatar { display:grid; place-items:center; width:50px; height:50px; flex:none; border-radius:14px; background:var(--blue-100); }
+    .account-avatar .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .account-summary-text { min-width:0; }
+    .account-summary-name { color:var(--text-1); font-size:15px; font-weight:700; }
+    .account-summary-email { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2); font-size:12px; }
+    .account-details { display:grid; gap:0; margin-top:16px; }
+    .account-detail { display:flex; align-items:center; gap:12px; min-width:0; padding:12px 2px; border-bottom:1px solid var(--line-2); }
+    .account-detail:last-child { border-bottom:0; }
+    .account-detail-icon { display:grid; place-items:center; width:34px; height:34px; flex:none; border-radius:10px; background:var(--teal-100); }
+    .account-detail-icon .mpro-icon { filter:invert(50%) sepia(85%) saturate(720%) hue-rotate(126deg) brightness(84%); }
+    .account-detail-label { color:var(--text-3); font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
+    .account-detail-value { color:var(--text-1); font-size:13px; font-weight:700; line-height:1.3; }
+    .account-detail .status-dot { width:max-content; margin-top:3px; }
+    @media(max-width:920px) { .profile-layout { grid-template-columns:1fr; } }
+    @media(max-width:580px) { .profile-form { grid-template-columns:1fr; } .profile-form .form-group:last-child { grid-column:auto; } }
+  </style>
 </head>
 <body>
   
@@ -21,77 +56,44 @@
           <p>Update your account information and preferences.</p>
         </div>
 
-        <div class="grid-2">
+        <div class="profile-layout">
           <!-- Profile Form -->
           <div class="card">
             <div class="card-header">
               <div class="card-icon card-icon-blue" data-icon="person" data-icon-size="18"></div>
-              <h2>My Profile — Update Settings</h2>
+              <h2>My Profile</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
-                Manage your personal information, email, and department assignment.
-              </p>
+              <p class="profile-intro">Manage your personal information and department assignment.</p>
 
               <div id="updateSuccess" class="alert alert-success hidden">
                 <span data-icon="checkCircle" data-icon-size="14"></span><div>Profile updated successfully!</div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="pName" value="Dr. Admin">
+              <div class="profile-form">
+                <div class="form-group"><label class="form-label" for="pName">Full Name</label><div class="profile-input"><span class="profile-input-icon" data-icon="person" data-icon-size="18" aria-hidden="true"></span><input type="text" class="form-control" id="pName" autocomplete="name"></div></div>
+                <div class="form-group"><label class="form-label" for="pEmail">Email Address</label><div class="profile-input"><span class="profile-input-icon" data-icon="idCard" data-icon-size="18" aria-hidden="true"></span><input type="email" class="form-control" id="pEmail" autocomplete="email"></div></div>
+                <div class="form-group"><label class="form-label" for="pDept">Department</label><div class="profile-input"><span class="profile-input-icon" data-icon="building" data-icon-size="18" aria-hidden="true"></span><select class="form-control" id="pDept"><option>Administration</option><option>Cardiology</option><option>Neurology</option><option>Pediatrics</option></select></div></div>
+                <div class="form-group"><label class="form-label" for="pPass">New Password (optional)</label><div class="profile-input"><span class="profile-input-icon" data-icon="lock" data-icon-size="18" aria-hidden="true"></span><input type="password" class="form-control" id="pPass" placeholder="Leave blank to keep current" autocomplete="new-password"></div></div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" class="form-control" id="pEmail" value="admin@medicare.ph">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Department</label>
-                <select class="form-control" id="pDept">
-                  <option>Administration</option>
-                  <option>Cardiology</option>
-                  <option>Neurology</option>
-                  <option>Pediatrics</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">New Password (optional)</label>
-                <input type="password" class="form-control" id="pPass" placeholder="Leave blank to keep current">
-              </div>
-
-              <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
-              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="profileSourceHint">
-                Profile changes are stored in this session.
-              </p>
+              <div class="profile-actions"><button class="btn btn-primary" onclick="updateProfile()"><span data-icon="save" data-icon-size="16"></span> Save Changes</button></div>
+              <p class="profile-source" id="profileSourceHint">Profile changes are stored in this session.</p>
             </div>
           </div>
 
           <!-- Account Info -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-teal">ℹ️</div>
+              <div class="card-icon card-icon-teal" data-icon="info" data-icon-size="18"></div>
               <h2>Account Information</h2>
             </div>
             <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:14px;">
-                <div>
-                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Role</div>
-                  <div id="accountRole" style="font-size:14px;font-weight:600;color:var(--gray-900);">Administrator</div>
-                </div>
-                <div>
-                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Username</div>
-                  <div id="accountUser" style="font-size:14px;font-weight:600;color:var(--gray-900);">admin</div>
-                </div>
-                <div>
-                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Last Login</div>
-                  <div style="font-size:14px;font-weight:600;color:var(--gray-900);">Today, 8:00 AM</div>
-                </div>
-                <div>
-                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Status</div>
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <div class="status-dot">Active</div>
-                  </div>
-                </div>
+              <div class="account-summary"><span class="account-avatar" data-icon="person" data-icon-size="26" aria-hidden="true"></span><div class="account-summary-text"><div class="account-summary-name" id="accountName">Administrator</div><div class="account-summary-email" id="accountEmail">—</div></div></div>
+              <div class="account-details">
+                <div class="account-detail"><span class="account-detail-icon" data-icon="shield" data-icon-size="17" aria-hidden="true"></span><div><div class="account-detail-label">Role</div><div class="account-detail-value" id="accountRole">Administrator</div></div></div>
+                <div class="account-detail"><span class="account-detail-icon" data-icon="idCard" data-icon-size="17" aria-hidden="true"></span><div><div class="account-detail-label">Username</div><div class="account-detail-value" id="accountUser">admin</div></div></div>
+                <div class="account-detail"><span class="account-detail-icon" data-icon="building" data-icon-size="17" aria-hidden="true"></span><div><div class="account-detail-label">Department</div><div class="account-detail-value" id="accountDept">Administration</div></div></div>
+                <div class="account-detail"><span class="account-detail-icon" data-icon="checkCircle" data-icon-size="17" aria-hidden="true"></span><div><div class="account-detail-label">Session</div><div class="status-dot">Active</div></div></div>
               </div>
             </div>
           </div>
@@ -112,8 +114,28 @@
     document.getElementById('topnavMount').outerHTML = renderTopnav('Profile Settings', 'Manage your account information');
 
     const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Administrator","role":"Admin","username":"admin"}');
-    document.getElementById('accountRole').textContent = userData.role || 'Administrator';
-    document.getElementById('accountUser').textContent = userData.username || 'admin';
+    function setDepartment(value) {
+      const select = document.getElementById('pDept');
+      if (!value) return;
+      if (![...select.options].some(option => option.value === value)) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      }
+      select.value = value;
+    }
+    function syncAccountSummary(profile) {
+      document.getElementById('accountName').textContent = profile.name || 'Administrator';
+      document.getElementById('accountEmail').textContent = profile.email || 'No email on file';
+      document.getElementById('accountRole').textContent = profile.role || 'Administrator';
+      document.getElementById('accountUser').textContent = profile.username || 'admin';
+      document.getElementById('accountDept').textContent = profile.department || 'Not assigned';
+    }
+    document.getElementById('pName').value = userData.name || '';
+    document.getElementById('pEmail').value = userData.email || '';
+    setDepartment(userData.department || 'Administration');
+    syncAccountSummary({ ...userData, department:document.getElementById('pDept').value });
 
     // Load the real profile from Firestore when available (persists across sessions).
     (async function loadProfile() {
@@ -122,16 +144,8 @@
         if (!profile) return;
         document.getElementById('pName').value = profile.name || '';
         document.getElementById('pEmail').value = profile.email || '';
-        const deptSelect = document.getElementById('pDept');
-        if (profile.department) {
-          if (![...deptSelect.options].some(o => o.value === profile.department)) {
-            const opt = document.createElement('option');
-            opt.value = profile.department;
-            opt.textContent = profile.department;
-            deptSelect.appendChild(opt);
-          }
-          deptSelect.value = profile.department;
-        }
+        setDepartment(profile.department);
+        syncAccountSummary({ ...userData, ...profile, department:document.getElementById('pDept').value });
         document.getElementById('profileSourceHint').textContent =
           'Profile is stored in Firestore and synced with your staff account.';
       } catch (e) { /* Firebase not configured — keep defaults */ }
@@ -172,7 +186,10 @@
 
       const user = JSON.parse(sessionStorage.getItem('mpro_user') || '{}');
       user.name = payload.name;
+      user.email = payload.email;
+      user.department = payload.dept;
       sessionStorage.setItem('mpro_user', JSON.stringify(user));
+      syncAccountSummary(user);
 
       document.getElementById('updateSuccess').classList.remove('hidden');
       setTimeout(() => document.getElementById('updateSuccess').classList.add('hidden'), 3000);

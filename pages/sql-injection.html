@@ -7,6 +7,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Patient Records – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .page-content { width:100%; max-width:1240px; margin:0 auto; padding:28px clamp(20px,3vw,36px) 44px; }
+    .page-header { margin-bottom:18px; }
+    .records-overview { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:18px; align-items:stretch; }
+    .records-left-column { display:grid; gap:18px; min-width:0; }
+    .records-overview > .card { display:flex; flex-direction:column; min-width:0; }
+    .records-overview > .card > .card-body { display:flex; flex:1; flex-direction:column; }
+    .records-left-column .drug-reference { margin-top:0; }
+    .records-overview .card,.records-results-modal { background:#fff; border:1px solid #dce5f2; box-shadow:0 8px 26px rgba(24,52,93,.07); }
+    html[data-theme="dark"] .records-overview .card,html[data-theme="dark"] .records-results-modal { background:#192841; border-color:#354962; }
+    .records-overview .card-body { padding:20px; }
+    .records-intro { margin-bottom:16px; color:var(--text-2); font-size:13px; line-height:1.5; }
+    .record-search-row { display:flex; align-items:end; justify-content:flex-start; gap:12px; }
+    .record-search-row .form-group { flex:0 1 170px; min-width:0; margin:0; }
+    .record-search-row .form-control { width:100%; min-height:42px; }
+    .record-search-row .btn { min-width:170px; min-height:42px; flex:none; justify-content:center; white-space:nowrap; }
+    .records-overview .form-control { background:#f7faff; border:1px solid #cbd8ea; color:#162c4d; }
+    html[data-theme="dark"] .records-overview .form-control { background:#101c30; border-color:#4a6280; color:#f3f7ff; }
+    .record-hint { margin-top:14px; color:var(--text-3); font-size:11px; line-height:1.5; }
+    .patient-picker-list { display:grid; flex:1; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:minmax(62px,1fr); gap:8px; }
+    .patient-choice { display:flex; align-items:center; gap:10px; width:100%; min-width:0; min-height:62px; padding:10px 12px; border:1px solid #dce5f2; border-radius:11px; background:#f7faff; color:var(--text-1); text-align:left; font:inherit; cursor:pointer; transition:background .18s,border-color .18s,transform .18s; }
+    html[data-theme="dark"] .patient-choice { background:#223550; border-color:#3b5170; }
+    .patient-choice:hover { background:var(--blue-100); border-color:var(--blue-500); transform:translateY(-1px); }
+    .patient-choice:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    .patient-choice-icon { display:grid; place-items:center; width:33px; height:33px; flex:none; border-radius:9px; background:var(--blue-100); }
+    .patient-choice-icon .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .patient-choice-main { min-width:0; }
+    .patient-choice-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+    .patient-choice-meta { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; color:var(--text-2); font-size:10.5px; }
+    .record-pager { display:flex; align-items:center; justify-content:flex-start; gap:18px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line-2); }
+    .record-pager[hidden] { display:none; }
+    .record-range { color:var(--text-2); font-size:11px; white-space:nowrap; }
+    .record-page-buttons { display:flex; gap:5px; }
+    .record-page-btn { display:grid; place-items:center; min-width:30px; height:30px; padding:0 8px; border:1px solid var(--line-1); border-radius:8px; background:var(--gray-50); color:var(--text-1); font:600 11px 'Quicksand',sans-serif; cursor:pointer; }
+    .record-page-btn:hover:not(:disabled) { border-color:var(--blue-500); color:var(--blue-600); }
+    .record-page-btn[aria-current="page"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+    .record-page-btn:disabled { opacity:.45; cursor:default; }
+    .record-page-btn:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    .record-source { margin-top:12px; color:var(--text-3); font-size:11px; }
+    .records-results-modal { width:min(1080px,calc(100vw - 32px)); max-height:calc(100vh - 32px); margin:auto; padding:0; border:1px solid var(--line-1); border-radius:18px; background:var(--surface-2); color:var(--text-1); box-shadow:var(--shadow-md); overflow:hidden; }
+    .records-results-modal[open] { display:flex; flex-direction:column; }
+    .records-results-modal::backdrop { background:rgba(10,26,51,.56); backdrop-filter:blur(3px); }
+    .records-results-modal .card-header { flex:none; }
+    .records-results-modal .card-body { min-height:0; overflow:auto; padding:18px 20px 22px; }
+    .results-close { display:grid; place-items:center; width:32px; height:32px; margin-left:auto; border:1px solid var(--line-1); border-radius:9px; background:var(--gray-50); color:var(--text-2); font:inherit; font-size:20px; line-height:1; cursor:pointer; }
+    .results-close:hover { background:var(--blue-100); color:var(--blue-600); }
+    .results-close:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+    .results-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; color:var(--text-2); font-size:12px; }
+    .results-summary strong { color:var(--blue-600); }
+    .results-scroll { overflow-x:auto; border:1px solid var(--line-1); border-radius:12px; }
+    .results-scroll .data-table { margin:0; }
+    .records-results-modal .response-box { margin-top:14px; }
+    .drug-reference { margin-top:18px; }
+    .drug-reference .card-body { padding:20px; }
+    .drug-reference-description { color:var(--text-2); font-size:13px; line-height:1.55; margin-bottom:14px; }
+    .drug-search-row { display:flex; align-items:center; justify-content:flex-start; gap:10px; }
+    .drug-search-row .form-control { min-width:0; width:100%; max-width:240px; flex:0 1 240px; min-height:42px; }
+    .drug-search-row .btn { min-width:170px; min-height:42px; flex:none; justify-content:center; }
+    @media(max-width:960px) { .records-overview { grid-template-columns:1fr; } .records-overview > .card > .card-body { display:block; } .patient-picker-list { grid-auto-rows:minmax(62px,auto); } }
+    @media(max-width:580px) { .record-search-row,.drug-search-row { flex-direction:column; align-items:stretch; } .record-search-row .form-group,.drug-search-row .form-control { width:100%; max-width:none; flex:auto; } .record-search-row .btn,.drug-search-row .btn { justify-content:center; } .patient-picker-list { grid-template-columns:1fr; } .record-pager { flex-wrap:wrap; } }
+    @media(prefers-reduced-motion:reduce) { .patient-choice { transition:none; } .patient-choice:hover { transform:none; } }
+  </style>
 </head>
 <body>
   
@@ -21,34 +83,46 @@
           <p>Search and retrieve patient information by ID.</p>
         </div>
 
-        <div class="grid-2">
+        <div class="records-overview">
+          <div class="records-left-column">
           <div class="card">
             <div class="card-header">
               <div class="card-icon card-icon-teal" data-icon="db" data-icon-size="18"></div>
               <h2>Patient Record Lookup</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
-                Enter a patient ID to retrieve their records from the database.
-              </p>
-              <div class="form-group">
-                <label class="form-label">Patient ID</label>
-                <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
-              </div>
-              <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
-
-              <div id="sqlResult" style="margin-top:16px;display:none;">
-                <div class="divider"></div>
-                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">Results: <span id="resultCount" style="color:var(--red-600);">0 rows</span></p>
-                <div style="overflow-x:auto;">
-                  <table class="data-table" id="resultsTable">
-                    <thead><tr id="tableHead"></tr></thead>
-                    <tbody id="tableBody"></tbody>
-                  </table>
+              <p class="records-intro">Enter a patient ID to retrieve a record from the hospital database.</p>
+              <div class="record-search-row">
+                <div class="form-group">
+                  <label class="form-label" for="sqlInput">Patient ID</label>
+                  <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1" onkeydown="if(event.key==='Enter')doQuery()">
                 </div>
-                <div class="response-box show" id="queryLog"></div>
+                <button class="btn btn-primary" onclick="doQuery()"><span data-icon="search" data-icon-size="16"></span> Search Records</button>
               </div>
+              <p class="record-hint">Select a patient on the right to fill in their ID.</p>
             </div>
+          </div>
+
+          <!-- Drug Reference (openFDA live data) -->
+          <div class="card drug-reference">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="pills" data-icon-size="18"></div>
+              <h2>Drug Reference — FDA Information</h2>
+            </div>
+            <div class="card-body">
+              <p class="drug-reference-description">
+                Look up official FDA labeling and reported adverse events for any medication —
+                live from the <strong>openFDA</strong> public database. Try the medications on
+                file: <span style="font-weight:600;">Amlodipine</span>, <span style="font-weight:600;">Insulin</span>, <span style="font-weight:600;">Salbutamol</span>, <span style="font-weight:600;">Aspirin</span>.
+              </p>
+              <div class="drug-search-row">
+                <input type="text" class="form-control" id="drugInput" placeholder="e.g. amoxicillin, metformin…"
+                       maxlength="60" onkeydown="if(event.key==='Enter')lookupDrug()">
+                <button class="btn btn-primary" id="drugBtn" onclick="lookupDrug()"><span data-icon="search" data-icon-size="14"></span> Look Up Drug</button>
+              </div>
+              <div id="drugResult" style="margin-top:16px;display:none;"></div>
+            </div>
+          </div>
           </div>
 
           <div class="card">
@@ -57,46 +131,23 @@
               <h2>Quick Select Patient</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Click a patient to load their record:</p>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('1')">Patient 1 — Maria Santos (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('2')">Patient 2 — Juan Dela Cruz (Endocrinology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('3')">Patient 3 — Ana Reyes (Pulmonology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('4')">Patient 4 — Pedro Bautista (Rheumatology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('5')">Patient 5 — Rosario Garcia (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
-              </div>
-
-              <div class="divider" style="margin:16px 0;"></div>
-              <p style="font-size:12px;color:var(--gray-500);" id="dataSourceNote">
-                Records are retrieved from the hospital patient database.
-              </p>
+              <p class="records-intro">Choose a patient to fill the lookup field.</p>
+              <div class="patient-picker-list" id="patientPickerList" aria-live="polite"></div>
+              <nav class="record-pager" id="patientPickerPager" aria-label="Patient selection pages" hidden></nav>
+              <p class="record-source" id="dataSourceNote">Records are retrieved from the hospital patient database.</p>
             </div>
           </div>
         </div>
 
-        <!-- Drug Reference (openFDA live data) -->
-        <div class="card" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-icon card-icon-teal" data-icon="pills" data-icon-size="18"></div>
-            <h2>Drug Reference — FDA Information</h2>
-          </div>
+        <dialog class="records-results-modal" id="sqlResult" aria-labelledby="resultsTitle" onclick="closeResultsOnBackdrop(event)">
+          <div class="card-header"><div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div><h2 id="resultsTitle">Search Results</h2><button class="results-close" type="button" aria-label="Close search results" onclick="document.getElementById('sqlResult').close()">×</button></div>
           <div class="card-body">
-            <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
-              Look up official FDA labeling and reported adverse events for any medication —
-              live from the <strong>openFDA</strong> public database. Try the medications on
-              file: <span style="font-weight:600;">Amlodipine</span>, <span style="font-weight:600;">Insulin</span>, <span style="font-weight:600;">Salbutamol</span>, <span style="font-weight:600;">Aspirin</span>.
-            </p>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <input type="text" class="form-control" id="drugInput" placeholder="e.g. amoxicillin, metformin…"
-                     style="flex:1;min-width:200px;" maxlength="60" onkeydown="if(event.key==='Enter')lookupDrug()">
-              <button class="btn btn-primary" id="drugBtn" onclick="lookupDrug()"><span data-icon="search" data-icon-size="14"></span> Look Up Drug</button>
-            </div>
-            <div id="drugResult" style="margin-top:16px;display:none;"></div>
+            <div class="results-summary"><span>Matching records</span><strong id="resultCount">0 rows</strong></div>
+            <div class="results-scroll"><table class="data-table" id="resultsTable"><thead><tr id="tableHead"></tr></thead><tbody id="tableBody"></tbody></table></div>
+            <nav class="record-pager" id="resultPager" aria-label="Search result pages" hidden></nav>
+            <div class="response-box show" id="queryLog"></div>
           </div>
-        </div>
+        </dialog>
 
       </div>
     </main>
@@ -128,6 +179,61 @@
       ]
     };
 
+    const FALLBACK_PICKER = [
+      { id:1, name:'Maria Santos', department:'Cardiology' },
+      { id:2, name:'Juan Dela Cruz', department:'Endocrinology' },
+      { id:3, name:'Ana Reyes', department:'Pulmonology' },
+      { id:4, name:'Pedro Bautista', department:'Rheumatology' },
+      { id:5, name:'Rosario Garcia', department:'Cardiology' },
+      { id:6, name:'Jose Ramirez', department:'Cardiology' },
+      { id:7, name:'Liza Mendoza', department:'Cardiology' },
+      { id:15, name:'Teresa Flores', department:'Pulmonology' }
+    ];
+    const PICKER_PAGE_SIZE = 6;
+    const RESULTS_PAGE_SIZE = 8;
+    let pickerPatients = FALLBACK_PICKER;
+    let pickerPage = 1;
+    let resultPage = 1;
+
+    function pagerMarkup(page, count, pageSize, attribute, label) {
+      const pageCount = Math.max(1, Math.ceil(count / pageSize));
+      const start = (page - 1) * pageSize;
+      return `<span class="record-range">${count ? start + 1 : 0}–${Math.min(start + pageSize, count)} of ${count}</span>
+        <div class="record-page-buttons">
+          <button class="record-page-btn" type="button" ${attribute}="${page - 1}" aria-label="Previous ${label} page" ${page === 1 ? 'disabled' : ''}>‹</button>
+          ${Array.from({length:pageCount}, (_, index) => `<button class="record-page-btn" type="button" ${attribute}="${index + 1}" aria-label="${label} page ${index + 1}" ${page === index + 1 ? 'aria-current="page"' : ''}>${index + 1}</button>`).join('')}
+          <button class="record-page-btn" type="button" ${attribute}="${page + 1}" aria-label="Next ${label} page" ${page === pageCount ? 'disabled' : ''}>›</button>
+        </div>`;
+    }
+
+    function renderPicker() {
+      const count = pickerPatients.length;
+      const pageCount = Math.max(1, Math.ceil(count / PICKER_PAGE_SIZE));
+      pickerPage = Math.min(Math.max(1, pickerPage), pageCount);
+      const start = (pickerPage - 1) * PICKER_PAGE_SIZE;
+      const list = document.getElementById('patientPickerList');
+      list.innerHTML = pickerPatients.slice(start, start + PICKER_PAGE_SIZE).map(p => `
+        <button class="patient-choice" type="button" data-patient-id="${escapeHtml(String(p.id))}">
+          <span class="patient-choice-icon" aria-hidden="true">${icon('person', 17)}</span>
+          <span class="patient-choice-main"><span class="patient-choice-name">${escapeHtml(p.name)}</span><span class="patient-choice-meta">ID ${escapeHtml(String(p.id))} · ${escapeHtml(p.department || 'Patient')}</span></span>
+        </button>`).join('') || '<p class="record-source">No patients available.</p>';
+      const pager = document.getElementById('patientPickerPager');
+      pager.hidden = pageCount <= 1;
+      pager.innerHTML = pageCount <= 1 ? '' : pagerMarkup(pickerPage, count, PICKER_PAGE_SIZE, 'data-picker-page', 'Patient selection');
+    }
+
+    document.getElementById('patientPickerList').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-patient-id]');
+      if (button) setPayload(button.dataset.patientId);
+    });
+    document.getElementById('patientPickerPager').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-picker-page]');
+      if (!button || button.disabled) return;
+      pickerPage = Number(button.dataset.pickerPage);
+      renderPicker();
+    });
+    renderPicker();
+
     // When Firebase is configured, replace the simulated patient data with the
     // real Firestore records — the SQLi simulation then operates on live data.
     let dbFromFirestore = false;
@@ -156,6 +262,9 @@
           admitDate: p.admitDate,
           phone: p.phone,
         }));
+        pickerPatients = DB.patients.filter(p => p.id != null && p.name).map(p => ({ id:p.id, name:p.name, department:p.department || '' }));
+        pickerPage = 1;
+        renderPicker();
         dbFromFirestore = true;
         document.getElementById('dataSourceNote').textContent =
           `Records are retrieved from the hospital patient database — ${DB.patients.length} patients on file.`;
@@ -228,9 +337,44 @@
     // open a full patient-detail modal without embedding data in markup.
     let lastResultRows = [];
 
+    function renderResultPage() {
+      const rows = lastResultRows;
+      const pageCount = Math.max(1, Math.ceil(rows.length / RESULTS_PAGE_SIZE));
+      resultPage = Math.min(Math.max(1, resultPage), pageCount);
+      const start = (resultPage - 1) * RESULTS_PAGE_SIZE;
+      const head = document.getElementById('tableHead');
+      const body = document.getElementById('tableBody');
+      const pager = document.getElementById('resultPager');
+      pager.hidden = pageCount <= 1;
+      pager.innerHTML = pageCount <= 1 ? '' : pagerMarkup(resultPage, rows.length, RESULTS_PAGE_SIZE, 'data-result-page', 'Search result');
+
+      if (!rows.length) {
+        head.innerHTML = '';
+        body.innerHTML = '<tr><td style="text-align:center;color:var(--text-2);padding:22px;">No records found</td></tr>';
+        return;
+      }
+
+      const cols = Object.keys(rows[0]);
+      const isPatientSet = rows.every(row => 'name' in row);
+      head.innerHTML = cols.map(col => `<th>${escapeHtml(col)}</th>`).join('') + (isPatientSet ? '<th>Action</th>' : '');
+      body.innerHTML = rows.slice(start, start + RESULTS_PAGE_SIZE).map((row, index) =>
+        `<tr>${cols.map(col => `<td style="font-size:12px;">${escapeHtml(String(row[col] ?? ''))}</td>`).join('')}` +
+        (isPatientSet ? `<td><button class="btn-link" type="button" onclick="viewPatientRow(${start + index})">View details</button></td>` : '') +
+        '</tr>'
+      ).join('');
+    }
+
+    document.getElementById('resultPager').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-result-page]');
+      if (!button || button.disabled) return;
+      resultPage = Number(button.dataset.resultPage);
+      renderResultPage();
+    });
+
     function viewPatientRow(idx) {
       const rec = lastResultRows[idx];
       if (!rec) return;
+      document.getElementById('sqlResult').close();
       // Users-table rows (UNION result) have no patient fields — show a generic view.
       if (!rec.name) {
         openModal({
@@ -248,33 +392,20 @@
 
     function renderResults(results, query, tableName, log) {
       const wrap = document.getElementById('sqlResult');
-      wrap.style.display = 'block';
-      document.getElementById('resultCount').textContent = `${results.length} row(s) found`;
+      lastResultRows = Array.isArray(results) ? results : [];
+      resultPage = 1;
+      document.getElementById('resultCount').textContent = `${lastResultRows.length} row${lastResultRows.length === 1 ? '' : 's'} found`;
 
       const logEl = document.getElementById('queryLog');
-      logEl.textContent = log || `> Query: ${query}\n> Rows: ${results.length}`;
+      logEl.textContent = log || `> Query: ${query}\n> Rows: ${lastResultRows.length}`;
+      renderResultPage();
+      if (!wrap.open) wrap.showModal();
+    }
 
-      const head = document.getElementById('tableHead');
-      const body = document.getElementById('tableBody');
-
-      if (!results.length) {
-        head.innerHTML = '';
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:20px;">No records found</td></tr>';
-        return;
-      }
-
-      lastResultRows = results;
-      const cols = Object.keys(results[0]);
-      const isPatientSet = results.every(r => 'name' in r);
-      head.innerHTML = cols.map(c => `<th>${c}</th>`).join('') + (isPatientSet ? '<th>Action</th>' : '');
-
-      body.innerHTML = results.map((r, i) =>
-        `<tr>${cols.map(c => `<td style="font-size:12px;">${r[c] ?? ''}</td>`).join('')}` +
-        (isPatientSet
-          ? `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details »</button></td>`
-          : '') +
-        '</tr>'
-      ).join('');
+    function closeResultsOnBackdrop(event) {
+      const dialog = event.currentTarget;
+      const bounds = dialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
     }
 
     /* ---- Drug Reference (openFDA) ---- */

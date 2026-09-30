@@ -8,6 +8,26 @@
   <title>Bed Management – MediCare Pro</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
+    .page-content { width:100%; max-width:1320px; margin:0 auto; padding:28px clamp(20px,3vw,36px) 44px; }
+    .bed-layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(310px,.85fr); gap:18px; align-items:start; }
+    .bed-layout > .card { min-width:0; }
+    .bed-layout .card-header { padding:17px 20px; }
+    .bed-layout .card-body { padding:20px; }
+    .bed-intro { margin-bottom:16px; color:var(--text-2); font-size:13px; line-height:1.5; }
+    .bed-empty { display:flex; align-items:center; gap:16px; min-height:132px; padding:20px; border:1px dashed var(--line-1); border-radius:14px; background:var(--gray-50); }
+    .bed-empty-icon { display:grid; place-items:center; width:48px; height:48px; flex:none; border-radius:13px; background:var(--blue-100); }
+    .bed-empty-icon .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .bed-empty-title { color:var(--text-1); font-size:14px; font-weight:700; }
+    .bed-empty-copy { max-width:380px; margin-top:3px; color:var(--text-2); font-size:12px; line-height:1.5; }
+    .bed-count { margin-top:12px; color:var(--text-2); font-size:11px; }
+    .ward-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .ward-item { display:flex; align-items:center; gap:10px; min-width:0; min-height:54px; padding:10px; border:1px solid var(--line-1); border-radius:11px; background:var(--gray-50); }
+    .ward-item:last-child { grid-column:span 2; }
+    .ward-item-icon { display:grid; place-items:center; width:32px; height:32px; flex:none; border-radius:9px; background:var(--teal-100); }
+    .ward-item-icon .mpro-icon { filter:invert(50%) sepia(85%) saturate(720%) hue-rotate(126deg) brightness(84%); }
+    .ward-item-name { display:block; color:var(--text-1); font-size:12px; font-weight:700; }
+    .ward-item-detail { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2); font-size:10.5px; }
+    .ward-note { margin-top:15px; color:var(--text-2); font-size:11px; line-height:1.5; }
     .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; align-content:start; }
     .bed-scroll { max-height: 70vh; overflow-y: auto; padding-right: 6px; }
     .bed-scroll::-webkit-scrollbar { width: 8px; }
@@ -24,9 +44,21 @@
     .badge-observation { background:var(--orange-100); color:#c2410c; }
     .badge-discharged { background:var(--blue-100); color:var(--blue-600); }
     .badge { padding:2px 10px; border-radius:20px; font-size:10.5px; font-weight:600; }
-    .modal-form { display:grid; gap:12px; }
-    .modal-form .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media (max-width:640px) { .modal-form .form-row { grid-template-columns:1fr; } }
+    .modal-form { display:grid; gap:14px; }
+    .modal-form .form-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .modal-form .form-group { min-width:0; }
+    .modal-form .form-label { margin-bottom:6px; color:var(--text-2); }
+    .modal-form .form-control { min-height:42px; background:var(--input-bg); }
+    .modal-form textarea.form-control { min-height:80px; }
+    .modal-section-title { display:flex; align-items:center; gap:8px; margin-top:3px; padding:10px 0 2px; border-top:1px solid var(--line-2); color:var(--text-1); font-size:12px; font-weight:700; }
+    .modal-section-title:first-of-type { margin-top:0; padding-top:0; border-top:0; }
+    .modal-section-title .mpro-icon { filter:invert(32%) sepia(95%) saturate(3000%) hue-rotate(212deg) brightness(95%); }
+    .modal-backdrop .modal-lg { max-width:740px; }
+    .modal-backdrop .modal-header { padding:17px 22px; }
+    .modal-backdrop .modal-body { padding:20px 22px; }
+    .modal-backdrop .modal-footer { padding:14px 22px; }
+    @media(max-width:920px) { .bed-layout { grid-template-columns:1fr; } }
+    @media(max-width:640px) { .modal-form .form-row { grid-template-columns:1fr; } .ward-list { grid-template-columns:1fr; } .ward-item:last-child { grid-column:auto; } }
   </style>
 </head>
 <body>
@@ -45,7 +77,7 @@
           <button class="btn btn-primary" onclick="openAddModal()"><span data-icon="plus" data-icon-size="14"></span> Admit Patient</button>
         </div>
 
-        <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
+        <div class="bed-layout">
           <!-- Bed board -->
           <div class="card">
             <div class="card-header">
@@ -53,37 +85,34 @@
               <h2>Ward Bed Board</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
-                Admit, move, update, or discharge patients. Changes are saved to the
-                hospital database immediately and reflected on the dashboard.
+              <p class="bed-intro">
+                Review admissions and bed assignments. Changes sync with the hospital
+                database and dashboard when connected.
               </p>
               <div class="bed-scroll">
                 <div class="bed-grid" id="bedGrid">
-                  <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
+                  <div class="bed-empty"><span class="bed-empty-icon" data-icon="bed" data-icon-size="23" aria-hidden="true"></span><div><div class="bed-empty-title">Loading bed assignments</div><p class="bed-empty-copy">Checking the hospital patient directory.</p></div></div>
                 </div>
               </div>
-              <p id="bedCount" style="font-size:12px;color:var(--gray-500);margin-top:10px;"></p>
+              <p id="bedCount" class="bed-count"></p>
             </div>
           </div>
 
           <!-- Side panel -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon card-icon-blue">ℹ️</div>
+              <div class="card-icon card-icon-blue" data-icon="building" data-icon-size="18"></div>
               <h2>Ward Directory</h2>
             </div>
             <div class="card-body">
-              <div class="code-block">Ward A   — Internal Medicine
-Ward B   — Surgery
-Ward C   — Pediatrics
-Ward D   — Oncology
-ICU      — Intensive Care</div>
-              <p style="font-size:12px;color:var(--gray-500);margin-top:14px;">
-                Bed assignments are synced with the Dashboard occupancy stats.
-                Use <strong>Admit Patient</strong> to register a new patient, or edit
-                any bed card to update details. Discharging removes the patient from
-                the ward board.
-              </p>
+              <div class="ward-list">
+                <div class="ward-item"><span class="ward-item-icon" data-icon="building" data-icon-size="17" aria-hidden="true"></span><span><span class="ward-item-name">Ward A</span><span class="ward-item-detail">Internal Medicine</span></span></div>
+                <div class="ward-item"><span class="ward-item-icon" data-icon="building" data-icon-size="17" aria-hidden="true"></span><span><span class="ward-item-name">Ward B</span><span class="ward-item-detail">Surgery</span></span></div>
+                <div class="ward-item"><span class="ward-item-icon" data-icon="building" data-icon-size="17" aria-hidden="true"></span><span><span class="ward-item-name">Ward C</span><span class="ward-item-detail">Pediatrics</span></span></div>
+                <div class="ward-item"><span class="ward-item-icon" data-icon="building" data-icon-size="17" aria-hidden="true"></span><span><span class="ward-item-name">Ward D</span><span class="ward-item-detail">Oncology</span></span></div>
+                <div class="ward-item"><span class="ward-item-icon" data-icon="stethoscope" data-icon-size="17" aria-hidden="true"></span><span><span class="ward-item-name">ICU</span><span class="ward-item-detail">Intensive Care</span></span></div>
+              </div>
+              <p class="ward-note">Bed assignments update the dashboard occupancy figures. Use Admit Patient to add a record, or edit a bed card to change its details.</p>
             </div>
           </div>
         </div>
@@ -144,6 +173,7 @@ ICU      — Intensive Care</div>
       return `
         <div class="modal-form">
           <input type="hidden" id="pfId" value="${p.docId || p.patientId || p.id || ''}">
+          <div class="modal-section-title">${icon('person', 16)} Patient details</div>
           <div class="form-row">
             <div class="form-group" style="margin:0;">
               <label class="form-label">Full Name *</label>
@@ -171,6 +201,7 @@ ICU      — Intensive Care</div>
               </select>
             </div>
           </div>
+          <div class="modal-section-title">${icon('bed', 16)} Bed assignment</div>
           <div class="form-row">
             <div class="form-group" style="margin:0;">
               <label class="form-label">Ward</label>
@@ -191,13 +222,16 @@ ICU      — Intensive Care</div>
               <input type="text" class="form-control" id="pfDept" value="${p.department || ''}" placeholder="Internal Medicine">
             </div>
           </div>
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">Physician</label>
-            <input type="text" class="form-control" id="pfPhysician" value="${p.physician || ''}" placeholder="Dr. E. Santos">
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">Diagnosis</label>
-            <input type="text" class="form-control" id="pfDiagnosis" value="${p.diagnosis || ''}" placeholder="Primary diagnosis">
+          <div class="modal-section-title">${icon('stethoscope', 16)} Care information</div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Physician</label>
+              <input type="text" class="form-control" id="pfPhysician" value="${p.physician || ''}" placeholder="Dr. E. Santos">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Diagnosis</label>
+              <input type="text" class="form-control" id="pfDiagnosis" value="${p.diagnosis || ''}" placeholder="Primary diagnosis">
+            </div>
           </div>
           <div class="form-group" style="margin:0;">
             <label class="form-label">Medications</label>
@@ -230,7 +264,7 @@ ICU      — Intensive Care</div>
     function openAddModal() {
       openModal({
         title: icon('plus', 14) + ' Admit New Patient',
-        subtitle: 'The record will be saved to the hospital database.',
+        subtitle: 'Enter patient details and assign a ward or room.',
         large: true,
         body: patientFormHTML(null),
         footer: `
@@ -381,15 +415,18 @@ ICU      — Intensive Care</div>
 
     async function loadBeds() {
       const grid = document.getElementById('bedGrid');
+      let connected = false;
       try {
         const patients = await window.mproDb.getPatients();
-        if (patients) {
+        if (Array.isArray(patients)) {
+          connected = true;
           bedCache = patients;
           renderBeds(patients);
         }
       } catch (e) { /* fall through */ }
-      if (!bedCache.length) {
-        grid.innerHTML = '<p style="font-size:13px;color:var(--gray-500);">Hospital database not connected. Sign in with a staff account to manage beds.</p>';
+      if (!connected) {
+        grid.innerHTML = bedEmptyHTML('Hospital database unavailable', 'Connect the hospital database and sign in with a staff account to view or manage bed assignments.', 'db');
+        document.getElementById('bedCount').textContent = '';
       }
 
       // Live updates: re-render cards + summary whenever the patients collection changes.
@@ -405,11 +442,15 @@ ICU      — Intensive Care</div>
     function renderBeds(patients) {
       const grid = document.getElementById('bedGrid');
       grid.innerHTML = patients.map(bedCard).join('') ||
-        '<p style="font-size:13px;color:var(--gray-500);">No patients on record. Click <strong>Admit Patient</strong> to add one.</p>';
+        bedEmptyHTML('No patients on the ward board', 'Use Admit Patient to create the first bed assignment.', 'bed');
       const counts = {};
       patients.forEach(p => { const s = (p.status || 'admitted').toLowerCase(); counts[s] = (counts[s] || 0) + 1; });
       const summary = Object.entries(counts).map(([s, n]) => `${n} ${s}`).join(' · ');
-      document.getElementById('bedCount').textContent = `Showing all ${patients.length} patients — ${summary}`;
+      document.getElementById('bedCount').textContent = patients.length ? `Showing all ${patients.length} patients — ${summary}` : '0 patients on record';
+    }
+
+    function bedEmptyHTML(title, copy, iconName) {
+      return `<div class="bed-empty"><span class="bed-empty-icon" aria-hidden="true">${icon(iconName, 23)}</span><div><div class="bed-empty-title">${title}</div><p class="bed-empty-copy">${copy}</p></div></div>`;
     }
 
     let unsubscribePatients = null;
