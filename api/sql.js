@@ -28,7 +28,8 @@ const DB = {
 function simulateSQLExecution(rawInput) {
   const input = rawInput || '';
   const lower = input.toLowerCase();
-  const query = `SELECT * FROM patients WHERE id = '${input}'`;
+  const query = 'SELECT * FROM patients WHERE id = ?';
+  const results = await db.execute(query, [input]);
 
   let results = [];
   let tableName = 'patients';
