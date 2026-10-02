@@ -36,7 +36,6 @@
                 <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
               </div>
               <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
-              <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="resetLab()">Reset lab data</button>
 
               <div id="sqlResult" style="margin-top:16px;display:none;">
                 <div class="divider"></div>
@@ -68,10 +67,6 @@
               <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
               <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
               <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
-              <p style="font-size:11.5px;color:var(--gray-500);margin-top:10px;line-height:1.5;">
-                The lab's own table holds 5 seeded patients. IDs 6+ exist only in Firestore,
-                so they return no rows here — that difference is the point of the exercise.
-              </p>
               </div>
 
               <div class="divider" style="margin:16px 0;"></div>
@@ -117,13 +112,16 @@
     document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-injection.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Records', 'Search and manage patient information');
 
-    // The Firestore lookup below only supplies the "N patients on file" caption.
-    // The SQL injection itself always runs on the server, so rows written by
-    // an injected INSERT are visible to the next lookup.
-    (async function loadPatientCount() {
+    // Firestore is the source of truth for patient records. `mproDb.getPatients()`
+    // returns null when Firebase is unavailable or nobody is signed in, which is
+    // the signal to fall back to /api/sql.
+    let patientCache = null;
+
+    const patientLoadPromise = (async function loadPatients() {
       try {
         const patients = await window.mproDb.getPatients();
         if (!patients || !patients.length) return;
+        patientCache = patients;
         document.getElementById('dataSourceNote').textContent =
           `Records are retrieved from the hospital patient database — ${patients.length} patients on file.`;
       } catch (e) {
@@ -135,58 +133,54 @@
       document.getElementById('sqlInput').value = p;
     }
 
-    // ❌ VULNERABLE (intentional lab) — mirrors api/sql.js.
+    // SECURE LOOKUP — the search term is only ever compared, never parsed.
     //
-    // The server builds its query by pasting this field straight into the SQL
-    // text, so anything after the closing quote is parsed as SQL rather than
-    // treated as data. `--` comments out the remainder and `;` starts a new
-    // statement, which is how the write-injection payloads below get through.
-    const VULNERABLE_QUERY = "SELECT id, name, diagnosis FROM patients WHERE id = '<your input>'";
-
-    function formatLog(data) {
-      let log = `> Query:    ${data.query}\n`;
-      if (data.executed && data.executed.length) {
-        log += `> Executed: ${data.executed.join(' ; ')}\n`;
-      }
-      if (data.effects && data.effects.length) {
-        for (const e of data.effects) {
-          if (e.note) log += `> ${e.note}\n`;
-          if (e.error) log += `> SQL error: ${e.error}\n`;
-        }
-      }
-      if (data.tables) {
-        log += `> Tables: ` +
-          Object.entries(data.tables)
-            .map(([k, v]) => `${k}=${v === null ? 'dropped' : v + ' rows'}`)
-            .join(', ');
-      }
-      return log;
+    // Each candidate must equal the term exactly (or equal its P-000 form).
+    // There is no pattern matching, so a value like "1' OR '1'='1" simply
+    // does not equal any patient's id or patientId and matches nothing.
+    function findPatients(list, term) {
+      const needle = String(term == null ? '' : term).trim();
+      if (!needle) return [];
+      const lower = needle.toLowerCase();
+      return list.filter((p) =>
+        String(p.id) === needle ||
+        String(p.patientId || '').toLowerCase() === lower ||
+        String(p.docId || '').toLowerCase() === lower
+      );
     }
+
+    const COLUMNS = [
+      { key: 'patientId', label: 'Patient ID' },
+      { key: 'name', label: 'Name' },
+      { key: 'diagnosis', label: 'Diagnosis' },
+      { key: 'department', label: 'Department' },
+      { key: 'ward', label: 'Ward' },
+      { key: 'status', label: 'Status' },
+    ];
 
     async function doQuery() {
       const input = document.getElementById('sqlInput').value;
 
-      // Always the server. The injected writes mutate the server's tables, so a
-      // client-side simulation here would show different data than the one the
-      // attacker just changed.
+      // Wait for Firestore so an early click doesn't fall through to the
+      // 5-record offline fallback.
+      await patientLoadPromise;
+
+      if (patientCache) {
+        const results = findPatients(patientCache, input);
+        renderResults(results, results.length
+          ? `> Source: hospital patient database (Firestore)\n> Matched on an exact patient ID — ${results.length} record(s).`
+          : `> Source: hospital patient database (Firestore)\n> No patient matches that ID. Enter a numeric ID such as 1, or its P-000 form such as P-001.`);
+        return;
+      }
+
+      // Fallback: the server-side lookup, also parameterized.
       try {
         const res = await fetch(`/api/sql?id=${encodeURIComponent(input)}`);
         const data = await res.json();
-        renderResults(data.results || [], data.query, 'patients', formatLog(data));
+        renderResults(data.results || [],
+          `> Source: offline fallback records (Firestore unreachable)\n> Query: ${data.query}\n> Bound parameter: ${JSON.stringify((data.params || [])[0] ?? '')}\n> Rows: ${(data.results || []).length}`);
       } catch (e) {
-        renderResults([], VULNERABLE_QUERY, 'patients',
-          `> Could not reach /api/sql — the lab needs the server running.\n> ${e.message}`);
-      }
-    }
-
-    async function resetLab() {
-      try {
-        const res = await fetch('/api/sql?reset=1');
-        const data = await res.json();
-        renderResults([], data.query, 'patients', formatLog(data));
-        document.getElementById('sqlInput').value = '1';
-      } catch (e) {
-        alert('Could not reach the lab API: ' + e.message);
+        renderResults([], `> Could not load patient records.\n> ${e.message}`);
       }
     }
 
@@ -197,48 +191,39 @@
     function viewPatientRow(idx) {
       const rec = lastResultRows[idx];
       if (!rec) return;
-      // Users-table rows (UNION result) have no patient fields — show a generic view.
-      if (!rec.name) {
-        openModal({
-          title: icon('db', 14) + ' Record',
-          subtitle: escapeHtml(String(rec.username || rec.id || '')),
-          body: Object.keys(rec).map(k =>
-            kv(k.replace(/_/g, ' '), `<span style="font-family:monospace;">${escapeHtml(rec[k])}</span>`)
-          ).join(''),
-          footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
-        });
-        return;
-      }
       openPatientModal(rec);
     }
 
-    function renderResults(results, query, tableName, log) {
+    function renderResults(results, log) {
       const wrap = document.getElementById('sqlResult');
       wrap.style.display = 'block';
       document.getElementById('resultCount').textContent = `${results.length} row(s) found`;
 
       const logEl = document.getElementById('queryLog');
-      logEl.textContent = log || `> Query: ${query}\n> Rows: ${results.length}`;
+      logEl.textContent = log;
 
       const head = document.getElementById('tableHead');
       const body = document.getElementById('tableBody');
 
       if (!results.length) {
         head.innerHTML = '';
-        body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:20px;">No records found</td></tr>';
+        body.innerHTML = `<tr><td colspan="${COLUMNS.length}" style="text-align:center;color:var(--gray-500);padding:20px;">No records found</td></tr>`;
         return;
       }
 
       lastResultRows = results;
-      const cols = Object.keys(results[0]);
-      const isPatientSet = results.every(r => 'name' in r);
-      head.innerHTML = cols.map(c => `<th>${c}</th>`).join('') + (isPatientSet ? '<th>Action</th>' : '');
+      head.innerHTML = COLUMNS.map(c => `<th>${c.label}</th>`).join('') + '<th>Action</th>';
 
+      // escapeHtml on every cell: record fields are user-influenced data and
+      // must never be parsed as markup.
       body.innerHTML = results.map((r, i) =>
-        `<tr>${cols.map(c => `<td style="font-size:12px;">${r[c] ?? ''}</td>`).join('')}` +
-        (isPatientSet
-          ? `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details »</button></td>`
-          : '') +
+        '<tr>' +
+        COLUMNS.map(c => {
+          const v = r[c.key];
+          const text = v === undefined || v === null ? '' : String(v);
+          return `<td style="font-size:12px;">${escapeHtml(text)}</td>`;
+        }).join('') +
+        `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details »</button></td>` +
         '</tr>'
       ).join('');
     }
