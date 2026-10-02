@@ -168,35 +168,26 @@
       document.getElementById('sqlInput').value = p;
     }
 
+    // SECURE PATTERN — mirrors api/sql.js exactly.
+    // The query is a constant and the input is bound as a parameter, so the
+    // value is matched literally and can never be parsed as SQL. Payloads like
+    // ' OR '1'='1 or UNION SELECT * FROM users match nothing.
+    const SECURE_QUERY = 'SELECT id, name, diagnosis FROM patients WHERE id = ?';
+
     function simulateSQLi(input) {
-      const lower = input.toLowerCase();
-      let results = [], tableName = 'patients', log = '';
+      const params = [input == null ? '' : String(input)];
 
-      log += `> Executing: SELECT * FROM patients WHERE id = '${input}'\n`;
+      const results = DB.patients
+        .filter(p => String(p.id) === String(params[0]))
+        // Explicit column list — SSNs and clinical notes are never selected.
+        .map(p => ({ id: p.id, name: p.name, diagnosis: p.diagnosis }));
 
-      if (lower.includes('union') && lower.includes('users')) {
-        results = DB.users;
-      } else if (lower.includes("' or '1'='1") || (lower.includes(' or ') && lower.includes('1=1')) || lower.includes("or '1'")) {
-        results = DB.patients;
-      } else if (lower.includes("'--") || lower.includes("' --") || lower.includes("'#")) {
-        const id = parseInt(input);
-        const p = DB.patients.find(p => p.id === id);
-        results = p ? [p] : DB.patients.slice(0, 1);
-      } else if (lower.includes('drop table')) {
-        results = [];
-        log += '> Statement rejected by the database server.\n';
-      } else if (lower.includes('and 1=2')) {
-        results = [];
-      } else {
-        const id = parseInt(input);
-        if (!isNaN(id)) {
-          const p = DB.patients.find(p => p.id === id);
-          results = p ? [p] : [];
-        }
-      }
-
+      let log = `> Query:    ${SECURE_QUERY}\n`;
+      log += `> Parameter: ${JSON.stringify(params[0])}\n`;
+      log += `> Bound as data, not code — no string concatenation.\n`;
       log += `> Rows returned: ${results.length}`;
-      return { results, tableName, log };
+
+      return { results, tableName: 'patients', log };
     }
 
     async function doQuery() {
@@ -206,11 +197,12 @@
       // click can query the offline demonstration data (patients 1-5 only).
       await patientLoadPromise;
 
-      // With Firestore data loaded, run the simulation client-side on live
-      // records. Otherwise prefer the server API, then fall back to simulation.
+      // With Firestore data loaded, run the parameterized lookup client-side on
+      // live records. Otherwise prefer the server API, then fall back to the
+      // same parameterized lookup. Both paths use a constant query.
       if (dbFromFirestore) {
         const { results, tableName, log } = simulateSQLi(input);
-        renderResults(results, `SELECT * FROM patients WHERE id = '${input}'`, tableName, log);
+        renderResults(results, SECURE_QUERY, tableName, log);
         return;
       }
 
@@ -220,7 +212,7 @@
         renderResults(data.results, data.query, data.tableName || 'patients');
       } catch(e) {
         const { results, tableName, log } = simulateSQLi(input);
-        renderResults(results, `SELECT * FROM patients WHERE id = '${input}'`, tableName, log);
+        renderResults(results, SECURE_QUERY, tableName, log);
       }
     }
 
