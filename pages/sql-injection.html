@@ -36,6 +36,7 @@
                 <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
               </div>
               <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
+              <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="resetLab()">Reset lab data</button>
 
               <div id="sqlResult" style="margin-top:16px;display:none;">
                 <div class="divider"></div>
@@ -64,9 +65,13 @@
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('3')">Patient 3 — Ana Reyes (Pulmonology)</button>
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('4')">Patient 4 — Pedro Bautista (Rheumatology)</button>
                 <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('5')">Patient 5 — Rosario Garcia (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
-                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
+              <p style="font-size:11.5px;color:var(--gray-500);margin-top:10px;line-height:1.5;">
+                The lab's own table holds 5 seeded patients. IDs 6+ exist only in Firestore,
+                so they return no rows here — that difference is the point of the exercise.
+              </p>
               </div>
 
               <div class="divider" style="margin:16px 0;"></div>
@@ -112,55 +117,17 @@
     document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-injection.html');
     document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Records', 'Search and manage patient information');
 
-    const DB = {
-      patients: [
-        { id: 1, name: 'Maria Santos', diagnosis: 'Hypertension', ssn: '123-45-6789', notes: 'Monthly checkups. Medication: Amlodipine 5mg' },
-        { id: 2, name: 'Juan Dela Cruz', diagnosis: 'Diabetes Type 2', ssn: '987-65-4321', notes: 'Insulin dependent. Monitor glucose daily.' },
-        { id: 3, name: 'Ana Reyes', diagnosis: 'Asthma', ssn: '456-78-9012', notes: 'Carry salbutamol inhaler. Avoid dust.' },
-        { id: 4, name: 'Pedro Bautista', diagnosis: 'Arthritis (Rheumatoid)', ssn: '321-54-9870', notes: 'Physical therapy twice weekly.' },
-        { id: 5, name: 'Rosario Garcia', diagnosis: 'Coronary Artery Disease', ssn: '654-32-1098', notes: 'Restrict strenuous activity. Aspirin daily.' },
-      ],
-      users: [
-        { id: 1, username: 'admin', password: 'admin123', role: 'Administrator', email: 'admin@medicare.ph' },
-        { id: 2, username: 'doctor', password: 'password1', role: 'Physician', email: 'dr.santos@medicare.ph' },
-        { id: 3, username: 'nurse', password: 'nurse123', role: 'Nurse', email: 'nurse.reyes@medicare.ph' },
-        { id: 4, username: 'radiologist', password: 'xray2024', role: 'Radiologist', email: 'rad@medicare.ph' },
-      ]
-    };
-
-    // When Firebase is configured, replace the simulated patient data with the
-    // real Firestore records — the SQLi simulation then operates on live data.
-    let dbFromFirestore = false;
-
-    const patientLoadPromise = (async function loadFirestorePatients() {
+    // The Firestore lookup below only supplies the "N patients on file" caption.
+    // The SQL injection itself always runs on the server, so rows written by
+    // an injected INSERT are visible to the next lookup.
+    (async function loadPatientCount() {
       try {
         const patients = await window.mproDb.getPatients();
         if (!patients || !patients.length) return;
-        DB.patients = patients.map(p => ({
-          id: p.id,
-          patientId: p.patientId,
-          name: p.name,
-          diagnosis: p.diagnosis,
-          department: p.department,
-          room: p.room,
-          status: p.status,
-          ssn: p.ssn,
-          notes: p.notes,
-          dob: p.dob,
-          gender: p.gender,
-          bloodType: p.bloodType,
-          physician: p.physician,
-          ward: p.ward,
-          medications: p.medications,
-          allergies: p.allergies,
-          admitDate: p.admitDate,
-          phone: p.phone,
-        }));
-        dbFromFirestore = true;
         document.getElementById('dataSourceNote').textContent =
-          `Records are retrieved from the hospital patient database — ${DB.patients.length} patients on file.`;
+          `Records are retrieved from the hospital patient database — ${patients.length} patients on file.`;
       } catch (e) {
-        // Firebase not configured — keep the simulated demo data.
+        // Firebase not configured — the caption keeps its default wording.
       }
     })();
 
@@ -168,51 +135,58 @@
       document.getElementById('sqlInput').value = p;
     }
 
-    // SECURE PATTERN — mirrors api/sql.js exactly.
-    // The query is a constant and the input is bound as a parameter, so the
-    // value is matched literally and can never be parsed as SQL. Payloads like
-    // ' OR '1'='1 or UNION SELECT * FROM users match nothing.
-    const SECURE_QUERY = 'SELECT id, name, diagnosis FROM patients WHERE id = ?';
+    // ❌ VULNERABLE (intentional lab) — mirrors api/sql.js.
+    //
+    // The server builds its query by pasting this field straight into the SQL
+    // text, so anything after the closing quote is parsed as SQL rather than
+    // treated as data. `--` comments out the remainder and `;` starts a new
+    // statement, which is how the write-injection payloads below get through.
+    const VULNERABLE_QUERY = "SELECT id, name, diagnosis FROM patients WHERE id = '<your input>'";
 
-    function simulateSQLi(input) {
-      const params = [input == null ? '' : String(input)];
-
-      const results = DB.patients
-        .filter(p => String(p.id) === String(params[0]))
-        // Explicit column list — SSNs and clinical notes are never selected.
-        .map(p => ({ id: p.id, name: p.name, diagnosis: p.diagnosis }));
-
-      let log = `> Query:    ${SECURE_QUERY}\n`;
-      log += `> Parameter: ${JSON.stringify(params[0])}\n`;
-      log += `> Bound as data, not code — no string concatenation.\n`;
-      log += `> Rows returned: ${results.length}`;
-
-      return { results, tableName: 'patients', log };
+    function formatLog(data) {
+      let log = `> Query:    ${data.query}\n`;
+      if (data.executed && data.executed.length) {
+        log += `> Executed: ${data.executed.join(' ; ')}\n`;
+      }
+      if (data.effects && data.effects.length) {
+        for (const e of data.effects) {
+          if (e.note) log += `> ${e.note}\n`;
+          if (e.error) log += `> SQL error: ${e.error}\n`;
+        }
+      }
+      if (data.tables) {
+        log += `> Tables: ` +
+          Object.entries(data.tables)
+            .map(([k, v]) => `${k}=${v === null ? 'dropped' : v + ' rows'}`)
+            .join(', ');
+      }
+      return log;
     }
 
     async function doQuery() {
       const input = document.getElementById('sqlInput').value;
 
-      // Wait for the live collection before searching. Without this, an early
-      // click can query the offline demonstration data (patients 1-5 only).
-      await patientLoadPromise;
-
-      // With Firestore data loaded, run the parameterized lookup client-side on
-      // live records. Otherwise prefer the server API, then fall back to the
-      // same parameterized lookup. Both paths use a constant query.
-      if (dbFromFirestore) {
-        const { results, tableName, log } = simulateSQLi(input);
-        renderResults(results, SECURE_QUERY, tableName, log);
-        return;
-      }
-
+      // Always the server. The injected writes mutate the server's tables, so a
+      // client-side simulation here would show different data than the one the
+      // attacker just changed.
       try {
         const res = await fetch(`/api/sql?id=${encodeURIComponent(input)}`);
         const data = await res.json();
-        renderResults(data.results, data.query, data.tableName || 'patients');
-      } catch(e) {
-        const { results, tableName, log } = simulateSQLi(input);
-        renderResults(results, SECURE_QUERY, tableName, log);
+        renderResults(data.results || [], data.query, 'patients', formatLog(data));
+      } catch (e) {
+        renderResults([], VULNERABLE_QUERY, 'patients',
+          `> Could not reach /api/sql — the lab needs the server running.\n> ${e.message}`);
+      }
+    }
+
+    async function resetLab() {
+      try {
+        const res = await fetch('/api/sql?reset=1');
+        const data = await res.json();
+        renderResults([], data.query, 'patients', formatLog(data));
+        document.getElementById('sqlInput').value = '1';
+      } catch (e) {
+        alert('Could not reach the lab API: ' + e.message);
       }
     }
 
