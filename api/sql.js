@@ -1,11 +1,14 @@
 /**
- * MediCare Pro — VULNERABLE SQL Query API
- * ❌ User input directly concatenated into SQL query string
- * ❌ No prepared statements / parameterized queries
- * ❌ Full error messages returned to client
+ * MediCare Pro — SQL Query API (SECURED)
+ * ✅ Constant query string with a bound parameter — no string concatenation
+ * ✅ Explicit column list (no SELECT *, so SSNs and clinical notes are never returned)
  *
- * Since we don't have a real DB in this Vercel function,
- * we SIMULATE the SQL execution to demonstrate the vulnerability.
+ * Since there is no real database behind this lab, query execution is SIMULATED.
+ * The simulation mirrors what a driver does with a parameterized query: the input
+ * is matched as a literal value, never parsed as SQL. Injection payloads therefore
+ * match nothing instead of rewriting the WHERE clause.
+ *
+ * See ATTACK-LAB-RUNBOOK.md for the before/after payloads.
  */
 
 // Simulated in-memory database
@@ -27,65 +30,31 @@ const DB = {
 
 function simulateSQLExecution(rawInput) {
   const input = rawInput || '';
-  const lower = input.toLowerCase();
-  const query = 'SELECT * FROM patients WHERE id = ?';
-  const results = await db.execute(query, [input]);
 
-  let results = [];
-  let tableName = 'patients';
-  let note = '';
+  // SECURE PATTERN — the query is a constant; the input is bound as a parameter.
+  // With a real driver this would be:
+  //   const rows = await db.execute(query, params);
+  // The driver sends the SQL text and the value separately, so input can never
+  // be parsed as syntax. "' OR '1'='1" is stored as that literal string and
+  // matches no row, instead of rewriting the WHERE clause.
+  const query = 'SELECT id, name, diagnosis FROM patients WHERE id = ?';
+  const params = [input];
 
-  // Detect UNION injection targeting users table
-  if (lower.includes('union') && lower.includes('users')) {
-    results = DB.users;
-    tableName = 'users (UNION injected)';
-    note = '⚠ UNION injection — users table dumped!';
-  }
-  // OR-based dump all
-  else if (
-    lower.includes("' or '1'='1") ||
-    lower.includes("' or 1=1") ||
-    (lower.includes(' or ') && lower.includes('1=1')) ||
-    lower.match(/'.*or.*'1'.*='1/i)
-  ) {
-    results = DB.patients;
-    tableName = 'patients (all rows)';
-    note = '⚠ OR injection — WHERE clause bypassed, all rows returned!';
-  }
-  // Comment injection
-  else if (lower.match(/'.*-{2}/) || lower.match(/'.*#/)) {
-    const idPart = parseInt(input);
-    const found = DB.patients.find(p => p.id === (isNaN(idPart) ? 1 : idPart));
-    results = found ? [found] : [DB.patients[0]];
-    note = '⚠ Comment injection — remainder of query ignored.';
-  }
-  // Boolean false (AND 1=2)
-  else if (lower.includes('and 1=2')) {
-    results = [];
-    note = 'Boolean false condition — no rows returned.';
-  }
-  // DROP TABLE
-  else if (lower.includes('drop table') || lower.includes('truncate')) {
-    results = [];
-    note = '💥 DDL injection detected! Would destroy data in a real database.';
-  }
-  // Stacked queries
-  else if (lower.includes(';')) {
-    const id = parseInt(input);
-    const found = !isNaN(id) ? DB.patients.find(p => p.id === id) : null;
-    results = found ? [found] : [];
-    note = '⚠ Stacked query attempt detected. In MySQL, only first query runs.';
-  }
-  // Normal numeric ID
-  else {
-    const id = parseInt(input);
-    if (!isNaN(id)) {
-      const found = DB.patients.find(p => p.id === id);
-      results = found ? [found] : [];
-    }
-  }
+  // Stands in for the driver: match the bound value literally.
+  const results = DB.patients
+    .filter(p => String(p.id) === String(params[0]))
+    // Explicit column list — SSNs and clinical notes are never selected.
+    .map(p => ({ id: p.id, name: p.name, diagnosis: p.diagnosis }));
 
-  return { query, results, tableName, note };
+  return {
+    query,
+    params,
+    results,
+    tableName: 'patients',
+    note: results.length
+      ? '✅ Parameterized query — input bound as data, not executed as SQL.'
+      : 'No matching patient. Injection payloads are treated as literal strings, so they match nothing.',
+  };
 }
 
 module.exports = (req, res) => {
@@ -93,14 +62,11 @@ module.exports = (req, res) => {
 
   const rawId = req.query.id || '';
 
-  // ❌ VULNERABLE: This is what the query would look like:
-  // const query = `SELECT * FROM patients WHERE id = '${rawId}'`;
-  // db.execute(query); // → SQL injection!
-
-  const { query, results, tableName, note } = simulateSQLExecution(rawId);
+  const { query, params, results, tableName, note } = simulateSQLExecution(rawId);
 
   return res.status(200).json({
-    query,       // Return the actual (vulnerable) query — bad practice but educational
+    query,       // Constant query text — safe to return, it contains no user input
+    params,      // The bound parameter, so the lab can show what the driver received
     results,
     tableName,
     note,
