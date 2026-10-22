@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Settings – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="person" data-icon-size="18"></span> Profile Settings</h1>
+          <p>Update your account information and preferences.</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Profile Form -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="person" data-icon-size="18"></div>
+              <h2>My Profile — Update Settings</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Manage your personal information, email, and department assignment.
+              </p>
+
+              <div id="updateSuccess" class="alert alert-success hidden">
+                <span data-icon="checkCircle" data-icon-size="14"></span><div>Profile updated successfully!</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="pName" value="Dr. Admin">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="pEmail" value="admin@medicare.ph">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <select class="form-control" id="pDept">
+                  <option>Administration</option>
+                  <option>Cardiology</option>
+                  <option>Neurology</option>
+                  <option>Pediatrics</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password (optional)</label>
+                <input type="password" class="form-control" id="pPass" placeholder="Leave blank to keep current">
+              </div>
+
+              <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="profileSourceHint">
+                Profile changes are stored in this session.
+              </p>
+            </div>
+          </div>
+
+          <!-- Account Info -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal">ℹ️</div>
+              <h2>Account Information</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Role</div>
+                  <div id="accountRole" style="font-size:14px;font-weight:600;color:var(--gray-900);">Administrator</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Username</div>
+                  <div id="accountUser" style="font-size:14px;font-weight:600;color:var(--gray-900);">admin</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Last Login</div>
+                  <div style="font-size:14px;font-weight:600;color:var(--gray-900);">Today, 8:00 AM</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Status</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div class="status-dot">Active</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('csrf.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Profile Settings', 'Manage your account information');
+
+    const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Administrator","role":"Admin","username":"admin"}');
+    document.getElementById('accountRole').textContent = userData.role || 'Administrator';
+    document.getElementById('accountUser').textContent = userData.username || 'admin';
+
+    // Load the real profile from Firestore when available (persists across sessions).
+    (async function loadProfile() {
+      try {
+        const profile = await window.mproDb.getOwnProfile();
+        if (!profile) return;
+        document.getElementById('pName').value = profile.name || '';
+        document.getElementById('pEmail').value = profile.email || '';
+        const deptSelect = document.getElementById('pDept');
+        if (profile.department) {
+          if (![...deptSelect.options].some(o => o.value === profile.department)) {
+            const opt = document.createElement('option');
+            opt.value = profile.department;
+            opt.textContent = profile.department;
+            deptSelect.appendChild(opt);
+          }
+          deptSelect.value = profile.department;
+        }
+        document.getElementById('profileSourceHint').textContent =
+          'Profile is stored in Firestore and synced with your staff account.';
+      } catch (e) { /* Firebase not configured — keep defaults */ }
+    })();
+
+    async function updateProfile() {
+      const payload = {
+        name: document.getElementById('pName').value,
+        email: document.getElementById('pEmail').value,
+        dept: document.getElementById('pDept').value,
+        password: document.getElementById('pPass').value
+      };
+
+      // CSRF lab: the insecure endpoint still accepts the update from any origin.
+      try {
+        const res = await fetch('/api/csrf-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        await res.json();
+      } catch(e) {}
+
+      // Real persistence: write to the Firestore staff document for this user.
+      try {
+        const updated = await window.mproDb.updateOwnProfile({
+          name: payload.name,
+          email: payload.email,
+          department: payload.dept,
+        });
+        if (updated) {
+          document.getElementById('profileSourceHint').textContent =
+            'Profile is stored in Firestore and synced with your staff account.';
+        }
+      } catch (e) {
+        console.warn('Firestore profile update skipped:', e.message);
+      }
+
+      const user = JSON.parse(sessionStorage.getItem('mpro_user') || '{}');
+      user.name = payload.name;
+      sessionStorage.setItem('mpro_user', JSON.stringify(user));
+
+      document.getElementById('updateSuccess').classList.remove('hidden');
+      setTimeout(() => document.getElementById('updateSuccess').classList.add('hidden'), 3000);
+    }
+  </script>
+</body>
+</html>

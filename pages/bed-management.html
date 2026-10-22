@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bed Management – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .bed-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; align-content:start; }
+    .bed-scroll { max-height: 70vh; overflow-y: auto; padding-right: 6px; }
+    .bed-scroll::-webkit-scrollbar { width: 8px; }
+    .bed-scroll::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 8px; }
+    .bed-scroll::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+    @media (prefers-color-scheme: dark) { .bed-scroll::-webkit-scrollbar-thumb { background: var(--gray-600); } }
+    .bed-card { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:10px; padding:14px; }
+    .bed-card .bed-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .bed-card .bed-id { font-weight:700; font-size:13px; color:var(--gray-900); }
+    .bed-card .bed-meta { font-size:12px; color:var(--gray-500); }
+    .bed-card .bed-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .badge-critical { background:var(--red-100); color:var(--red-600); }
+    .badge-stable { background:var(--teal-100); color:var(--teal-600); }
+    .badge-observation { background:var(--orange-100); color:#c2410c; }
+    .badge-discharged { background:var(--blue-100); color:var(--blue-600); }
+    .badge { padding:2px 10px; border-radius:20px; font-size:10.5px; font-weight:600; }
+    .modal-form { display:grid; gap:12px; }
+    .modal-form .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:640px) { .modal-form .form-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h1><span data-icon="bed" data-icon-size="18"></span> Bed Management</h1>
+            <p>Ward occupancy, patient bed assignments, and patient records.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddModal()"><span data-icon="plus" data-icon-size="14"></span> Admit Patient</button>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
+          <!-- Bed board -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="bed" data-icon-size="18"></div>
+              <h2>Ward Bed Board</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
+                Admit, move, update, or discharge patients. Changes are saved to the
+                hospital database immediately and reflected on the dashboard.
+              </p>
+              <div class="bed-scroll">
+                <div class="bed-grid" id="bedGrid">
+                  <p style="font-size:13px;color:var(--gray-500);">Loading beds…</p>
+                </div>
+              </div>
+              <p id="bedCount" style="font-size:12px;color:var(--gray-500);margin-top:10px;"></p>
+            </div>
+          </div>
+
+          <!-- Side panel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue">ℹ️</div>
+              <h2>Ward Directory</h2>
+            </div>
+            <div class="card-body">
+              <div class="code-block">Ward A   — Internal Medicine
+Ward B   — Surgery
+Ward C   — Pediatrics
+Ward D   — Oncology
+ICU      — Intensive Care</div>
+              <p style="font-size:12px;color:var(--gray-500);margin-top:14px;">
+                Bed assignments are synced with the Dashboard occupancy stats.
+                Use <strong>Admit Patient</strong> to register a new patient, or edit
+                any bed card to update details. Discharging removes the patient from
+                the ward board.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('bed-management.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Bed Management', 'Ward Bed Assignments');
+
+    const WARDS = ['Ward A', 'Ward B', 'Ward C', 'Ward D', 'ICU'];
+    const STATUSES = ['admitted', 'stable', 'observation', 'critical', 'discharged'];
+    let bedCache = [];
+
+    async function db() {
+      const ctx = await window.mproFirebase;
+      if (!ctx || !ctx.configured || !ctx.auth.currentUser) return null;
+      return ctx;
+    }
+
+    // ---------- Toast notifications (success / error popups) ----------
+    function showToast(message, type) {
+      type = type || 'success';
+      let host = document.getElementById('toastHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toastHost';
+        host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:10000;display:flex;flex-direction:column;gap:10px;max-width:340px;';
+        document.body.appendChild(host);
+      }
+      const colors = { success: ['#0d9488', '#ccfbf1', '#134e4a'], error: ['#dc2626', '#fee2e2', '#7f1d1d'], info: ['#2563eb', '#dbeafe', '#1e3a8a'] };
+      const [accent, bg, text] = colors[type] || colors.success;
+      const t = document.createElement('div');
+      t.style.cssText = `background:${bg};color:${text};border:1px solid ${accent}44;border-left:4px solid ${accent};border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.15);opacity:0;transform:translateY(8px);transition:all .25s ease;`; 
+      t.textContent = message;
+      host.appendChild(t);
+      requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 300); }, 3500);
+    }
+
+    // ---------- Patient form modal (add / edit) ----------
+    function patientFormHTML(p) {
+      p = p || {};
+      const wardOpts = ['<option value="">Unassigned</option>'].concat(
+        WARDS.map(w => `<option value="${w}" ${p.ward === w ? 'selected' : ''}>${w}</option>`)
+      ).join('');
+      const statusOpts = STATUSES.map(s =>
+        `<option value="${s}" ${(p.status || 'admitted') === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+      ).join('');
+      return `
+        <div class="modal-form">
+          <input type="hidden" id="pfId" value="${p.docId || p.patientId || p.id || ''}">
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Full Name *</label>
+              <input type="text" class="form-control" id="pfName" value="${p.name || ''}" placeholder="Juan Dela Cruz">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-control" id="pfDob" value="${p.dob || ''}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Gender</label>
+              <select class="form-control" id="pfGender">
+                <option value="">—</option>
+                <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
+                <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Blood Type</label>
+              <select class="form-control" id="pfBlood">
+                <option value="">—</option>
+                ${['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(b => `<option value="${b}" ${p.bloodType === b ? 'selected' : ''}>${b}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Ward</label>
+              <select class="form-control" id="pfWard">${wardOpts}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Room</label>
+              <input type="text" class="form-control" id="pfRoom" value="${p.room || ''}" placeholder="101">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="pfStatus">${statusOpts}</select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-control" id="pfDept" value="${p.department || ''}" placeholder="Internal Medicine">
+            </div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Physician</label>
+            <input type="text" class="form-control" id="pfPhysician" value="${p.physician || ''}" placeholder="Dr. E. Santos">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Diagnosis</label>
+            <input type="text" class="form-control" id="pfDiagnosis" value="${p.diagnosis || ''}" placeholder="Primary diagnosis">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Medications</label>
+            <input type="text" class="form-control" id="pfMeds" value="${p.medications || ''}" placeholder="Current medications">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="pfNotes" rows="3" placeholder="Additional notes...">${p.notes || ''}</textarea>
+          </div>
+        </div>`;
+    }
+
+    function collectPatientForm() {
+      return {
+        name: document.getElementById('pfName').value.trim(),
+        dob: document.getElementById('pfDob').value,
+        gender: document.getElementById('pfGender').value,
+        bloodType: document.getElementById('pfBlood').value,
+        ward: document.getElementById('pfWard').value,
+        room: document.getElementById('pfRoom').value.trim(),
+        status: document.getElementById('pfStatus').value,
+        department: document.getElementById('pfDept').value.trim(),
+        physician: document.getElementById('pfPhysician').value.trim(),
+        diagnosis: document.getElementById('pfDiagnosis').value.trim(),
+        medications: document.getElementById('pfMeds').value.trim(),
+        notes: document.getElementById('pfNotes').value.trim(),
+      };
+    }
+
+    function openAddModal() {
+      openModal({
+        title: icon('plus', 14) + ' Admit New Patient',
+        subtitle: 'The record will be saved to the hospital database.',
+        large: true,
+        body: patientFormHTML(null),
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitAdd()">${icon('save', 13)} Admit Patient</button>`,
+      });
+    }
+
+    async function submitAdd() {
+      const data = collectPatientForm();
+      if (!data.name) { alert('Patient name is required.'); return; }
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected — please sign in first.'); return; }
+      try {
+        await window.mproDb.addPatient(data);
+        closeModal();
+        loadBeds();
+        showToast(`Patient "${data.name}" admitted successfully and saved to the database.`);
+      } catch (e) {
+        showToast('Failed to admit patient: ' + e.message, 'error');
+      }
+    }
+
+    function openEditModal(patientId) {
+      const p = bedCache.find(x => (x.patientId || x.id) === patientId);
+      if (!p) return;
+      openModal({
+        title: icon('pencil', 14) + ' Edit Patient',
+        subtitle: `${p.name || 'Patient'} — ${p.patientId || p.id}`,
+        large: true,
+        body: patientFormHTML(p),
+        footer: `
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.docId || p.id}')">${icon('trash', 12)} Delete</button>
+          <span style="flex:1"></span>
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitEdit()">${icon('save', 13)} Save Changes</button>`,
+      });
+    }
+
+    async function submitEdit() {
+      const id = document.getElementById('pfId').value;
+      const data = collectPatientForm();
+      if (!data.name) { alert('Patient name is required.'); return; }
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected — please sign in first.'); return; }
+      if (!id) { showToast('Cannot save: missing patient record ID. Please refresh and try again.', 'error'); return; }
+      try {
+        await window.mproDb.updatePatient(id, data);
+        closeModal();
+        loadBeds();
+        showToast(`Changes for "${data.name}" saved to the database successfully.`);
+      } catch (e) {
+        showToast('Failed to update patient: ' + e.message, 'error');
+      }
+    }
+
+    function confirmDelete(patientId) {
+      const p = bedCache.find(x => (x.docId || x.id) === patientId);
+      if (!p) return;
+      openModal({
+        title: icon('trash', 14) + ' Discharge & Delete Record',
+        subtitle: 'This action cannot be undone.',
+        body: `<p style="font-size:13px;color:var(--gray-700);">
+          Are you sure you want to permanently delete the record for
+          <strong>${p.name || 'this patient'}</strong> (${p.patientId || p.id}) from the hospital database?</p>`,
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-danger btn-sm" onclick="doDelete('${p.docId || p.patientId || p.id}')">Yes, Delete</button>`,
+      });
+    }
+
+    async function doDelete(patientId) {
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected.'); return; }
+      try {
+        await window.mproDb.deletePatient(patientId);
+        closeModal();
+        loadBeds();
+        showToast('Patient record deleted from the database.');
+      } catch (e) {
+        showToast('Failed to delete patient: ' + e.message, 'error');
+      }
+    }
+
+    // ---------- Bed card rendering ----------
+    function bedCard(p) {
+      const badgeCls = (p.status === 'critical') ? 'badge-critical'
+        : (p.status === 'observation') ? 'badge-observation'
+        : (p.status === 'discharged') ? 'badge-discharged' : 'badge-stable';
+      return `
+        <div class="bed-card">
+          <div class="bed-top">
+            <span class="bed-id">${p.name || 'Unknown'}</span>
+            <span class="badge ${badgeCls}">${(p.status || 'admitted').toUpperCase()}</span>
+          </div>
+          <div class="bed-meta">${icon('idCard', 12)} ${p.patientId || p.id} · ${icon('drop', 12)} ${p.bloodType || '—'}</div>
+          <div class="bed-meta">${icon('building', 12)} ${p.ward || 'Unassigned'} · Room ${p.room || '—'}</div>
+          <div class="bed-meta">${icon('user', 12)} ${p.physician || '—'}</div>
+          <div class="bed-meta">${icon('stethoscope', 12)} ${p.diagnosis || 'No diagnosis on record'}</div>
+          <div class="bed-actions">
+            <button class="btn btn-primary btn-xs" onclick="openEditModal('${p.patientId || p.id}')">Edit</button>
+            <button class="btn btn-outline btn-xs" onclick="quickMove('${p.patientId || p.id}', '${p.ward || ''}')">Move</button>
+            <button class="btn btn-outline btn-xs" onclick="confirmDelete('${p.docId || p.id}')">Delete</button>
+          </div>
+        </div>`;
+    }
+
+    // Quick ward move (kept as a one-click shortcut; full edit via modal)
+    function quickMove(patientId, currentWard) {
+      const p = bedCache.find(x => (x.patientId || x.id) === patientId);
+      if (!p) return;
+      openModal({
+        title: icon('move', 14) + ' Move Patient',
+        subtitle: `${p.name || 'Patient'} — currently ${p.ward || 'Unassigned'}${p.room ? ' · Room ' + p.room : ''}`,
+        body: `
+          <div class="modal-form">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">New Ward</label>
+              <select class="form-control" id="qmWard">
+                ${WARDS.map(w => `<option value="${w}" ${currentWard === w ? 'selected' : ''}>${w}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Room</label>
+              <input type="text" class="form-control" id="qmRoom" value="${p.room || ''}" placeholder="101">
+            </div>
+          </div>`,
+        footer: `
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="submitMove('${p.docId || p.id}')">${icon('move', 13)} Move</button>`,
+      });
+    }
+
+    async function submitMove(id) {
+      const ward = document.getElementById('qmWard').value;
+      const room = document.getElementById('qmRoom').value.trim();
+      const ctx = await db();
+      if (!ctx) { alert('Hospital database not connected.'); return; }
+      try {
+        await window.mproDb.updatePatient(id, { ward, room });
+        closeModal();
+        loadBeds();
+        showToast(`Patient moved to ${ward}${room ? ' · Room ' + room : ''} — saved to the database.`);
+      } catch (e) {
+        showToast('Move failed: ' + e.message, 'error');
+      }
+    }
+
+    async function loadBeds() {
+      const grid = document.getElementById('bedGrid');
+      try {
+        const patients = await window.mproDb.getPatients();
+        if (patients) {
+          bedCache = patients;
+          renderBeds(patients);
+        }
+      } catch (e) { /* fall through */ }
+      if (!bedCache.length) {
+        grid.innerHTML = '<p style="font-size:13px;color:var(--gray-500);">Hospital database not connected. Sign in with a staff account to manage beds.</p>';
+      }
+
+      // Live updates: re-render cards + summary whenever the patients collection changes.
+      if (window.mproDb.watchPatients && !unsubscribePatients) {
+        unsubscribePatients = await window.mproDb.watchPatients((patients) => {
+          if (!patients) return;
+          bedCache = patients;
+          renderBeds(patients);
+        });
+      }
+    }
+
+    function renderBeds(patients) {
+      const grid = document.getElementById('bedGrid');
+      grid.innerHTML = patients.map(bedCard).join('') ||
+        '<p style="font-size:13px;color:var(--gray-500);">No patients on record. Click <strong>Admit Patient</strong> to add one.</p>';
+      const counts = {};
+      patients.forEach(p => { const s = (p.status || 'admitted').toLowerCase(); counts[s] = (counts[s] || 0) + 1; });
+      const summary = Object.entries(counts).map(([s, n]) => `${n} ${s}`).join(' · ');
+      document.getElementById('bedCount').textContent = `Showing all ${patients.length} patients — ${summary}`;
+    }
+
+    let unsubscribePatients = null;
+    loadBeds();
+  </script>
+</body>
+</html>

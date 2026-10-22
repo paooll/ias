@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locations &amp; Directions – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .map-frame {
+      width: 100%;
+      height: 400px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow: var(--glass-shadow);
+      display: block;
+      background: var(--gray-100);
+    }
+    .branch-list { display: flex; flex-direction: column; gap: 10px; }
+    .branch-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--gray-50); border: 1px solid var(--gray-200);
+      border-radius: 14px; padding: 13px 15px;
+      cursor: pointer; text-align: left; width: 100%; border-left: 4px solid transparent;
+      font-family: 'Quicksand', sans-serif;
+      transition: transform .18s cubic-bezier(.34,1.4,.64,1), background .18s, border-color .18s, box-shadow .18s;
+    }
+    .branch-item:hover { transform: translateY(-2px); background: rgba(20,184,166,.08); border-color: rgba(20,184,166,.45); box-shadow: 0 6px 18px rgba(20,184,166,.14); }
+    .branch-item.active { border-left-color: var(--teal-500); background: rgba(20,184,166,.10); }
+    .branch-item .b-ico {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      display: grid; place-items: center;
+      background: var(--teal-100); border: 1px solid rgba(20,184,166,.28);
+    }
+    .branch-item .b-name { font-size: 13px; font-weight: 700; color: var(--text-1); }
+    .branch-item .b-addr { font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.45; }
+    .branch-item .b-hours { font-size: 10.5px; color: var(--text-3); margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+    .directions-btn { margin-top: 14px; }
+    .map-note {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; color: var(--text-3); margin-top: 10px;
+    }
+    @media (max-width: 640px) { .map-frame { height: 300px; } }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="building" data-icon-size="18"></span> Locations &amp; Directions</h1>
+          <p>Find our hospital branches on the map and get turn-by-turn directions.</p>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns: 1.6fr 1fr;">
+          <!-- Map -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="search" data-icon-size="18"></div>
+              <h2>Campus Map</h2>
+            </div>
+            <div class="card-body">
+              <iframe id="mapFrame" class="map-frame"
+                title="MediCare Pro hospital branch map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen></iframe>
+              <p class="map-note"><span data-icon="info" data-icon-size="12"></span> Map data © Google — interactive: drag to pan, scroll to zoom, click markers for details.</p>
+              <a id="directionsLink" class="btn btn-primary directions-btn" href="#" target="_blank" rel="noopener">
+                <span data-icon="arrowRight" data-icon-size="14"></span> Open Directions in Google Maps
+              </a>
+            </div>
+          </div>
+
+          <!-- Branch list -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="building" data-icon-size="18"></div>
+              <h2>Our Branches</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Select a branch to view it on the map:</p>
+              <div class="branch-list" id="branchList"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('locations.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Locations & Directions', 'Hospital branches and turn-by-turn directions');
+
+    // Seeded branches (fictional demo locations — swap with real addresses anytime).
+    const BRANCHES = [
+      {
+        name: 'MediCare Pro — Main Campus',
+        address: '123 Health Avenue, Quezon City, Metro Manila',
+        hours: 'Open 24/7 · Emergency & Outpatient',
+        dept: 'Flagship hospital · ER, Surgery, ICU, Labs',
+      },
+      {
+        name: 'MediCare Pro — Makati Clinic',
+        address: '456 Ayala Avenue, Makati City, Metro Manila',
+        hours: 'Mon–Sat · 7:00 AM – 9:00 PM',
+        dept: 'Outpatient · Diagnostics · Pharmacy',
+      },
+      {
+        name: 'MediCare Pro — Cebu Medical Center',
+        address: '789 Osmeña Boulevard, Cebu City, Cebu',
+        hours: 'Open 24/7 · Emergency & Specialty Care',
+        dept: 'Regional center · Cardiology, Oncology',
+      },
+      {
+        name: 'MediCare Pro — Davao Health Hub',
+        address: '12 J.P. Laurel Avenue, Bajada, Davao City',
+        hours: 'Mon–Sun · 8:00 AM – 8:00 PM',
+        dept: 'Primary care · Pediatrics · Imaging',
+      },
+    ];
+
+    const esc3 = (s) => escapeHtml(s);
+    const frame = document.getElementById('mapFrame');
+    const dirLink = document.getElementById('directionsLink');
+    const list = document.getElementById('branchList');
+
+    function showBranch(i) {
+      const b = BRANCHES[i];
+      document.querySelectorAll('.branch-item').forEach((el, j) => el.classList.toggle('active', j === i));
+      // Google Maps Embed API (no API key required for basic place embeds).
+      frame.src = 'https://www.google.com/maps?q=' + encodeURIComponent(b.address) + '&output=embed';
+      dirLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.address);
+    }
+
+    list.innerHTML = BRANCHES.map((b, i) => `
+      <button class="branch-item" onclick="showBranch(${i})">
+        <div class="b-ico"><span data-icon="cross" data-icon-size="16"></span></div>
+        <div>
+          <div class="b-name">${esc3(b.name)}</div>
+          <div class="b-addr">${esc3(b.address)}</div>
+          <div class="b-hours"><span data-icon="clock" data-icon-size="11"></span> ${esc3(b.hours)}</div>
+        </div>
+      </button>
+    `).join('');
+
+    showBranch(0);
+    mountIcons();
+  </script>
+</body>
+</html>

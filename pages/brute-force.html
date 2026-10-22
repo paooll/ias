@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Login – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .attempt-log { background: #0f172a; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 11.5px; max-height: 240px; overflow-y: auto; margin-top: 12px; }
+    .attempt-log .log-line { padding: 2px 0; }
+    .log-fail { color: #f87171; }
+    .log-success { color: #86efac; font-weight: 700; }
+    .log-info { color: #94a3b8; }
+    .progress-bar-wrap { height: 6px; background: rgba(255,255,255,.1); border-radius: 99px; margin-top: 8px; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--blue-500), var(--teal-500)); border-radius: 99px; transition: width .1s; }
+  </style>
+</head>
+<body>
+  
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="key" data-icon-size="18"></span> Staff Login</h1>
+          <p>Manage staff authentication and access to the patient portal.</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Manual Login -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="key" data-icon-size="18"></div>
+              <h2>Patient Portal Login</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Test staff login credentials. Use this form to verify that staff accounts can authenticate correctly.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-control" id="bf-user" placeholder="e.g. admin" value="admin">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" id="bf-pass" placeholder="Enter password">
+              </div>
+              <button class="btn btn-primary" onclick="manualLogin()">Attempt Login</button>
+              <div id="manualResult" class="response-box"></div>
+            </div>
+          </div>
+
+          <!-- Bulk Login Tester -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="lock" data-icon-size="18"></div>
+              <h2>Bulk Account Verification</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Batch-verify staff credentials against the hospital user directory during onboarding and periodic access audits.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Staff Username</label>
+                <select class="form-control" id="bf-target-user">
+                  <option value="admin">admin</option>
+                  <option value="doctor">doctor</option>
+                  <option value="nurse">nurse</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password File</label>
+                <select class="form-control" id="bf-wordlist">
+                  <option value="short">Sample passwords (10)</option>
+                  <option value="medium">Extended list (25)</option>
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-primary" id="bfStartBtn" onclick="startBruteForce()">▶ Verify</button>
+                <button class="btn btn-outline" id="bfStopBtn" onclick="stopBruteForce()" disabled>⏹ Stop</button>
+              </div>
+              <div style="margin-top:12px;" id="bfProgress" class="hidden">
+                <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">
+                  <span id="bfProgressLabel">Testing 0 / 0</span>
+                </div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill" id="bfBar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="attempt-log hidden" id="bfLog"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('brute-force.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Staff Login', 'Patient Portal Authentication');
+
+    const WORDLISTS = {
+      short: ['123456','password','admin','admin123','letmein','welcome','monkey','dragon','master','password1'],
+      medium: ['123456','password','admin','admin123','letmein','welcome','monkey','dragon','master','password1',
+               'qwerty','abc123','login','pass','test','root','toor','1234','nurse123','doc2024!',
+               'hospital','patient','health','medicare','doctor']
+    };
+
+    const REAL_CREDS = [
+      { username: 'admin', password: 'admin123', role: 'Administrator', name: 'Dr. Admin' },
+      { username: 'doctor', password: 'password1', role: 'Physician', name: 'Dr. Santos' },
+      { username: 'nurse', password: 'nurse123', role: 'Nurse', name: 'Nurse Reyes' }
+    ];
+
+    async function manualLogin() {
+      const user = document.getElementById('bf-user').value.trim();
+      const pass = document.getElementById('bf-pass').value.trim();
+      const box = document.getElementById('manualResult');
+      box.classList.add('show');
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        if (data.success) {
+          box.classList.remove('error');
+          enterPortal(data.user);
+        } else {
+          box.classList.add('error');
+          box.textContent = `LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nResponse: ${data.message}`;
+        }
+      } catch(e) {
+        const match = REAL_CREDS.find(c => c.username === user && c.password === pass);
+        if (match) {
+          box.classList.remove('error');
+          enterPortal(match);
+        } else {
+          box.classList.add('error');
+          box.textContent = `LOGIN FAILED\nUsername: ${user}\nPassword: ${pass}\n\nInvalid credentials.`;
+        }
+      }
+    }
+
+    // A successful login opens the patient portal (session stored, then redirect).
+    function enterPortal(profile) {
+      const box = document.getElementById('manualResult');
+      box.textContent = `LOGIN SUCCESS!\nUser: ${profile.name}\nRole: ${profile.role}\n\nOpening patient portal…`;
+      sessionStorage.setItem('mpro_user', JSON.stringify({
+        name: profile.name,
+        role: profile.role,
+        username: profile.username,
+      }));
+      setTimeout(() => { window.location.href = '../dashboard.html'; }, 1200);
+    }
+
+    let bfRunning = false;
+    let bfInterval = null;
+
+    async function startBruteForce() {
+      const username = document.getElementById('bf-target-user').value;
+      const list = WORDLISTS[document.getElementById('bf-wordlist').value];
+      const log = document.getElementById('bfLog');
+      const bar = document.getElementById('bfBar');
+      const progressLabel = document.getElementById('bfProgressLabel');
+
+      log.classList.remove('hidden');
+      log.innerHTML = '';
+      document.getElementById('bfProgress').classList.remove('hidden');
+      document.getElementById('bfStartBtn').disabled = true;
+      document.getElementById('bfStopBtn').disabled = false;
+      bfRunning = true;
+
+      const appendLog = (msg, cls) => {
+        const line = document.createElement('div');
+        line.className = `log-line ${cls}`;
+        line.textContent = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      };
+
+      appendLog(`[*] Verifying credentials for: ${username}`, 'log-info');
+      appendLog(`[*] Password file: ${list.length} entries`, 'log-info');
+      appendLog('', 'log-info');
+
+      let i = 0;
+
+      const step = async () => {
+        if (!bfRunning || i >= list.length) {
+          if (i >= list.length) {
+            appendLog('', 'log-info');
+            appendLog('[!] No matching credential found in the provided password file.', 'log-info');
+          }
+          document.getElementById('bfStartBtn').disabled = false;
+          document.getElementById('bfStopBtn').disabled = true;
+          return;
+        }
+
+        const pw = list[i];
+        const match = REAL_CREDS.find(c => c.username === username && c.password === pw);
+
+        progressLabel.textContent = `Testing ${i + 1} / ${list.length}`;
+        bar.style.width = `${((i + 1) / list.length) * 100}%`;
+
+        if (match) {
+          appendLog(`[OK] Credentials verified — ${username}:${pw}`, 'log-success');
+          appendLog(`[OK] Role: ${match.role} | Name: ${match.name}`, 'log-success');
+          appendLog(`[OK] Access granted — use the login form above to open the patient portal.`, 'log-success');
+          bfRunning = false;
+          document.getElementById('bfStartBtn').disabled = false;
+          document.getElementById('bfStopBtn').disabled = true;
+          return;
+        } else {
+          appendLog(`[-] ${username}:${pw}`, 'log-fail');
+        }
+
+        i++;
+        if (bfRunning) setTimeout(step, 120);
+      };
+
+      step();
+    }
+
+    function stopBruteForce() {
+      bfRunning = false;
+      document.getElementById('bfStartBtn').disabled = false;
+      document.getElementById('bfStopBtn').disabled = true;
+      const log = document.getElementById('bfLog');
+      const line = document.createElement('div');
+      line.className = 'log-line log-info';
+      line.textContent = '[!] Verification stopped.';
+      log.appendChild(line);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Notes – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .note-item { background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:10px; }
+    .note-item .note-meta { font-size:11px;color:var(--gray-500);margin-bottom:6px;display:flex;justify-content:space-between; }
+    .note-item .note-content { font-size:13px;color:var(--gray-900); }
+    .note-item .note-author { font-weight:600;color:var(--blue-600); }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="note" data-icon-size="18"></span> Patient Notes</h1>
+          <p>Add and view clinical observations for patients.</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Add Note -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="note" data-icon-size="18"></div>
+              <h2>Add Patient Note</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Record clinical observations, treatment updates, or care instructions for a patient.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Patient ID</label>
+                <input type="text" class="form-control" id="notePatient" value="P-001" placeholder="Patient ID">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Note / Observation</label>
+                <textarea class="form-control" id="noteContent" rows="4" placeholder="Enter clinical notes here..."></textarea>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-primary" onclick="addNote()"><span data-icon="save" data-icon-size="14"></span> Save Note</button>
+                <button class="btn btn-outline btn-sm" onclick="clearNotes()"><span data-icon="trash" data-icon-size="13"></span> Clear All</button>
+              </div>
+              <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="noteSourceHint">
+                Notes are stored in this browser (localStorage).
+              </p>
+            </div>
+          </div>
+
+          <!-- Notes Feed -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
+              <h2>Patient Notes Feed</h2>
+            </div>
+            <div class="card-body">
+              <div id="notesFeed">
+                <p style="font-size:13px;color:var(--gray-500);text-align:center;padding:20px;">No notes yet. Add one above.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('xss-stored.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Notes', 'Clinical observations and care notes');
+
+    function getNotes() {
+      try { return JSON.parse(localStorage.getItem('mpro_notes') || '[]'); } catch(e) { return []; }
+    }
+
+    function saveNotes(notes) {
+      localStorage.setItem('mpro_notes', JSON.stringify(notes));
+    }
+
+    function renderNoteList(notes) {
+      const feed = document.getElementById('notesFeed');
+
+      if (!notes.length) {
+        feed.innerHTML = '<p style="font-size:13px;color:var(--gray-500);text-align:center;padding:20px;">No notes yet. Add one above.</p>';
+        return;
+      }
+
+      // VULNERABLE (intentional lab): notes rendered with innerHTML — stored XSS payloads execute
+      feed.innerHTML = notes.map(n => `
+        <div class="note-item">
+          <div class="note-meta">
+            <span>Patient: <strong>${n.patient}</strong> &nbsp;|&nbsp; <span class="note-author">${n.author}</span></span>
+            <span>${n.time}</span>
+          </div>
+          <div class="note-content">${n.content}</div>
+        </div>
+      `).join('');
+    }
+
+    async function renderNotes() {
+      // Prefer Firestore (persists for all staff); fall back to localStorage.
+      try {
+        const firestoreNotes = await window.mproDb.getNotes();
+        if (firestoreNotes) {
+          document.getElementById('noteSourceHint').textContent =
+            'Notes are stored in Firestore and shared with all signed-in staff. Clear All removes notes authored by you.';
+          renderNoteList(firestoreNotes);
+          return;
+        }
+      } catch (e) { /* fall back */ }
+
+      document.getElementById('noteSourceHint').textContent = 'Notes are stored in this browser (localStorage).';
+      renderNoteList(getNotes());
+    }
+
+    async function addNote() {
+      const patient = document.getElementById('notePatient').value.trim();
+      const content = document.getElementById('noteContent').value.trim();
+      if (!content) return;
+
+      const userData = JSON.parse(sessionStorage.getItem('mpro_user') || '{"name":"Dr. Anonymous"}');
+
+      // Firestore path (persistent, shared)
+      try {
+        const added = await window.mproDb.addNote({
+          patient,
+          content,
+          author: userData.name || 'Dr. Anonymous',
+        });
+        if (added) {
+          document.getElementById('noteContent').value = '';
+          await renderNotes();
+          return;
+        }
+      } catch (e) { /* fall through */ }
+
+      // Existing server API path
+      try {
+        const res = await fetch('/api/xss-stored', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient, content, author: userData.name })
+        });
+        const data = await res.json();
+        if (data.notes) {
+          renderNoteList(data.notes);
+          document.getElementById('noteContent').value = '';
+          return;
+        }
+      } catch(e) {}
+
+      // Local fallback
+      const notes = getNotes();
+      notes.push({
+        patient,
+        content,
+        author: userData.name || 'Dr. Anonymous',
+        time: new Date().toLocaleTimeString()
+      });
+      saveNotes(notes);
+      renderNotes();
+      document.getElementById('noteContent').value = '';
+    }
+
+    async function clearNotes() {
+      // Firestore path: deletes notes authored by the signed-in user (rules enforce this)
+      try {
+        const removed = await window.mproDb.clearMyNotes();
+        if (removed !== null) {
+          await renderNotes();
+          return;
+        }
+      } catch (e) { /* fall back */ }
+
+      localStorage.removeItem('mpro_notes');
+      renderNotes();
+    }
+
+    (async function initNotes() {
+      // Firestore is the source of truth when authenticated. The snapshot
+      // listener also reflects notes written by other staff without refresh.
+      try {
+        const unsubscribe = await window.mproDb.watchNotes((notes) => {
+          document.getElementById('noteSourceHint').textContent =
+            'Notes are stored in Firestore and shared with all signed-in staff. Clear All removes notes authored by you.';
+          renderNoteList(notes);
+        });
+        if (unsubscribe) return;
+      } catch (e) { /* use the offline demo fallback */ }
+      renderNotes();
+    })();
+  </script>
+</body>
+</html>

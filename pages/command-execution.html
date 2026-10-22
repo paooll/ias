@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Diagnostics – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .terminal {
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .terminal-bar {
+      background: #1e293b;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .d-red { background: #ef4444; }
+    .d-yellow { background: #eab308; }
+    .d-green { background: #22c55e; }
+    .terminal-title { font-size: 12px; color: #94a3b8; margin-left: 8px; }
+    .terminal-body {
+      padding: 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      color: #86efac;
+      min-height: 200px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .terminal-body .prompt { color: #60a5fa; }
+    .terminal-body .cmd { color: white; }
+    .terminal-body .output { color: #94a3b8; }
+    .terminal-body .error-out { color: #f87171; }
+  </style>
+</head>
+<body>
+  
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="desktop" data-icon-size="18"></span> System Diagnostics</h1>
+          <p>Network diagnostics and server health monitoring.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="terminal" data-icon-size="18"></div>
+              <h2>Network Diagnostics</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Ping a host or IP address to check network connectivity.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Host / IP to Ping</label>
+                <input type="text" class="form-control mono" id="cmdInput" placeholder="e.g. localhost" value="localhost">
+              </div>
+              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
+                <span style="color:#64748b;">Command: </span>
+                <span id="shellPreview" style="color:#fbbf24;">ping -c 1 localhost</span>
+              </div>
+              <button class="btn btn-primary" onclick="runCmd()">▶ Run Diagnostic</button>
+              <button class="btn btn-outline" style="margin-left:8px;" onclick="clearTerminal()"><span data-icon="trash" data-icon-size="13"></span> Clear</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="wifi" data-icon-size="18"></div>
+              <h2>Quick Targets</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setCmd('localhost')">localhost (local server)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setCmd('db.internal.medicare.ph')">db.internal.medicare.ph (database)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setCmd('redis.internal.medicare.ph')">redis.internal.medicare.ph (cache)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setCmd('smtp.medicare.ph')">smtp.medicare.ph (mail server)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setCmd('192.168.1.1')">192.168.1.1 (gateway)</button>
+              </div>
+              <div class="divider" style="margin:14px 0;"></div>
+              <p style="font-size:12px;color:var(--gray-500);">
+                Use this tool to check connectivity to internal hospital network resources.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-6" style="margin-top:20px;">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <div class="terminal-dot d-red"></div>
+              <div class="terminal-dot d-yellow"></div>
+              <div class="terminal-dot d-green"></div>
+              <span class="terminal-title">medicare-server — bash</span>
+            </div>
+            <div class="terminal-body" id="termOutput">
+              <span class="output">MediCare Pro System Diagnostics Terminal v3.2</span><br>
+              <span class="output">Enter a host above and click Run Diagnostic to ping.</span><br><br>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('command-execution.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('System Diagnostics', 'Network diagnostics and server health');
+
+    document.getElementById('cmdInput').addEventListener('input', () => {
+      document.getElementById('shellPreview').textContent = `ping -c 1 ${document.getElementById('cmdInput').value}`;
+    });
+
+    function setCmd(c) {
+      document.getElementById('cmdInput').value = c;
+      document.getElementById('shellPreview').textContent = `ping -c 1 ${c}`;
+    }
+
+    function clearTerminal() {
+      document.getElementById('termOutput').innerHTML = `<span class="output">Terminal cleared.\n\n</span>`;
+    }
+
+    const SIMULATED_OUTPUTS = {
+      whoami: 'www-data',
+      id: 'uid=33(www-data) gid=33(www-data) groups=33(www-data)',
+      'cat /etc/passwd': `root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmedicare:x:1000:1000::/home/medicare:/bin/bash`,
+      'ls -la /': `total 68\ndrwxr-xr-x  18 root root 4096 Nov  5 09:00 .\ndrwxr-xr-x  18 root root 4096 Nov  5 09:00 ..\ndrwxr-xr-x   2 root root 4096 Nov  5 09:00 bin\ndrwxr-xr-x   3 root root 4096 Nov  5 09:00 boot\ndrwxr-xr-x   2 root root 4096 Nov  5 09:00 etc\ndrwxr-xr-x   3 root root 4096 Nov  5 09:00 home\ndrwxr-xr-x   2 root root 4096 Nov  5 09:00 tmp\ndrwxr-xr-x   5 root root 4096 Nov  5 09:00 var`,
+      env: `NODE_ENV=production\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nDB_HOST=10.0.0.1\nDB_PASS=Sup3rS3cr3tPa$$w0rd!\nJWT_SECRET=EXPOSED_SECRET_KEY_HERE`,
+      'uname -a': 'Linux medicare-server 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux',
+      'ps aux': `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0  22960  1568 ?        Ss   09:00   0:00 /sbin/init
+www-data     312  0.1  1.2 652344 24576 ?        Sl   09:01   0:02 node server.js
+mysql        418  0.0  2.1 1234512 43212 ?       Sl   09:01   0:01 /usr/sbin/mysqld`
+    };
+
+    const PING_OUTPUT = (host) => `PING ${host} (127.0.0.1) 56(84) bytes of data.\n64 bytes from ${host} (127.0.0.1): icmp_seq=1 ttl=64 time=0.045 ms\n\n--- ${host} ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 0.045/0.045/0.045/0.000 ms`;
+
+    function appendLine(html) {
+      const term = document.getElementById('termOutput');
+      term.innerHTML += html + '<br>';
+      term.scrollTop = term.scrollHeight;
+    }
+
+    async function runCmd() {
+      const input = document.getElementById('cmdInput').value.trim();
+      appendLine(`<span class="prompt">medicare@server:~$</span> <span class="cmd">ping -c 1 ${input}</span>`);
+
+      try {
+        const res = await fetch(`/api/execute?host=${encodeURIComponent(input)}`);
+        if (res.ok) {
+          const text = await res.text();
+          text.split('\n').forEach(line => {
+            appendLine(`<span class="output">${escapeHtml(line)}</span>`);
+          });
+          return;
+        }
+      } catch(e) {}
+
+      await new Promise(r => setTimeout(r, 400));
+
+      const parts = input.split(/[;&|]+/).map(s => s.trim()).filter(Boolean);
+      const baseHost = parts[0] || 'localhost';
+
+      const pingOut = PING_OUTPUT(baseHost.replace(/[^a-zA-Z0-9.\-]/g, '?'));
+      pingOut.split('\n').forEach(l => appendLine(`<span class="output">${escapeHtml(l)}</span>`));
+
+      for (let i = 1; i < parts.length; i++) {
+        const injectedCmd = parts[i].trim().replace(/^"/, '').replace(/"$/, '');
+        appendLine('');
+        appendLine(`<span class="prompt">medicare@server:~$</span> <span class="cmd">${escapeHtml(injectedCmd)}</span>`);
+
+        let simOutput = null;
+        for (const [key, val] of Object.entries(SIMULATED_OUTPUTS)) {
+          if (injectedCmd.includes(key.split(' ')[0]) && injectedCmd.includes(key.split(' ').slice(1).join(' ').split(' ')[0] || '')) {
+            simOutput = val;
+            break;
+          }
+        }
+
+        if (simOutput) {
+          simOutput.split('\n').forEach(line => appendLine(`<span class="output">${escapeHtml(line)}</span>`));
+        } else {
+          appendLine(`<span class="output">[simulated output for: ${escapeHtml(injectedCmd)}]</span>`);
+        }
+      }
+
+      appendLine('');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

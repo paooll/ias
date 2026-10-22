@@ -1,0 +1,526 @@
+/* MediCare Pro — Firebase client helper
+ * ---------------------------------------------------------------------------
+ * Loaded on pages that use Firestore. Fetches the public web config from
+ * /api/firebase-config, initializes the Firebase SDK (compat), and exposes
+ * small data helpers. Every helper returns `null` when Firebase is not
+ * configured or the user is not signed in, so pages fall back to their
+ * existing simulated/local behavior (graceful degradation).
+ *
+ * Requires the compat SDK scripts to be loaded first:
+ *   firebase-app-compat.js, firebase-auth-compat.js, firebase-firestore-compat.js
+ */
+
+(function () {
+  'use strict';
+
+  // Promise that resolves once Firebase is configured and auth state is known.
+  window.mproFirebase = (async function init() {
+    try {
+      if (typeof firebase === 'undefined') {
+        return { configured: false, error: new Error('Firebase SDK not loaded') };
+      }
+
+      const res = await fetch('/api/firebase-config', { cache: 'no-store' });
+      if (!res.ok) return { configured: false, error: new Error('config endpoint unavailable') };
+      const cfg = await res.json();
+      if (!cfg || !cfg.configured) return { configured: false, error: new Error('Firebase not configured') };
+
+      firebase.initializeApp(cfg);
+      const db = firebase.firestore();
+      const auth = firebase.auth();
+
+      // Wait until the persisted session is restored (fast when logged in).
+      await new Promise((resolve) => {
+        const unsub = auth.onAuthStateChanged(() => { unsub(); resolve(); });
+      });
+
+      // Keep the topnav indicator in sync with sign-in/sign-out changes.
+      auth.onAuthStateChanged(() => renderDbStatus({ configured: true, db, auth }));
+
+      return { configured: true, db, auth, user: auth.currentUser };
+    } catch (e) {
+      return { configured: false, error: e };
+    }
+  })();
+
+  async function fb() {
+    const ctx = await window.mproFirebase;
+    return ctx && ctx.configured && ctx.auth.currentUser ? ctx : null;
+  }
+
+  // Shows on each page's topnav whether the page is backed by the live
+  // hospital database (Firestore). The indicator is intentionally hidden
+  // while signed out or in demo mode so it never shows an awkward state
+  // (only a positive "connected" confirmation is displayed).
+  function renderDbStatus(ctx) {
+    const mount = document.getElementById('dbStatusMount');
+    if (!mount) return;
+    if (ctx.configured && ctx.auth.currentUser) {
+      mount.innerHTML = '<span class="db-chip db-ok">Hospital database connected</span>';
+    } else {
+      mount.innerHTML = '';
+    }
+  }
+
+  // Fill the indicator once init settles (configured or not).
+  (async () => {
+    try {
+      const ctx = await window.mproFirebase;
+      renderDbStatus(ctx);
+    } catch (e) { /* page without a mount */ }
+  })();
+
+  /* ── Google Single Sign-On ───────────────────────────────────────────
+     Signs in with Firebase Auth's Google provider, then verifies the
+     session on the server (/api/google-login) so the staff profile in
+     Firestore is created or linked. Returns the signed-in user object. */
+  window.mproGoogleSignIn = async function mproGoogleSignIn() {
+    const ctx = await window.mproFirebase;
+    if (!ctx || !ctx.configured) {
+      const err = new Error('Firebase is not configured, so Google Sign-In is unavailable.');
+      err.code = 'mpro/not-configured';
+      throw err;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    let credential;
+    try {
+      credential = await ctx.auth.signInWithPopup(provider);
+    } catch (e) {
+      // Popup blocked (common in embedded previews) — fall back to redirect.
+      if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+        await ctx.auth.signInWithRedirect(provider);
+        return null;
+      }
+      throw e;
+    }
+
+    const idToken = credential && credential.user ? await credential.user.getIdToken() : null;
+    if (!idToken) throw new Error('Google did not return a session token.');
+
+    // Verify server-side and sync the Firestore staff profile.
+    const res = await fetch('/api/google-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    const data = await res.json();
+    if (!data || !data.success) {
+      await ctx.auth.signOut();
+      const err = new Error((data && data.message) || 'Google sign-in was rejected by the server.');
+      err.code = 'mpro/server-rejected';
+      throw err;
+    }
+
+    sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
+  /* Completes a Google redirect sign-in (used after signInWithRedirect). */
+  window.mproCompleteGoogleRedirect = async function mproCompleteGoogleRedirect() {
+    const ctx = await window.mproFirebase;
+    if (!ctx || !ctx.configured) return null;
+    try {
+      const credential = await ctx.auth.getRedirectResult();
+      if (!credential || !credential.user) return null;
+      const idToken = await credential.user.getIdToken();
+      const res = await fetch('/api/google-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      if (!data || !data.success) return null;
+      sessionStorage.setItem('mpro_user', JSON.stringify(data.user));
+      return data.user;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  function timeAgo(date) {
+    if (!date) return 'just now';
+    const t = new Date(date).getTime();
+    if (isNaN(t)) return 'just now';
+    const diff = Math.max(0, Date.now() - t);
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return `${min} minute${min === 1 ? '' : 's'} ago`;
+    const hrs = Math.floor(min / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  function patientToRecord(p) {
+    const d = p.data ? p.data() : p;
+    return {
+      id: d.id,
+      docId: p.id, // Firestore document ID (e.g. "P-001") — use for updates/deletes
+      patientId: d.patientId || p.id,
+      name: d.name || 'Unknown',
+      diagnosis: d.diagnosis || '',
+      department: d.department || '',
+      room: d.room || '',
+      status: d.status || '',
+      ssn: d.ssn || '',
+      notes: d.notes || '',
+      dob: d.dob || '',
+      gender: d.gender || '',
+      bloodType: d.bloodType || '',
+      physician: d.physician || '',
+      ward: d.ward || '',
+      allergies: d.allergies || [],
+      medications: d.medications || '',
+    };
+  }
+
+  function noteToRecord(n) {
+    const d = n.data ? n.data() : n;
+    const ts = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate() : (d.createdAt ? new Date(d.createdAt) : new Date());
+    return {
+      id: n.id,
+      patient: d.patient || '',
+      author: d.author || 'Anonymous',
+      authorUid: d.authorUid || '',
+      content: d.content || '',
+      time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: ts,
+    };
+  }
+
+  const api = {
+    timeAgo,
+
+    /** All patients (used by Patient Records lab + dashboard). */
+    async getPatients() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('patients').get();
+      return snap.docs.map(patientToRecord);
+    },
+
+    /** Live patient list — re-renders automatically when the database changes. */
+    async watchPatients(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('patients').onSnapshot(
+        (snap) => callback(snap.docs.map(patientToRecord)),
+        (error) => console.warn('Live patients subscription failed:', error.message)
+      );
+    },
+
+    /** Case-insensitive search over patient name / id / department. */
+    async searchPatients(term) {
+      const all = await api.getPatients();
+      if (!all) return null;
+      const q = (term || '').toLowerCase().trim();
+      if (!q) return all.slice(0, 20);
+      return all.filter((p) =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.patientId || '').toLowerCase().includes(q) ||
+        (p.department || '').toLowerCase().includes(q)
+      );
+    },
+
+    /** Notes, newest first. */
+    async getNotes() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('notes').orderBy('createdAt', 'desc').get();
+      return snap.docs.map(noteToRecord);
+    },
+
+    async watchNotes(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('notes').orderBy('createdAt', 'desc').onSnapshot(
+        (snap) => callback(snap.docs.map(noteToRecord)),
+        (error) => console.warn('Live notes subscription failed:', error.message)
+      );
+    },
+
+    /** Add a note (author = signed-in user) and log an activity entry. */
+    async addNote({ patient, content, author }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const docRef = await ctx.db.collection('notes').add({
+        patient: patient || 'P-001',
+        author: author || 'Anonymous',
+        authorUid: ctx.auth.currentUser.uid,
+        content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // Log it to the dashboard activity feed too.
+      try {
+        await ctx.db.collection('activity').add({
+          type: 'note',
+          text: `Clinical note added for patient ${patient || 'P-001'}`,
+          dept: author || 'Staff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
+      return docRef.id;
+    },
+
+    /** Delete notes authored by the signed-in user ("Clear All" only affects your own notes). */
+    async clearMyNotes() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const uid = ctx.auth.currentUser.uid;
+      const snap = await ctx.db.collection('notes').where('authorUid', '==', uid).get();
+      const del = snap.docs.map((d) => ctx.db.collection('notes').doc(d.id).delete());
+      await Promise.all(del);
+      return del.length;
+    },
+
+    /** Dashboard data: patients, pending lab count, recent activity. */
+    async getDashboard() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const [patientsSnap, labsSnap, activitySnap] = await Promise.all([
+        ctx.db.collection('patients').get(),
+        ctx.db.collection('lab_reports').get(),
+        ctx.db.collection('activity').orderBy('createdAt', 'desc').limit(6).get(),
+      ]);
+      const patients = patientsSnap.docs.map(patientToRecord);
+      const pendingLabs = labsSnap.docs.filter((d) => (d.data().status || '') === 'pending').length;
+      const activity = activitySnap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return { id: d.id, type: x.type || 'system', text: x.text || '', dept: x.dept || '', createdAt: ts };
+      });
+      return { patients, pendingLabs, activity };
+    },
+
+    async watchDashboard(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      let patients = null, labs = null, activity = null;
+      const publish = () => {
+        if (!patients || !labs || !activity) return;
+        callback({
+          patients: patients.docs.map(patientToRecord),
+          pendingLabs: labs.docs.filter((d) => (d.data().status || '') === 'pending').length,
+          activity: activity.docs.map((d) => {
+            const x = d.data();
+            const createdAt = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+            return { id: d.id, type: x.type || 'system', text: x.text || '', dept: x.dept || '', createdAt };
+          }),
+        });
+      };
+      // Each collection is watched independently: if one subscription fails
+      // (e.g. permission denied), the dashboard still updates from the others
+      // instead of silently going stale.
+      const watch = (ref, onSnap, label) => ref.onSnapshot(
+        (snap) => { onSnap(snap); publish(); },
+        (error) => {
+          console.warn(`Dashboard live subscription failed (${label}):`, error.message);
+          if (label === 'lab_reports') { labs = { docs: [] }; publish(); }
+          if (label === 'activity') { activity = { docs: [] }; publish(); }
+        }
+      );
+      const unsubs = [
+        watch(ctx.db.collection('patients'), (snap) => { patients = snap; }, 'patients'),
+        watch(ctx.db.collection('lab_reports'), (snap) => { labs = snap; }, 'lab_reports'),
+        watch(ctx.db.collection('activity').orderBy('createdAt', 'desc').limit(6), (snap) => { activity = snap; }, 'activity'),
+      ];
+      return () => unsubs.forEach((unsubscribe) => unsubscribe());
+    },
+
+    /** Create a new patient document (auto ID). Returns the new patientId. */
+    async addPatient(data) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('patients').add({
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // Keep patientId consistent with the seed format when not provided.
+      if (!data.patientId) {
+        await ctx.db.collection('patients').doc(ref.id).update({ patientId: ref.id });
+      }
+      try {
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient admitted: ${data.name || 'New patient'}`,
+          dept: data.department || 'Admissions',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
+      return ref.id;
+    },
+
+    /** Update fields on an existing patient document. Logs an activity entry. */
+    async updatePatient(patientId, updates) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('patients').doc(patientId).update({
+        ...updates,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      try {
+        const label = updates.name || updates.diagnosis || 'record';
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient record updated: ${label} (${patientId})`,
+          dept: ctx.auth.currentUser.displayName || ctx.auth.currentUser.email || 'Staff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
+      return true;
+    },
+
+    /** Delete a patient document by doc id. Logs an activity entry. */
+    async deletePatient(patientId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('patients').doc(patientId).delete();
+      try {
+        await ctx.db.collection('activity').add({
+          type: 'patient',
+          text: `Patient record deleted (${patientId})`,
+          dept: ctx.auth.currentUser.displayName || ctx.auth.currentUser.email || 'Staff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { /* non-fatal */ }
+      return true;
+    },
+
+    /** Signed-in user's own staff profile. */
+    async getOwnProfile() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const uid = ctx.auth.currentUser.uid;
+      const doc = await ctx.db.collection('staff').doc(uid).get();
+      return doc.exists ? doc.data() : null;
+    },
+
+    /** Update the signed-in user's own staff profile (name / email / department). */
+    async updateOwnProfile({ name, email, department }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const uid = ctx.auth.currentUser.uid;
+      const patch = {};
+      if (name !== undefined) patch.name = name;
+      if (email !== undefined) patch.email = email;
+      if (department !== undefined) patch.department = department;
+      await ctx.db.collection('staff').doc(uid).update(patch);
+      return patch;
+    },
+
+    /** Lab reports (used by the Lab Reports page). */
+    async getLabReports() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('lab_reports').get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : null;
+        return { id: d.id, ...x, createdAt: ts };
+      });
+    },
+
+    /** Feedback reviews (Patient Feedback page), newest first. */
+    async getFeedback(patientId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      let q = ctx.db.collection('feedback');
+      if (patientId) q = q.where('patientId', '==', patientId);
+      const snap = await q.orderBy('createdAt', 'desc').limit(50).get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return { id: d.id, patientId: x.patientId || '', rating: x.rating || '', reviewer: x.reviewer || '', comments: x.comments || '', createdAt: ts };
+      });
+    },
+
+    async watchFeedback(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('feedback').orderBy('createdAt', 'desc').limit(50).onSnapshot(
+        (snap) => callback(snap.docs.map((d) => {
+          const x = d.data();
+          const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+          return { id: d.id, patientId: x.patientId || '', rating: x.rating || '', reviewer: x.reviewer || '', comments: x.comments || '', createdAt: ts };
+        })),
+        (error) => console.warn('Live feedback subscription failed:', error.message)
+      );
+    },
+
+    /** Save a feedback review to Firestore. Returns doc id or null (not signed in). */
+    async addFeedback({ patientId, rating, reviewer, comments }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('feedback').add({
+        patientId: patientId || 'P-001',
+        rating: rating || '5',
+        reviewer: reviewer || 'Anonymous Staff',
+        comments: comments || '',
+        authorUid: ctx.auth.currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return ref.id;
+    },
+
+    /** Uploaded documents (Documents page), newest first. */
+    async getDocuments() {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const snap = await ctx.db.collection('documents').orderBy('createdAt', 'desc').get();
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return { id: d.id, name: x.name || 'Untitled', size: x.size || 0, type: x.type || '', ext: x.ext || '', uploadedBy: x.uploadedBy || '', uploader: x.uploader || '', dataUrl: x.dataUrl || '', createdAt: ts };
+      });
+    },
+
+    async watchDocuments(callback) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      return ctx.db.collection('documents').orderBy('createdAt', 'desc').onSnapshot(
+        (snap) => callback(snap.docs.map((d) => {
+          const x = d.data();
+          const ts = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+          return { id: d.id, name: x.name || 'Untitled', size: x.size || 0, type: x.type || '', ext: x.ext || '', uploadedBy: x.uploadedBy || '', uploader: x.uploader || '', dataUrl: x.dataUrl || '', createdAt: ts };
+        })),
+        (error) => console.warn('Live documents subscription failed:', error.message)
+      );
+    },
+
+    /** Store an uploaded document (metadata + inline content for small files). */
+    async addDocument({ name, size, type, ext, dataUrl, uploader }) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      const ref = await ctx.db.collection('documents').add({
+        name,
+        size: size || 0,
+        type: type || '',
+        ext: ext || '',
+        dataUrl: dataUrl || '',
+        uploader: uploader || 'Staff',
+        uploadedBy: ctx.auth.currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return ref.id;
+    },
+
+    /** Delete a document the signed-in user uploaded. */
+    async deleteDocument(docId) {
+      const ctx = await fb();
+      if (!ctx) return null;
+      await ctx.db.collection('documents').doc(docId).delete();
+      return true;
+    },
+
+    /** Current signed-in Firebase user (or null). */
+    async currentUser() {
+      const ctx = await fb();
+      return ctx ? ctx.auth.currentUser : null;
+    },
+  };
+
+  window.mproDb = api;
+})();

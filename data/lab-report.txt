@@ -1,0 +1,41 @@
+==========================================
+  MediCare Pro — Laboratory Report
+  Report ID: LR-20241105-0042
+==========================================
+
+Patient:    Juan Dela Cruz (ID: P-002)
+DOB:        March 15, 1978
+Ward:       Endocrinology – Room 214
+Physician:  Dr. E. Santos, Sp.IM, Sp.EM
+
+Test:       Fasting Blood Glucose (FBG)
+Result:     8.2 mmol/L  [ELEVATED]
+Reference:  3.9 – 6.1 mmol/L
+
+Test:       HbA1c
+Result:     7.9%  [ELEVATED]
+Reference:  < 5.7% (Normal), 5.7-6.4% (Prediabetes), ≥ 6.5% (Diabetes)
+
+Test:       Creatinine
+Result:     88 µmol/L  [NORMAL]
+Reference:  62 – 106 µmol/L
+
+Test:       Total Cholesterol
+Result:     6.1 mmol/L  [BORDERLINE HIGH]
+Reference:  < 5.2 mmol/L
+
+Collected:  2024-11-05 07:30 AM
+Reported:   2024-11-05 10:15 AM
+Lab Tech:   M. Cruz, RMT
+
+Notes:
+Patient is a known Type 2 Diabetic on Metformin 500mg BID.
+Glucose and HbA1c elevated despite medication compliance.
+Recommend intensifying treatment. Refer to dietitian.
+Next follow-up: 2024-12-05
+
+==========================================
+  CONFIDENTIAL MEDICAL RECORD
+  Unauthorized access is a violation of
+  Republic Act No. 10173 (Data Privacy Act)
+==========================================

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Reports – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="folder" data-icon-size="18"></span> Lab Reports</h1>
+          <p>View laboratory test results and diagnostic reports.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="folderGrid" data-icon-size="18"></div>
+              <h2>Report File Viewer</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Enter a report file path to view its contents.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Report File Path</label>
+                <input type="text" class="form-control mono" id="filePath" value="reports/lab-report.txt" placeholder="e.g. reports/lab-report.txt">
+              </div>
+              <div style="background:var(--gray-900);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;font-size:11.5px;color:#94a3b8;">
+                <span style="color:#64748b;">Request: </span>
+                <span id="apiPreview" style="color:#fbbf24;">GET /api/file?path=reports/lab-report.txt</span>
+              </div>
+              <button class="btn btn-primary" onclick="loadFile()"><span data-icon="folder" data-icon-size="14"></span> Load Report</button>
+
+              <div class="response-box" id="fileOutput" style="margin-top:14px;max-height:300px;overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="clipboard" data-icon-size="18"></div>
+              <h2>Available Reports</h2>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/lab-report.txt')"><span data-icon="document" data-icon-size="13"></span> Lab Report — Juan Dela Cruz (P-002)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/blood-work-p001.txt')"><span data-icon="drop" data-icon-size="13"></span> Blood Work — Maria Santos (P-001)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/xray-chest-p003.txt')"><span data-icon="lungs" data-icon-size="13"></span> Chest X-Ray — Ana Reyes (P-003)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/mri-brain-p004.txt')"><span data-icon="brain" data-icon-size="13"></span> Brain MRI — Pedro Bautista (P-004)</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="setFile('reports/ecg-p005.txt')"><span data-icon="heart" data-icon-size="13"></span> ECG Report — Rosario Garcia (P-005)</button>
+              </div>
+
+              <div class="divider" style="margin:14px 0;"></div>
+              <p style="font-size:12px;color:var(--gray-500);">
+                Reports are stored in the hospital reports directory. Select one above or enter its file path to load it.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laboratory Results (Firestore) -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-teal" data-icon="flask" data-icon-size="18"></div>
+            <h2>Recent Laboratory Results</h2>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead><tr><th>Report ID</th><th>Patient</th><th>Test</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="labResultsBody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">Loading results…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:11px;color:var(--gray-500);margin-top:10px;" id="labResultsNote">
+              Latest diagnostic results from the laboratory and imaging departments.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('file-inclusion.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Lab Reports', 'View laboratory test results and diagnostic reports');
+
+    document.getElementById('filePath').addEventListener('input', () => {
+      document.getElementById('apiPreview').textContent = `GET /api/file?path=${document.getElementById('filePath').value}`;
+    });
+
+    function setFile(p) {
+      document.getElementById('filePath').value = p;
+      document.getElementById('apiPreview').textContent = `GET /api/file?path=${p}`;
+    }
+
+    const SIMULATED_FILES = {
+      'reports/lab-report.txt': `MediCare Pro — Lab Report #LR-20241105\nPatient: Juan Dela Cruz (ID: P-002)\nTest: Fasting Blood Glucose\nResult: 8.2 mmol/L (ELEVATED)\nReference: 3.9-6.1 mmol/L\nDate: 2024-11-05 08:30\nOrdered by: Dr. Santos\nNotes: Patient should return for HbA1c test within 2 weeks.`,
+
+      'reports/blood-work-p001.txt': `MediCare Pro — Blood Work Report\nPatient: Maria Santos (ID: P-001)\nTest: Complete Blood Count (CBC)\nWBC: 7.2 x10^9/L [NORMAL]\nRBC: 4.8 x10^12/L [NORMAL]\nHemoglobin: 13.2 g/dL [NORMAL]\nPlatelets: 245 x10^9/L [NORMAL]\nDate: 2024-11-04 09:00`,
+
+      'reports/xray-chest-p003.txt': `MediCare Pro — Chest X-Ray Report\nPatient: Ana Reyes (ID: P-003)\nFindings: Mild bilateral bronchial wall thickening.\nLungs: No consolidation or effusion.\nHeart: Normal size and contour.\nImpression: Consistent with mild asthma.\nRadiologist: Dr. Tan`,
+
+      'reports/mri-brain-p004.txt': `MediCare Pro — Brain MRI Report\nPatient: Pedro Bautista (ID: P-004)\nFindings: No acute intracranial abnormality.\nWhite matter: Age-appropriate changes.\nVentricles: Normal size and configuration.\nImpression: Unremarkable brain MRI.\nRadiologist: Dr. Tan`,
+
+      'reports/ecg-p005.txt': `MediCare Pro — ECG Report\nPatient: Rosario Garcia (ID: P-005)\nRate: 72 bpm\nRhythm: Normal sinus\nAxis: Normal\nIntervals: PR 160ms, QRS 90ms, QTc 420ms\nST-T: Mild ST depression in leads V4-V6\nImpression: Mild ischemic changes. Recommend cardiology consult.`
+    };
+
+    async function loadFile() {
+      const filePath = document.getElementById('filePath').value.trim();
+      const out = document.getElementById('fileOutput');
+      out.classList.add('show');
+      out.classList.remove('error');
+
+      try {
+        const res = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
+        if (res.ok) {
+          const text = await res.text();
+          out.textContent = text;
+          return;
+        }
+      } catch(e) {}
+
+      const simulated = SIMULATED_FILES[filePath];
+      if (simulated) {
+        out.textContent = `[FILE CONTENT: ${filePath}]\n${'─'.repeat(50)}\n${simulated}`;
+      } else {
+        out.classList.add('error');
+        out.textContent = `[ERROR] ENOENT: no such file or directory, open '${filePath}'\n\nPlease check the file path and try again. Use one of the available reports from the list.`;
+      }
+    }
+
+    // ---- Laboratory results browser (Firestore-backed; fallback mirrors demo files) ----
+    const FALLBACK_REPORTS = [
+      { reportId: 'LR-20241105',  patientId: 'P-002', patientName: 'Juan Dela Cruz',   test: 'Fasting Blood Glucose', result: '8.2 mmol/L (ELEVATED)',   reference: '3.9-6.1 mmol/L',   status: 'completed', date: '2024-11-05', department: 'Laboratory', orderedBy: 'Dr. Santos' },
+      { reportId: 'LR-20241104',  patientId: 'P-001', patientName: 'Maria Santos',     test: 'Complete Blood Count',  result: 'WBC 7.2, Hb 13.2, PLT 245 — NORMAL', reference: 'Standard ranges', status: 'completed', date: '2024-11-04', department: 'Laboratory', orderedBy: 'Dr. Santos' },
+      { reportId: 'LR-20241104',  patientId: 'P-003', patientName: 'Ana Reyes',        test: 'Chest X-Ray',           result: 'Mild bilateral bronchial wall thickening.', reference: 'Radiologist read', status: 'completed', date: '2024-11-04', department: 'Radiology', orderedBy: 'Dr. Tan' },
+      { reportId: 'LR-20241104',  patientId: 'P-004', patientName: 'Pedro Bautista',   test: 'Brain MRI',             result: 'No acute intracranial abnormality.',      reference: 'Radiologist read', status: 'completed', date: '2024-11-04', department: 'Radiology', orderedBy: 'Dr. Tan' },
+      { reportId: 'LR-20241105',  patientId: 'P-005', patientName: 'Rosario Garcia',   test: 'ECG Report',            result: 'Mild ST depression V4-V6. Recommend cardiology consult.', reference: 'Cardiology read', status: 'completed', date: '2024-11-05', department: 'Cardiology', orderedBy: 'Dr. Santos' },
+    ];
+
+    let lastReports = [];
+
+    function reportModalHTML(r) {
+      const pending = /pending/i.test(r.status || '');
+      let html = kv('Report ID', escapeHtml(r.reportId));
+      html += kv('Patient', escapeHtml([r.patientName, r.patientId].filter(Boolean).join(' (')) + (r.patientId ? ')' : ''));
+      html += kv('Test', escapeHtml(r.test));
+      html += kv('Result', pending ? statusChip('Pending') : escapeHtml(r.result));
+      html += kv('Reference', escapeHtml(r.reference));
+      html += kv('Status', statusChip(r.status));
+      html += kv('Ordered By', escapeHtml(r.orderedBy));
+      html += kv('Department', escapeHtml(r.department));
+      html += kv('Report Date', escapeHtml(r.date));
+      return html;
+    }
+
+    function viewReport(idx) {
+      const r = lastReports[idx];
+      if (!r) return;
+      openModal({
+        title: icon('flask', 14) + ' Laboratory Report',
+        subtitle: escapeHtml(r.reportId || 'Report'),
+        body: reportModalHTML(r),
+        footer: '<button class="btn btn-outline btn-sm" onclick="closeModal()">Close</button>',
+      });
+    }
+
+    function renderReports(list) {
+      const body = document.getElementById('labResultsBody');
+      const note = document.getElementById('labResultsNote');
+      if (!body) return;
+      lastReports = list;
+      body.innerHTML = list.length
+        ? list.map((r, i) =>
+            `<tr><td style="font-family:monospace;font-size:11.5px;">${escapeHtml(r.reportId)}</td>` +
+            `<td>${escapeHtml(r.patientName)}<div style="font-size:11px;color:var(--gray-500);">${escapeHtml(r.patientId)}</div></td>` +
+            `<td>${escapeHtml(r.test)}</td><td>${escapeHtml(r.date || '')}</td>` +
+            `<td>${statusChip(r.status)}</td>` +
+            `<td><button class="btn-link" onclick="viewReport(${i})">View report »</button></td></tr>`
+          ).join('')
+        : '<tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:18px;">No reports on file.</td></tr>';
+      if (note) note.textContent = list.length && list !== FALLBACK_REPORTS
+        ? `Source: laboratory records database — ${list.length} results.`
+        : 'Latest diagnostic results from the laboratory and imaging departments.';
+    }
+
+    (async function initLabReports() {
+      try {
+        const reports = await window.mproDb.getLabReports();
+        renderReports(reports && reports.length ? reports : FALLBACK_REPORTS);
+        return;
+      } catch (e) { /* fall through to fallback list */ }
+      renderReports(FALLBACK_REPORTS);
+    })();
+  </script>
+</body>
+</html>

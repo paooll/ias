@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Records – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="clipboard" data-icon-size="18"></span> Patient Records</h1>
+          <p>Search and retrieve patient information by ID.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="db" data-icon-size="18"></div>
+              <h2>Patient Record Lookup</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Enter a patient ID to retrieve their records from the database.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Patient ID</label>
+                <input type="text" class="form-control mono" id="sqlInput" placeholder="e.g. 1" value="1">
+              </div>
+              <button class="btn btn-primary" onclick="doQuery()">Search Records</button>
+
+              <div id="sqlResult" style="margin-top:16px;display:none;">
+                <div class="divider"></div>
+                <p style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">Results: <span id="resultCount" style="color:var(--red-600);">0 rows</span></p>
+                <div style="overflow-x:auto;">
+                  <table class="data-table" id="resultsTable">
+                    <thead><tr id="tableHead"></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                  </table>
+                </div>
+                <div class="response-box show" id="queryLog"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="people" data-icon-size="18"></div>
+              <h2>Quick Select Patient</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Click a patient to load their record:</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('1')">Patient 1 — Maria Santos (Cardiology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('2')">Patient 2 — Juan Dela Cruz (Endocrinology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('3')">Patient 3 — Ana Reyes (Pulmonology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('4')">Patient 4 — Pedro Bautista (Rheumatology)</button>
+                <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('5')">Patient 5 — Rosario Garcia (Cardiology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('6')">Patient 6 — Jose Ramirez (Cardiology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('7')">Patient 7 — Liza Mendoza (Cardiology)</button>
+              <button class="btn btn-outline btn-sm" style="justify-content:flex-start;" onclick="setPayload('15')">Patient 15 — Teresa Flores (Pulmonology)</button>
+              </div>
+
+              <div class="divider" style="margin:16px 0;"></div>
+              <p style="font-size:12px;color:var(--gray-500);" id="dataSourceNote">
+                Records are retrieved from the hospital patient database.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drug Reference (openFDA live data) -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-icon card-icon-teal" data-icon="pills" data-icon-size="18"></div>
+            <h2>Drug Reference — FDA Information</h2>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-700);margin-bottom:14px;">
+              Look up official FDA labeling and reported adverse events for any medication —
+              live from the <strong>openFDA</strong> public database. Try the medications on
+              file: <span style="font-weight:600;">Amlodipine</span>, <span style="font-weight:600;">Insulin</span>, <span style="font-weight:600;">Salbutamol</span>, <span style="font-weight:600;">Aspirin</span>.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <input type="text" class="form-control" id="drugInput" placeholder="e.g. amoxicillin, metformin…"
+                     style="flex:1;min-width:200px;" maxlength="60" onkeydown="if(event.key==='Enter')lookupDrug()">
+              <button class="btn btn-primary" id="drugBtn" onclick="lookupDrug()"><span data-icon="search" data-icon-size="14"></span> Look Up Drug</button>
+            </div>
+            <div id="drugResult" style="margin-top:16px;display:none;"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('sql-injection.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Records', 'Search and manage patient information');
+
+    // Firestore is the source of truth for patient records. `mproDb.getPatients()`
+    // returns null when Firebase is unavailable or nobody is signed in, which is
+    // the signal to fall back to /api/sql.
+    let patientCache = null;
+
+    const patientLoadPromise = (async function loadPatients() {
+      try {
+        const patients = await window.mproDb.getPatients();
+        if (!patients || !patients.length) return;
+        patientCache = patients;
+        document.getElementById('dataSourceNote').textContent =
+          `Records are retrieved from the hospital patient database — ${patients.length} patients on file.`;
+      } catch (e) {
+        // Firebase not configured — the caption keeps its default wording.
+      }
+    })();
+
+    function setPayload(p) {
+      document.getElementById('sqlInput').value = p;
+    }
+
+    // SECURE LOOKUP — the search term is only ever compared, never parsed.
+    //
+    // Each candidate must equal the term exactly (or equal its P-000 form).
+    // There is no pattern matching, so a value like "1' OR '1'='1" simply
+    // does not equal any patient's id or patientId and matches nothing.
+    function findPatients(list, term) {
+      const needle = String(term == null ? '' : term).trim();
+      if (!needle) return [];
+      const lower = needle.toLowerCase();
+      return list.filter((p) =>
+        String(p.id) === needle ||
+        String(p.patientId || '').toLowerCase() === lower ||
+        String(p.docId || '').toLowerCase() === lower
+      );
+    }
+
+    const COLUMNS = [
+      { key: 'patientId', label: 'Patient ID' },
+      { key: 'name', label: 'Name' },
+      { key: 'diagnosis', label: 'Diagnosis' },
+      { key: 'department', label: 'Department' },
+      { key: 'ward', label: 'Ward' },
+      { key: 'status', label: 'Status' },
+    ];
+
+    async function doQuery() {
+      const input = document.getElementById('sqlInput').value;
+
+      // Wait for Firestore so an early click doesn't fall through to the
+      // 5-record offline fallback.
+      await patientLoadPromise;
+
+      if (patientCache) {
+        const results = findPatients(patientCache, input);
+        renderResults(results, results.length
+          ? `> Source: hospital patient database (Firestore)\n> Matched on an exact patient ID — ${results.length} record(s).`
+          : `> Source: hospital patient database (Firestore)\n> No patient matches that ID. Enter a numeric ID such as 1, or its P-000 form such as P-001.`);
+        return;
+      }
+
+      // Fallback: the server-side lookup, also parameterized.
+      try {
+        const res = await fetch(`/api/sql?id=${encodeURIComponent(input)}`);
+        const data = await res.json();
+        renderResults(data.results || [],
+          `> Source: offline fallback records (Firestore unreachable)\n> Query: ${data.query}\n> Bound parameter: ${JSON.stringify((data.params || [])[0] ?? '')}\n> Rows: ${(data.results || []).length}`);
+      } catch (e) {
+        renderResults([], `> Could not load patient records.\n> ${e.message}`);
+      }
+    }
+
+    // Holds the records of the last rendered result set, so the View button can
+    // open a full patient-detail modal without embedding data in markup.
+    let lastResultRows = [];
+
+    function viewPatientRow(idx) {
+      const rec = lastResultRows[idx];
+      if (!rec) return;
+      openPatientModal(rec);
+    }
+
+    function renderResults(results, log) {
+      const wrap = document.getElementById('sqlResult');
+      wrap.style.display = 'block';
+      document.getElementById('resultCount').textContent = `${results.length} row(s) found`;
+
+      const logEl = document.getElementById('queryLog');
+      logEl.textContent = log;
+
+      const head = document.getElementById('tableHead');
+      const body = document.getElementById('tableBody');
+
+      if (!results.length) {
+        head.innerHTML = '';
+        body.innerHTML = `<tr><td colspan="${COLUMNS.length}" style="text-align:center;color:var(--gray-500);padding:20px;">No records found</td></tr>`;
+        return;
+      }
+
+      lastResultRows = results;
+      head.innerHTML = COLUMNS.map(c => `<th>${c.label}</th>`).join('') + '<th>Action</th>';
+
+      // escapeHtml on every cell: record fields are user-influenced data and
+      // must never be parsed as markup.
+      body.innerHTML = results.map((r, i) =>
+        '<tr>' +
+        COLUMNS.map(c => {
+          const v = r[c.key];
+          const text = v === undefined || v === null ? '' : String(v);
+          return `<td style="font-size:12px;">${escapeHtml(text)}</td>`;
+        }).join('') +
+        `<td style="font-size:12px;"><button class="btn-link" onclick="viewPatientRow(${i})">View details »</button></td>` +
+        '</tr>'
+      ).join('');
+    }
+
+    /* ---- Drug Reference (openFDA) ---- */
+    const esc2 = escapeHtml;
+
+    async function lookupDrug() {
+      const input = document.getElementById('drugInput');
+      const btn = document.getElementById('drugBtn');
+      const wrap = document.getElementById('drugResult');
+      const name = input.value.trim();
+      if (!name) { input.focus(); return; }
+
+      btn.disabled = true;
+      wrap.style.display = 'block';
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--gray-500);font-style:italic;">Querying the FDA database…</p>';
+
+      try {
+        const res = await fetch('/api/drug-info?name=' + encodeURIComponent(name));
+        const data = await res.json();
+        if (!res.ok) {
+          // Helpful empty state: suggest next steps instead of a dead end.
+          wrap.innerHTML =
+            '<div style="background:var(--chipbg-orange);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:14px 16px;">' +
+              '<p style="font-size:13px;font-weight:700;color:#c2410c;display:flex;align-items:center;gap:7px;">' +
+                icon('warning', 14) + ' No FDA records found</p>' +
+              '<p style="font-size:12.5px;color:#9a3412;margin-top:6px;">' + esc2(data.error || 'Nothing matched your search.') + '</p>' +
+              '<p style="font-size:12px;color:#9a3412;margin-top:6px;">Try common medications: aspirin · metformin · lisinopril · atorvastatin</p>' +
+            '</div>';
+          return;
+        }
+
+        const L = data.label || {};
+        const section = (title, text) => text ?
+          `<div style="margin-top:10px;"><div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">${title}</div>` +
+          `<p style="font-size:12.5px;color:var(--gray-700);line-height:1.55;margin-top:3px;">${esc2(text)}</p></div>` : '';
+
+        const aeRows = (data.adverseEvents || []).map(a =>
+          `<tr><td style="font-size:12px;">${esc2(a.reaction)}</td>` +
+          `<td style="font-size:12px;text-align:right;font-weight:600;">${a.count.toLocaleString()}</td></tr>`
+        ).join('');
+
+        wrap.innerHTML =
+          '<div style="border:1px solid var(--glass-border);border-radius:14px;padding:16px 18px;background:var(--gray-50);">' +
+            '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">' +
+              `<span style="font-size:16px;font-weight:700;color:var(--text-1);">${esc2(L.brand || data.drug)}</span>` +
+              (L.generic && L.generic.toLowerCase() !== String(data.drug).toLowerCase() ?
+                `<span style="font-size:12px;color:var(--text-3);">generic: ${esc2(L.generic)}</span>` : '') +
+              '<span class="chip chip-teal" style="margin-left:auto;">FDA verified</span>' +
+            '</div>' +
+            (L.manufacturer ? `<p style="font-size:11.5px;color:var(--text-3);margin-top:2px;">Manufactured by ${esc2(L.manufacturer)}</p>` : '') +
+            section('Indications & Purpose', L.purpose) +
+            section('Warnings & Precautions', L.warnings) +
+            section('Dosage & Administration', L.dosage) +
+            (aeRows ?
+              '<div style="margin-top:14px;"><div style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">' +
+                `Most-Reported Adverse Events${data.eventCount ? ' · ' + Number(data.eventCount).toLocaleString() + ' total reports' : ''}</div>` +
+              '<div style="overflow-x:auto;"><table class="data-table" style="min-width:280px;"><thead><tr><th>Reaction</th><th style="text-align:right;">Reports</th></tr></thead><tbody>' + aeRows + '</tbody></table></div>' +
+              '<p style="font-size:10.5px;color:var(--text-3);margin-top:6px;">Report counts reflect FDA submissions, not proven causation.</p></div>' : '') +
+            `<p style="font-size:10.5px;color:var(--text-3);margin-top:12px;">Data source: U.S. FDA openFDA (public data) · reference use only, not medical advice.</p>` +
+          '</div>';
+      } catch (e) {
+        wrap.innerHTML =
+          '<p style="font-size:13px;color:var(--red-600);display:flex;align-items:center;gap:7px;">' +
+          icon('warning', 14) + ' Could not reach the FDA database. Please try again shortly.</p>';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

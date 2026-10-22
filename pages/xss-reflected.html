@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Search – MediCare Pro</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main">
+      <div id="topnavMount"></div>
+      <div class="page-content">
+
+        <div class="page-header">
+          <h1><span data-icon="search" data-icon-size="18"></span> Patient Search</h1>
+          <p>Search for patients by name across all departments.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-teal" data-icon="search" data-icon-size="18"></div>
+              <h2>Patient Search</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">
+                Enter a patient name to search across all departments.
+              </p>
+              <div class="form-group">
+                <label class="form-label">Search Patient Name</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="e.g. Maria Santos">
+              </div>
+              <button class="btn btn-primary" onclick="doSearch()">Search</button>
+
+              <div style="margin-top:20px;" id="searchResults" class="hidden">
+                <div class="divider"></div>
+                <div style="font-size:13px;color:var(--gray-700);margin-bottom:12px;">
+                  Showing results for: "<span id="reflectedOutput" style="color:var(--blue-600);"></span>"
+                </div>
+                <table class="data-table">
+                  <thead><tr><th>Patient ID</th><th>Name</th><th>Department</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody id="mockResults"></tbody>
+                </table>
+                <p style="font-size:11px;color:var(--gray-500);margin-top:8px;" id="searchSourceNote"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue" data-icon="lightbulb" data-icon-size="18"></div>
+              <h2>Common Searches</h2>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-700);margin-bottom:12px;">
+                Search patients by their full or partial name.
+              </p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="injectPayload('Maria')">Maria Santos</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="injectPayload('Juan')">Juan Dela Cruz</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="injectPayload('Ana')">Ana Reyes</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="injectPayload('Pedro')">Pedro Bautista</button>
+                <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="injectPayload('Rosario')">Rosario Garcia</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/chat-widget.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase.js"></script>
+  <script>
+    document.getElementById('sidebarMount').outerHTML = renderSidebar('xss-reflected.html');
+    document.getElementById('topnavMount').outerHTML = renderTopnav('Patient Search', 'Search patients by name across departments');
+
+    // Check URL param on load
+    const urlParam = new URLSearchParams(location.search).get('name');
+    if (urlParam) {
+      document.getElementById('searchInput').value = urlParam;
+      doSearch();
+    }
+
+    const MOCK_PATIENTS = [
+      { id: 'P-001', name: 'Maria Santos', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-002', name: 'Juan Dela Cruz', dept: 'Endocrinology', status: 'Outpatient' },
+      { id: 'P-003', name: 'Ana Reyes', dept: 'Pulmonology', status: 'Admitted' },
+      { id: 'P-004', name: 'Pedro Bautista', dept: 'Rheumatology', status: 'Outpatient' },
+      { id: 'P-005', name: 'Rosario Garcia', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-006', name: 'Jose Ramirez', dept: 'Cardiology', status: 'Admitted' },
+      { id: 'P-015', name: 'Teresa Flores', dept: 'Pulmonology', status: 'Admitted' },
+      { id: 'P-026', name: 'Victor Manalo', dept: 'Neurology', status: 'Admitted' },
+    ];
+
+    // Last rendered result set, so View can open the full patient record.
+    let lastSearchRows = [];
+
+    function viewSearchResult(idx) {
+      const rec = lastSearchRows[idx];
+      if (rec) openPatientModal(rec);
+    }
+
+    // Normalize any record (Firestore or mock) to the shared patient shape.
+    function normalizePatient(p) {
+      return {
+        id: p.id,
+        patientId: p.patientId || (p.id && String(p.id).startsWith('P-') ? p.id : null),
+        name: p.name || '',
+        department: p.department || p.dept || '',
+        status: p.status || '',
+        diagnosis: p.diagnosis || '',
+        physician: p.physician || '',
+        ssn: p.ssn || '',
+        notes: p.notes || '',
+        room: p.room || '',
+        ward: p.ward || '',
+        dob: p.dob || '',
+        gender: p.gender || '',
+        bloodType: p.bloodType || '',
+        medications: p.medications || '',
+        allergies: p.allergies || [],
+        admitDate: p.admitDate || '',
+        phone: p.phone || '',
+      };
+    }
+
+    function renderSearchRows(rows, noteText) {
+      const tbody = document.getElementById('mockResults');
+      const note = document.getElementById('searchSourceNote');
+      const list = rows.length ? rows : MOCK_PATIENTS.map(normalizePatient);
+      lastSearchRows = list;
+      tbody.innerHTML = list.map((p, i) =>
+        `<tr><td>${p.patientId || p.id}</td><td>${p.name}</td><td>${p.department}</td>` +
+        `<td>${statusChip(p.status)}</td>` +
+        `<td><button class="btn-link" onclick="viewSearchResult(${i})">View »</button></td></tr>`
+      ).join('');
+      if (note) note.textContent = noteText || '';
+    }
+
+    async function doSearch() {
+      const input = document.getElementById('searchInput').value;
+      const results = document.getElementById('searchResults');
+      const reflected = document.getElementById('reflectedOutput');
+
+      results.classList.remove('hidden');
+
+      // VULNERABLE (intentional lab): innerHTML — scripts and HTML execute (reflected XSS lab)
+      reflected.innerHTML = input;
+
+      // Prefer real Firestore data; fall back to the mock list.
+      try {
+        const real = await window.mproDb.searchPatients(input);
+        if (real) {
+          renderSearchRows(real.map(normalizePatient),
+            real.length ? `Source: Firestore — ${real.length} record(s) found.` : '');
+          return;
+        }
+      } catch (e) { /* fall through to mock */ }
+
+      const q = input.toLowerCase().replace(/<[^>]*>/g, '');
+      const filtered = MOCK_PATIENTS.map(normalizePatient)
+        .filter(p => (p.name || '').toLowerCase().includes(q));
+      renderSearchRows(filtered, 'Source: simulated demo data.');
+    }
+
+    function injectPayload(p) {
+      document.getElementById('searchInput').value = p;
+      doSearch();
+    }
+  </script>
+</body>
+</html>
